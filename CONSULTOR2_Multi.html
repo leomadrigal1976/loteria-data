@@ -27806,6 +27806,24 @@ ${groups.map((g,i)=>`
                 // último número por lotería (para "después de")
                 var _ultNumLot = {};
                 serie.forEach(function(e) { _ultNumLot[e.lot] = e.n; });
+
+                // ═══ V46.9.120 (pedido de Leo): dos señales más ═══════════════════════
+                // Se precalculan UNA vez (mapas), así dentro del cálculo por número solo
+                // hay búsquedas instantáneas — no reprocesa los datos por cada número.
+                // 1) TERMINACIÓN CALIENTE: cuántas veces salió cada terminación HOY
+                //    sumando TODAS las loterías de 2 díg (las de 3 díg ya están fuera de
+                //    la serie). Es un conteo global del día, como en Don Jorge. 2+ = caliente.
+                var _ultDiaDatos = serie.length ? serie[serie.length - 1].date : hoyStr;
+                var _termHoyTotal = {}; // {term: count} global del día
+                serie.forEach(function(e) {
+                    if (e.date !== _ultDiaDatos) return;
+                    var t = e.n[1];
+                    _termHoyTotal[t] = (_termHoyTotal[t] || 0) + 1;
+                });
+                // 2) INVERSO RECIENTE: última fecha en que salió el inverso de cada
+                //    número, por lotería (ya lo tengo en ultPorNumLot). Se considera
+                //    "reciente" si el inverso salió en los últimos 2 días.
+
                 // mapa "después de X → {siguiente: veces}" por lotería, calculado on-demand
                 var _despCache = {};
                 function _despDe(lot, numAnterior) {
@@ -27824,9 +27842,14 @@ ${groups.map((g,i)=>`
 
                 function senalesDe(nn) {
                     var dec = nn[0], term = nn[1];
-                    var out = { rezEnLots: [], decPend: [], termPend: [], despues: [], vib: false, pmGrupo: [] };
-                    // vibración
+                    var inverso = nn[1] + nn[0];
+                    var out = { rezEnLots: [], decPend: [], termPend: [], despues: [], vib: false, pmGrupo: [], invReciente: [] };
+                    // vibración (global del día)
                     out.vib = !!_vibHoy[nn];
+                    // V46.9.121: terminación caliente = conteo GLOBAL del día en todas las
+                    // loterías de 2 díg (como en Don Jorge). Señal del número, no por lotería.
+                    out.termCalienteHoy = _termHoyTotal[term] || 0;
+                    out.termCaliente = (out.termCalienteHoy >= 2);
                     lotsActivas.forEach(function(L) {
                         // rezagado en L (>= 15 días sin salir ahí)
                         var ult = (ultPorNumLot[nn] || {})[L];
@@ -27844,10 +27867,26 @@ ${groups.map((g,i)=>`
                             var sig = _despDe(L, ultN);
                             if (sig[nn]) out.despues.push({ lot: L, tras: ultN, veces: sig[nn] });
                         }
+                        // V46.9.120: el inverso salió en los últimos 2 días en esa lotería
+                        if (!(nn === inverso)) {
+                            var ultInv = (ultPorNumLot[inverso] || {})[L];
+                            if (ultInv) { var di = difDias(ultInv, hoyStr); if (di <= 2) out.invReciente.push({ lot: L, dias: di, fecha: ultInv }); }
+                        }
                     });
                     // puntaje simple para ordenar (cada tipo de señal suma)
                     out.score = out.rezEnLots.length + out.decPend.length + out.termPend.length +
-                                out.despues.length + (out.vib ? 2 : 0) + out.pmGrupo.length * 2;
+                                out.despues.length + (out.vib ? 2 : 0) + out.pmGrupo.length * 2 +
+                                (out.termCaliente ? 1 : 0) + out.invReciente.length;
+                    // V46.9.119: confluencia POR LOTERÍA
+                    var conf = {};
+                    function bump(L, tipo) { if (!conf[L]) conf[L] = { lot: L, score: 0, tipos: [] }; conf[L].score++; conf[L].tipos.push(tipo); }
+                    out.rezEnLots.forEach(function(x) { bump(x.lot, 'rezagado' + (x.dias !== null ? ' ' + x.dias + 'd' : '')); });
+                    out.decPend.forEach(function(L) { bump(L, 'decena pendiente'); });
+                    out.termPend.forEach(function(L) { bump(L, 'terminación pendiente'); });
+                    out.despues.forEach(function(x) { bump(x.lot, 'sale después del ' + x.tras); });
+                    out.invReciente.forEach(function(x) { bump(x.lot, 'inverso ' + inverso + ' salió hace ' + x.dias + 'd'); });
+                    out.pmGrupo.forEach(function(L) { conf[L] = conf[L] || { lot: L, score: 0, tipos: [] }; conf[L].score += 2; conf[L].tipos.push('grupo rezagado PM'); });
+                    out.porLoteria = Object.keys(conf).map(function(L) { return conf[L]; }).sort(function(a, b) { return b.score - a.score; });
                     return out;
                 }
 
@@ -28008,10 +28047,23 @@ ${groups.map((g,i)=>`
                                     if (sn.termPend.length) badges.push('<span title="Terminacion x' + p.num[1] + ' pendiente en: ' + sn.termPend.join(', ') + '" style="background:rgba(56,189,248,0.15);border:1px solid #7dd3fc;border-radius:4px;padding:1px 5px;font-size:8px;color:#bae6fd;">\ud83c\udf80 term pend ' + sn.termPend.length + '</span>');
                                     if (sn.despues.length) badges.push('<span title="Tiende a salir despues del ultimo numero de: ' + sn.despues.map(function(x){return x.lot+' (tras '+x.tras+', '+x.veces+'x)';}).join(', ') + '" style="background:rgba(251,191,36,0.15);border:1px solid #fbbf24;border-radius:4px;padding:1px 5px;font-size:8px;color:#fde68a;">\u27a1\ufe0f despues en ' + sn.despues.length + '</span>');
                                     if (sn.vib) badges.push('<span title="Esta en la vibracion de hoy" style="background:rgba(236,72,153,0.18);border:1px solid #f9a8d4;border-radius:4px;padding:1px 5px;font-size:8px;color:#fbcfe8;">\u2728 vibracion</span>');
+                                    if (sn.termCaliente) badges.push('<span title="Su terminacion x' + p.num[1] + ' salio ' + sn.termCalienteHoy + ' veces hoy en total (todas las loterias de 2 digitos)" style="background:rgba(239,68,68,0.18);border:1px solid #fca5a5;border-radius:4px;padding:1px 5px;font-size:8px;color:#fecaca;">\ud83d\udd25 term caliente ' + sn.termCalienteHoy + 'x</span>');
+                                    if (sn.invReciente.length) badges.push('<span title="Su inverso ' + (p.num[1]+p.num[0]) + ' salio hace 1-2 dias en: ' + sn.invReciente.map(function(x){return x.lot+' ('+x.dias+'d)';}).join(', ') + '" style="background:rgba(139,92,246,0.15);border:1px solid #c4b5fd;border-radius:4px;padding:1px 5px;font-size:8px;color:#ddd6fe;">\ud83d\udd04 inverso reciente ' + sn.invReciente.length + '</span>');
                                     if (sn.pmGrupo.length) badges.push('<span title="En grupo rezagado del Panel Maestro en: ' + sn.pmGrupo.join(', ') + '" style="background:rgba(168,85,247,0.18);border:1px solid #d8b4fe;border-radius:4px;padding:1px 5px;font-size:8px;color:#e9d5ff;">\ud83c\udfaf PM ' + sn.pmGrupo.length + '</span>');
                                     var scoreCol = sn.score >= 6 ? '#6ee7b7' : sn.score >= 3 ? '#fde68a' : '#cbd5e1';
                                     grupoHTML += '<span style="font-size:8px;font-weight:bold;color:' + scoreCol + ';" title="Cuantas mas senales coincidan, mas peso tiene el numero">' + sn.score + ' senales:</span>';
                                     grupoHTML += badges.join(' ');
+                                }
+                                // V46.9.119: dónde SE CONCENTRAN las señales (más confluencia)
+                                if (sn.porLoteria && sn.porLoteria.length) {
+                                    var topConf = sn.porLoteria.filter(function(x) { return x.score >= 2; }).slice(0, 4);
+                                    if (topConf.length) {
+                                        grupoHTML += '<span style="font-size:8px;color:#fde68a;font-weight:bold;" title="Loterías donde este número junta más señales a la vez (rezago + decena/terminación pendiente + después + PM). Ahí la confluencia es más fuerte.">🎪 más señales:</span>';
+                                        topConf.forEach(function(cf, ci) {
+                                            var cc = ci === 0 ? '#fde68a' : 'rgba(253,230,138,0.6)';
+                                            grupoHTML += '<span title="' + cf.lot + ': ' + cf.score + ' señales — ' + cf.tipos.join(', ') + '" style="background:rgba(251,191,36,0.12);border:1px solid ' + cc + ';border-radius:4px;padding:1px 5px;font-size:9px;color:#fef3c7;">' + (ci === 0 ? '🎯' : '') + cf.lot + ' <strong style="color:' + cc + ';">' + cf.score + ' señ.</strong></span>';
+                                        });
+                                    }
                                 }
                                 var rkAll = rankLots(p.num, null);
                                 // V46.9.117: dónde está más VENCIDO (señal de rezago de Leo)
@@ -68675,7 +68727,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r52 · v46.9.118</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r55 · v46.9.121</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
