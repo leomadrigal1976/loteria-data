@@ -27675,10 +27675,29 @@ ${groups.map((g,i)=>`
                 var DIAS_VENTANA = 3;   // ventana para "salió también en otra lotería"
 
                 // Serie global ordenada (solo números de 2 díg tomando los 2 primeros)
+                // V46.9.117 (pedido de Leo): excluir loterías de 3 dígitos (Monazo,
+                // Tripleta Nica, etc.) — no tienen decena/terminación como las de 2 díg,
+                // así que no deben aparecer en este análisis de grupos.
+                var _es3dLot = {};
+                (function() {
+                    var muestra = {};
+                    for (var z = 0; z < capturedResults.length; z++) {
+                        var rz = capturedResults[z];
+                        if (!rz || !rz.lottery || !rz.number) continue;
+                        if (!muestra[rz.lottery]) muestra[rz.lottery] = { n2: 0, n3: 0 };
+                        if (String(rz.number).length >= 3) muestra[rz.lottery].n3++;
+                        else muestra[rz.lottery].n2++;
+                    }
+                    Object.keys(muestra).forEach(function(L) {
+                        _es3dLot[L] = muestra[L].n3 > muestra[L].n2;
+                    });
+                })();
+
                 var serie = [];
                 for (var i = 0; i < capturedResults.length; i++) {
                     var r = capturedResults[i];
                     if (!r || !r.lottery || !r.number || !r.date) continue;
+                    if (_es3dLot[r.lottery]) continue; // saltar loterías de 3 díg
                     var nn = String(r.number).substring(0, 2);
                     if (nn.length !== 2 || !/^[0-9]{2}$/.test(nn)) continue;
                     serie.push({ n: nn, lot: r.lottery, date: r.date, time: r.time || '' });
@@ -27723,7 +27742,7 @@ ${groups.map((g,i)=>`
                 // Ranking de loterías para un número: probabilidad real de que salga en 7 días
                 // (depende del volumen de sorteos), más el rezago de ese número ahí.
                 function rankLots(nn, excluir) {
-                    return lotsActivas.filter(function(L) { return L !== excluir; }).map(function(L) {
+                    var arr = lotsActivas.filter(function(L) { return L !== excluir; }).map(function(L) {
                         var ult = (ultPorNumLot[nn] || {})[L];
                         var dias = ult ? difDias(ult, hoyStr) : null;
                         var xd = xDiaLot[L] || 0;
@@ -27735,10 +27754,31 @@ ${groups.map((g,i)=>`
                             for (var w = 1; w < apsL.length; w++) sD += difDias(apsL[w - 1].date, apsL[w].date);
                             cicloD = sD / (apsL.length - 1);
                         }
+                        // rezago en SORTEOS de esa lotería (no solo días), que es como Leo lo ve
+                        var sorteosSin = 0, encontrado = false;
+                        for (var si = serie.length - 1; si >= 0; si--) {
+                            if (serie[si].lot !== L) continue;
+                            if (serie[si].n === nn) { encontrado = true; break; }
+                            sorteosSin++;
+                        }
                         return { lot: L, dias: dias, ult: ult, prob7: prob7, xDia: xd,
+                                 cicloD: cicloD, sorteosSin: encontrado ? sorteosSin : null,
                                  ratio: (cicloD && cicloD > 0 && dias !== null) ? (dias / cicloD) : null };
-                    }).sort(function(a, b) { return b.prob7 - a.prob7; });
+                    });
+                    return arr;
                 }
+                // ordenar por volumen (probabilidad real) o por rezago (más vencido)
+                function porVolumen(arr) { return arr.slice().sort(function(a, b) { return b.prob7 - a.prob7; }); }
+                function porRezago(arr) {
+                    return arr.slice().sort(function(a, b) {
+                        // priorizar ratio (vencido respecto a su ciclo); si no hay ciclo, por días
+                        var ra = a.ratio !== null ? a.ratio : (a.dias !== null ? a.dias / 30 : -1);
+                        var rb = b.ratio !== null ? b.ratio : (b.dias !== null ? b.dias / 30 : -1);
+                        return rb - ra;
+                    });
+                }
+                // marca legacy para el ranking simple usado en reapariciones
+                function rankLotsProb(nn, excluir) { return porVolumen(rankLots(nn, excluir)); }
 
                 // ═══ V46.9.116 (pedido de Leo): SEÑALES DE CONFLUENCIA por número ═══
                 // Para un número rezagado del grupo, junta señales que le dan más peso a
@@ -27890,16 +27930,23 @@ ${groups.map((g,i)=>`
                         var gInfo = gNames.map(function(g) {
                             var miembros = NUMBER_GROUPS[g] || [];
                             var ultG = null, salidas = 0;
+                            var fechasG = {}; // fechas distintas en que salió algún número del grupo
                             miembros.forEach(function(nn) {
                                 (porNum[nn] || []).forEach(function(a) {
                                     salidas++;
+                                    fechasG[a.date] = true;
                                     if (!ultG || a.date > ultG) ultG = a.date;
                                 });
                             });
                             var diasSinG = ultG ? difDias(ultG, hoyStr) : null;
-                            // frecuencia: salidas por semana
+                            // V46.9.118 (pedido de Leo): ¿estuvo DORMIDO y se acaba de reactivar?
+                            // Se mira el hueco que había ANTES de la última aparición del grupo.
+                            var fArr = Object.keys(fechasG).sort();
+                            var huecoPrevio = null;
+                            if (fArr.length >= 2) huecoPrevio = difDias(fArr[fArr.length - 2], fArr[fArr.length - 1]);
+                            // reactivado: salió hace <=2 días tras haber estado dormido >=5 días
+                            var reactivado = (diasSinG !== null && diasSinG <= 2 && huecoPrevio !== null && huecoPrevio >= 5);
                             var porSemana = salidas / (diasTotal / 7);
-                            // miembros pendientes: días sin salir de cada uno
                             var pendM = miembros.map(function(nn) {
                                 var aps = porNum[nn] || [];
                                 var ult = aps.length ? aps[aps.length - 1].date : null;
@@ -27910,21 +27957,30 @@ ${groups.map((g,i)=>`
                                 if (b.dias === null) return 1;
                                 return b.dias - a.dias;
                             });
-                            return { grupo: g, diasSinG: diasSinG, salidas: salidas, porSemana: porSemana, miembros: miembros.length, pend: pendM };
+                            return { grupo: g, diasSinG: diasSinG, salidas: salidas, porSemana: porSemana, miembros: miembros.length, pend: pendM, reactivado: reactivado, huecoPrevio: huecoPrevio, ultG: ultG };
                         }).sort(function(a, b) {
+                            // V46.9.118: primero los grupos que estuvieron dormidos y se
+                            // reactivaron (mayor tiempo dormido = señal más fuerte), luego los
+                            // que llevan más días sin salir.
+                            if (a.reactivado && !b.reactivado) return -1;
+                            if (!a.reactivado && b.reactivado) return 1;
+                            if (a.reactivado && b.reactivado) return (b.huecoPrevio || 0) - (a.huecoPrevio || 0);
                             if (a.diasSinG === null) return -1;
                             if (b.diasSinG === null) return 1;
                             return b.diasSinG - a.diasSinG;
                         });
 
                         grupoHTML += '<div style="font-size:13px;font-weight:bold;color:#7dd3fc;margin-top:14px;">📦 GRUPOS — ¿hace cuántos días dejó de salir cada uno?</div>';
-                        grupoHTML += '<div style="font-size:10px;color:#94a3b8;margin-bottom:6px;">Días sin que salga <strong>ningún</strong> número del grupo en <strong>ninguna</strong> lotería, su frecuencia normal, y los números del grupo que están más pegados (clic para verlos todos).</div>';
+                        grupoHTML += '<div style="font-size:10px;color:#94a3b8;margin-bottom:6px;">Días sin que salga <strong>ningún</strong> número del grupo en <strong>ninguna</strong> lotería, su frecuencia normal, y los números más pegados con dónde están más vencidos. <span style="color:#34d399;">⚡ Los grupos que estaban dormidos y volvieron a salir hace 1-2 días aparecen primero</span> (se están reactivando).</div>';
                         grupoHTML += '<div style="display:flex;flex-direction:column;gap:4px;">';
                         gInfo.forEach(function(gi) {
                             var col = (gi.diasSinG === null) ? '#f0abfc' : (gi.diasSinG >= 7 ? '#fca5a5' : gi.diasSinG >= 3 ? '#fbbf24' : '#6ee7b7');
-                            grupoHTML += '<details style="background:rgba(0,0,0,0.3);border:1px solid rgba(56,189,248,0.3);border-radius:7px;">';
+                            // V46.9.118: abiertos por defecto (open); borde resaltado si se reactivó
+                            var bordeG = gi.reactivado ? '2px solid #34d399' : '1px solid rgba(56,189,248,0.3)';
+                            grupoHTML += '<details open style="background:rgba(0,0,0,0.3);border:' + bordeG + ';border-radius:7px;">';
                             grupoHTML += '<summary style="display:flex;align-items:center;gap:9px;padding:5px 9px;cursor:pointer;list-style:none;flex-wrap:wrap;">';
                             grupoHTML += '<span style="font-size:12px;font-weight:bold;color:#e0f2fe;min-width:70px;">' + gi.grupo + '</span>';
+                            if (gi.reactivado) grupoHTML += '<span title="Estuvo dormido ' + gi.huecoPrevio + ' días y volvió a salir hace ' + gi.diasSinG + (gi.diasSinG === 1 ? ' día' : ' días') + ' — se está reactivando" style="font-size:9px;font-weight:bold;color:#022c22;background:#34d399;border-radius:5px;padding:1px 7px;">⚡ REACTIVADO (dormía ' + gi.huecoPrevio + 'd)</span>';
                             grupoHTML += '<span style="font-size:11px;color:' + col + ';font-weight:bold;">' + (gi.diasSinG === null ? 'nunca salió' : gi.diasSinG + ' días sin salir') + '</span>';
                             grupoHTML += '<span style="font-size:10px;color:#94a3b8;">frecuencia: <strong style="color:#bae6fd;">' + gi.porSemana.toFixed(1) + '</strong> salidas/semana · ' + gi.salidas + ' totales · ' + gi.miembros + ' números</span>';
                             // los 3 más pegados del grupo
@@ -27957,12 +28013,27 @@ ${groups.map((g,i)=>`
                                     grupoHTML += '<span style="font-size:8px;font-weight:bold;color:' + scoreCol + ';" title="Cuantas mas senales coincidan, mas peso tiene el numero">' + sn.score + ' senales:</span>';
                                     grupoHTML += badges.join(' ');
                                 }
-                                var rk = rankLots(p.num, null).slice(0, 3);
+                                var rkAll = rankLots(p.num, null);
+                                // V46.9.117: dónde está más VENCIDO (señal de rezago de Leo)
+                                var rkRez = porRezago(rkAll).filter(function(x) { return x.dias !== null && (x.ratio === null || x.ratio >= 1); }).slice(0, 3);
+                                if (rkRez.length) {
+                                    grupoHTML += '<span style="font-size:8px;color:#fca5a5;font-weight:bold;" title="Loterías donde este número lleva más tiempo sin salir respecto a su ritmo normal — ahí es donde tu patrón de reaparición aplicaría">⏳ más vencido:</span>';
+                                    rkRez.forEach(function(rr) {
+                                        var sTxt = (rr.sorteosSin !== null) ? rr.sorteosSin + ' sorteos' : (rr.dias + 'd');
+                                        var desdeTxt = '';
+                                        if (rr.ult) { var du = rr.ult.split('-'); desdeTxt = ' desde ' + du[2] + '-' + du[1] + '-' + du[0]; }
+                                        else { desdeTxt = ' (nunca ha salido ahí)'; }
+                                        var rtip = rr.lot + ': lleva ' + sTxt + ' sin salir' + desdeTxt + (rr.ratio !== null ? ' (' + rr.ratio.toFixed(1) + '× su ciclo)' : '') + ' · prob. real ' + rr.prob7.toFixed(0) + '% en 7d';
+                                        grupoHTML += '<span title="' + rtip + '" style="background:rgba(239,68,68,0.15);border:1px solid #fca5a5;border-radius:4px;padding:1px 5px;font-size:9px;color:#fecaca;">' + rr.lot + ' <strong style="color:#fca5a5;">' + sTxt + '</strong>' + (rr.ult ? ' <span style="font-size:8px;color:#fca5a5;opacity:0.8;">desde ' + rr.ult.split('-').reverse().slice(0, 2).join('-') + '</span>' : '') + '</span>';
+                                    });
+                                }
+                                // dónde tiene más VOLUMEN (probabilidad real de salir)
+                                var rk = porVolumen(rkAll).slice(0, 3);
                                 if (rk.length) {
-                                    grupoHTML += '<span style="font-size:8px;color:#7dd3fc;">→</span>';
+                                    grupoHTML += '<span style="font-size:8px;color:#7dd3fc;" title="Loterías con más sorteos diarios = más chance real de que salga (no depende del rezago)">🎯 más probable:</span>';
                                     rk.forEach(function(rr, ri) {
                                         var rc = ri === 0 ? '#6ee7b7' : 'rgba(148,163,184,0.7)';
-                                        var rtip = rr.lot + ': ' + rr.prob7.toFixed(0) + '% de que salga en 7 días (' + rr.xDia.toFixed(1) + ' sorteos/día)' + (rr.dias !== null ? ' · ' + rr.dias + 'd sin salir ahí' : ' · nunca salió ahí') + (rr.ratio !== null ? ' · ' + rr.ratio.toFixed(1) + '× su ciclo' : '');
+                                        var rtip = rr.lot + ': ' + rr.prob7.toFixed(0) + '% de que salga en 7 días (' + rr.xDia.toFixed(1) + ' sorteos/día)' + (rr.dias !== null ? ' · ' + rr.dias + 'd sin salir ahí' : ' · nunca salió ahí');
                                         grupoHTML += '<span title="' + rtip + '" style="background:rgba(0,0,0,0.35);border:1px solid ' + rc + ';border-radius:4px;padding:1px 5px;font-size:9px;color:#e2e8f0;">' + (ri === 0 ? '⭐' : '') + rr.lot + ' <strong style="color:' + rc + ';">' + rr.prob7.toFixed(0) + '%</strong></span>';
                                     });
                                 }
@@ -27991,7 +28062,7 @@ ${groups.map((g,i)=>`
                         // sorteos de cada lotería (más sorteos = más chances por día), no del
                         // rezago. Se muestran ambas cosas: la probabilidad honesta y el
                         // rezago relativo, ordenando por la probabilidad.
-                        var pend = rankLots(rp.num, rp.lot);
+                        var pend = rankLotsProb(rp.num, rp.lot);
                         h += '<div style="background:rgba(0,0,0,0.35);border-left:3px solid #38bdf8;border-radius:0 8px 8px 0;padding:8px 11px;">';
                         h += '<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">';
                         h += '<span style="font-family:monospace;font-size:22px;font-weight:bold;color:#fff;background:rgba(56,189,248,0.2);border-radius:6px;padding:1px 9px;">' + rp.num + '</span>';
@@ -68604,7 +68675,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r50 · v46.9.116</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r52 · v46.9.118</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
