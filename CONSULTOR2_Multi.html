@@ -27985,6 +27985,13 @@ ${groups.map((g,i)=>`
                             if (fArr.length >= 2) huecoPrevio = difDias(fArr[fArr.length - 2], fArr[fArr.length - 1]);
                             // reactivado: salió hace <=2 días tras haber estado dormido >=5 días
                             var reactivado = (diasSinG !== null && diasSinG <= 2 && huecoPrevio !== null && huecoPrevio >= 5);
+                            // V46.9.122 (pedido de Leo): ¿cuántas veces salió HOY algún número
+                            // del grupo, en todas las loterías de 2 díg? Es la señal de qué grupo
+                            // está "predominando hoy" (como el resumen de grupos del día).
+                            var salieronHoy = 0;
+                            miembros.forEach(function(nn) {
+                                (porNum[nn] || []).forEach(function(a) { if (a.date === _ultDiaDatos) salieronHoy++; });
+                            });
                             var porSemana = salidas / (diasTotal / 7);
                             var pendM = miembros.map(function(nn) {
                                 var aps = porNum[nn] || [];
@@ -27996,21 +28003,26 @@ ${groups.map((g,i)=>`
                                 if (b.dias === null) return 1;
                                 return b.dias - a.dias;
                             });
-                            return { grupo: g, diasSinG: diasSinG, salidas: salidas, porSemana: porSemana, miembros: miembros.length, pend: pendM, reactivado: reactivado, huecoPrevio: huecoPrevio, ultG: ultG };
+                            return { grupo: g, diasSinG: diasSinG, salidas: salidas, porSemana: porSemana, miembros: miembros.length, pend: pendM, reactivado: reactivado, huecoPrevio: huecoPrevio, ultG: ultG, salieronHoy: salieronHoy };
                         }).sort(function(a, b) {
-                            // V46.9.118: primero los grupos que estuvieron dormidos y se
-                            // reactivaron (mayor tiempo dormido = señal más fuerte), luego los
-                            // que llevan más días sin salir.
+                            // V46.9.122: orden — (1) grupos reactivados (dormido → volvió),
+                            // (2) los que MÁS predominan hoy (más números salieron hoy),
+                            // (3) los que llevan más días sin salir.
                             if (a.reactivado && !b.reactivado) return -1;
                             if (!a.reactivado && b.reactivado) return 1;
                             if (a.reactivado && b.reactivado) return (b.huecoPrevio || 0) - (a.huecoPrevio || 0);
+                            if (b.salieronHoy !== a.salieronHoy) return b.salieronHoy - a.salieronHoy;
                             if (a.diasSinG === null) return -1;
                             if (b.diasSinG === null) return 1;
-                            return b.diasSinG - a.diasSinG;
+                            if (b.diasSinG !== a.diasSinG) return b.diasSinG - a.diasSinG;
+                            // desempate final: por número de grupo descendente (10 antes que 9)
+                            var na = parseInt((a.grupo.match(/\d+/) || [0])[0]);
+                            var nb = parseInt((b.grupo.match(/\d+/) || [0])[0]);
+                            return nb - na;
                         });
 
                         grupoHTML += '<div style="font-size:13px;font-weight:bold;color:#7dd3fc;margin-top:14px;">📦 GRUPOS — ¿hace cuántos días dejó de salir cada uno?</div>';
-                        grupoHTML += '<div style="font-size:10px;color:#94a3b8;margin-bottom:6px;">Días sin que salga <strong>ningún</strong> número del grupo en <strong>ninguna</strong> lotería, su frecuencia normal, y los números más pegados con dónde están más vencidos. <span style="color:#34d399;">⚡ Los grupos que estaban dormidos y volvieron a salir hace 1-2 días aparecen primero</span> (se están reactivando).</div>';
+                        grupoHTML += '<div style="font-size:10px;color:#94a3b8;margin-bottom:6px;">Días sin que salga <strong>ningún</strong> número del grupo en <strong>ninguna</strong> lotería, su frecuencia normal, y los números más pegados con dónde están más vencidos. <span style="color:#fb923c;">Orden: primero los que más predominan hoy (🔥 N hoy)</span> y los grupos <span style="color:#34d399;">⚡ reactivados</span> (dormían y volvieron hace 1-2 días).</div>';
                         grupoHTML += '<div style="display:flex;flex-direction:column;gap:4px;">';
                         gInfo.forEach(function(gi) {
                             var col = (gi.diasSinG === null) ? '#f0abfc' : (gi.diasSinG >= 7 ? '#fca5a5' : gi.diasSinG >= 3 ? '#fbbf24' : '#6ee7b7');
@@ -28021,6 +28033,7 @@ ${groups.map((g,i)=>`
                             grupoHTML += '<span style="font-size:12px;font-weight:bold;color:#e0f2fe;min-width:70px;">' + gi.grupo + '</span>';
                             if (gi.reactivado) grupoHTML += '<span title="Estuvo dormido ' + gi.huecoPrevio + ' días y volvió a salir hace ' + gi.diasSinG + (gi.diasSinG === 1 ? ' día' : ' días') + ' — se está reactivando" style="font-size:9px;font-weight:bold;color:#022c22;background:#34d399;border-radius:5px;padding:1px 7px;">⚡ REACTIVADO (dormía ' + gi.huecoPrevio + 'd)</span>';
                             grupoHTML += '<span style="font-size:11px;color:' + col + ';font-weight:bold;">' + (gi.diasSinG === null ? 'nunca salió' : gi.diasSinG + ' días sin salir') + '</span>';
+                            if (gi.salieronHoy > 0) grupoHTML += '<span title="Hoy salieron ' + gi.salieronHoy + ' número(s) de este grupo en el total de loterías de 2 dígitos — está predominando" style="font-size:10px;font-weight:bold;color:#fb923c;background:rgba(251,146,60,0.15);border:1px solid #fb923c;border-radius:5px;padding:1px 7px;">🔥 ' + gi.salieronHoy + ' hoy</span>';
                             grupoHTML += '<span style="font-size:10px;color:#94a3b8;">frecuencia: <strong style="color:#bae6fd;">' + gi.porSemana.toFixed(1) + '</strong> salidas/semana · ' + gi.salidas + ' totales · ' + gi.miembros + ' números</span>';
                             // los 3 más pegados del grupo
                             var top3 = gi.pend.slice(0, 3);
@@ -68727,7 +68740,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r55 · v46.9.121</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r56 · v46.9.122</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
