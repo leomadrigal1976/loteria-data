@@ -27740,6 +27740,77 @@ ${groups.map((g,i)=>`
                     }).sort(function(a, b) { return b.prob7 - a.prob7; });
                 }
 
+                // ═══ V46.9.116 (pedido de Leo): SEÑALES DE CONFLUENCIA por número ═══
+                // Para un número rezagado del grupo, junta señales que le dan más peso a
+                // la posibilidad de que active su grupo: en cuántas loterías está rezagado,
+                // si su decena y su terminación están pendientes, si aparece en el "después
+                // de" del último de alguna lotería, si está en la vibración del día, y si
+                // está en grupo rezagado según el Panel Maestro (insights).
+                var _insCache = {};
+                function _insDe(lot) {
+                    if (_insCache[lot] !== undefined) return _insCache[lot];
+                    var r = null;
+                    try { if (typeof _dpInsightsLot === 'function') r = _dpInsightsLot(lot, hoyStr); } catch (e) { r = null; }
+                    _insCache[lot] = r;
+                    return r;
+                }
+                // vibración del día (números de 2 díg)
+                var _vibHoy = {};
+                try {
+                    var vv = (typeof getVibrationNumbers === 'function') ? getVibrationNumbers(new Date()) : null;
+                    if (vv) {
+                        var arrV = Array.isArray(vv) ? vv : (vv.allNumbers || vv.numbers || []);
+                        arrV.forEach(function(x) { var s = String(x).padStart(2, '0').substring(0, 2); _vibHoy[s] = true; });
+                    }
+                } catch (e) {}
+                // último número por lotería (para "después de")
+                var _ultNumLot = {};
+                serie.forEach(function(e) { _ultNumLot[e.lot] = e.n; });
+                // mapa "después de X → {siguiente: veces}" por lotería, calculado on-demand
+                var _despCache = {};
+                function _despDe(lot, numAnterior) {
+                    var key = lot + '|' + numAnterior;
+                    if (_despCache[key] !== undefined) return _despCache[key];
+                    var sig = {};
+                    var prev = null;
+                    for (var i = 0; i < serie.length; i++) {
+                        if (serie[i].lot !== lot) continue;
+                        if (prev === numAnterior) sig[serie[i].n] = (sig[serie[i].n] || 0) + 1;
+                        prev = serie[i].n;
+                    }
+                    _despCache[key] = sig;
+                    return sig;
+                }
+
+                function senalesDe(nn) {
+                    var dec = nn[0], term = nn[1];
+                    var out = { rezEnLots: [], decPend: [], termPend: [], despues: [], vib: false, pmGrupo: [] };
+                    // vibración
+                    out.vib = !!_vibHoy[nn];
+                    lotsActivas.forEach(function(L) {
+                        // rezagado en L (>= 15 días sin salir ahí)
+                        var ult = (ultPorNumLot[nn] || {})[L];
+                        var d = ult ? difDias(ult, hoyStr) : null;
+                        if (d === null || d >= 15) out.rezEnLots.push({ lot: L, dias: d });
+                        var ins = _insDe(L);
+                        if (ins) {
+                            if ((ins.decenasPendientes || []).indexOf(parseInt(dec)) >= 0) out.decPend.push(L);
+                            if ((ins.terminacionesPendientes || []).indexOf(parseInt(term)) >= 0) out.termPend.push(L);
+                            if (ins.numerosEnGrupoRezagado && ins.numerosEnGrupoRezagado[nn]) out.pmGrupo.push(L);
+                        }
+                        // "después de" el último número de esa lotería
+                        var ultN = _ultNumLot[L];
+                        if (ultN && ultN !== nn) {
+                            var sig = _despDe(L, ultN);
+                            if (sig[nn]) out.despues.push({ lot: L, tras: ultN, veces: sig[nn] });
+                        }
+                    });
+                    // puntaje simple para ordenar (cada tipo de señal suma)
+                    out.score = out.rezEnLots.length + out.decPend.length + out.termPend.length +
+                                out.despues.length + (out.vib ? 2 : 0) + out.pmGrupo.length * 2;
+                    return out;
+                }
+
                 // ── Detectar reapariciones tras rezago general y medir el "contagio" ──
                 // Para cada número, recorrer sus apariciones; si el hueco previo >= DIAS_REZAGO,
                 // es una "reaparición tras estar pegado".
@@ -27872,6 +27943,20 @@ ${groups.map((g,i)=>`
                                 grupoHTML += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:rgba(0,0,0,0.25);border-radius:5px;padding:3px 7px;">';
                                 grupoHTML += '<span title="' + tip + '" style="border:1px solid ' + pc2 + ';border-radius:5px;padding:1px 6px;font-size:10px;color:#e2e8f0;"><strong style="font-family:monospace;color:#fff;">' + p.num + '</strong> <span style="color:' + pc2 + ';">' + (p.dias === null ? 'nunca' : p.dias + 'd') + '</span> <span style="font-size:8px;color:#94a3b8;">' + p.veces + 'x</span></span>';
                                 // V46.9.115: dónde tiene más posibilidad ese número rezagado
+                                // V46.9.116: señales de confluencia que dan más peso al número
+                                var sn = senalesDe(p.num);
+                                if (sn.score > 0) {
+                                    var badges = [];
+                                    if (sn.rezEnLots.length) badges.push('<span title="Rezagado (15+ dias) en: ' + sn.rezEnLots.map(function(x){return x.lot+(x.dias!==null?' '+x.dias+'d':' nunca');}).join(', ') + '" style="background:rgba(239,68,68,0.18);border:1px solid #fca5a5;border-radius:4px;padding:1px 5px;font-size:8px;color:#fecaca;">\u23f3 rezagado en ' + sn.rezEnLots.length + '</span>');
+                                    if (sn.decPend.length) badges.push('<span title="Decena ' + p.num[0] + 'x pendiente en: ' + sn.decPend.join(', ') + '" style="background:rgba(56,189,248,0.15);border:1px solid #7dd3fc;border-radius:4px;padding:1px 5px;font-size:8px;color:#bae6fd;">\ud83d\udd1f dec pend ' + sn.decPend.length + '</span>');
+                                    if (sn.termPend.length) badges.push('<span title="Terminacion x' + p.num[1] + ' pendiente en: ' + sn.termPend.join(', ') + '" style="background:rgba(56,189,248,0.15);border:1px solid #7dd3fc;border-radius:4px;padding:1px 5px;font-size:8px;color:#bae6fd;">\ud83c\udf80 term pend ' + sn.termPend.length + '</span>');
+                                    if (sn.despues.length) badges.push('<span title="Tiende a salir despues del ultimo numero de: ' + sn.despues.map(function(x){return x.lot+' (tras '+x.tras+', '+x.veces+'x)';}).join(', ') + '" style="background:rgba(251,191,36,0.15);border:1px solid #fbbf24;border-radius:4px;padding:1px 5px;font-size:8px;color:#fde68a;">\u27a1\ufe0f despues en ' + sn.despues.length + '</span>');
+                                    if (sn.vib) badges.push('<span title="Esta en la vibracion de hoy" style="background:rgba(236,72,153,0.18);border:1px solid #f9a8d4;border-radius:4px;padding:1px 5px;font-size:8px;color:#fbcfe8;">\u2728 vibracion</span>');
+                                    if (sn.pmGrupo.length) badges.push('<span title="En grupo rezagado del Panel Maestro en: ' + sn.pmGrupo.join(', ') + '" style="background:rgba(168,85,247,0.18);border:1px solid #d8b4fe;border-radius:4px;padding:1px 5px;font-size:8px;color:#e9d5ff;">\ud83c\udfaf PM ' + sn.pmGrupo.length + '</span>');
+                                    var scoreCol = sn.score >= 6 ? '#6ee7b7' : sn.score >= 3 ? '#fde68a' : '#cbd5e1';
+                                    grupoHTML += '<span style="font-size:8px;font-weight:bold;color:' + scoreCol + ';" title="Cuantas mas senales coincidan, mas peso tiene el numero">' + sn.score + ' senales:</span>';
+                                    grupoHTML += badges.join(' ');
+                                }
                                 var rk = rankLots(p.num, null).slice(0, 3);
                                 if (rk.length) {
                                     grupoHTML += '<span style="font-size:8px;color:#7dd3fc;">→</span>';
@@ -68519,7 +68604,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r49 · v46.9.115</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r50 · v46.9.116</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
