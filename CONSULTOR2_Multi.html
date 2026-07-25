@@ -28264,7 +28264,8 @@ ${groups.map((g,i)=>`
                     NUMBER_GROUPS: (typeof NUMBER_GROUPS !== 'undefined') ? NUMBER_GROUPS : {},
                     senalesDe: senalesDe,
                     rankLots: rankLots, porRezago: porRezago, porVolumen: porVolumen,
-                    ultPorNumLot: ultPorNumLot, difDias: difDias, hoyStr: hoyStr, porNum: porNum, serie: serie
+                    ultPorNumLot: ultPorNumLot, difDias: difDias, hoyStr: hoyStr, porNum: porNum, serie: serie,
+                    rankRezagoLot: rankRezagoLot, rankRezagoPrevLot: rankRezagoPrevLot
                 };
                 return h;
             } catch (e) { console.error('[NGP-CONTAGIO]', e); return ''; }
@@ -28316,14 +28317,36 @@ ${groups.map((g,i)=>`
                         }
                         sortSin = hall ? cnt : null;
                     }
-                    if (scoreSel > 0 || rezSel.length) {
-                        filas.push({ num: nn, grupo: g, grupoIdx: gi, score: scoreSel, tipos: tiposSel, rez: rezSel, sn: sn, ultAp: ultAp, sortSin: sortSin, ultEnSel: ultEnSel });
+                    // V46.9.128 (pedido de Leo): ¿está (o estaba justo antes de salir) en el
+                    // top 18 de rezagos de la(s) lotería(s) elegida(s)? Resaltado igual que
+                    // en los grupos. Se prioriza la lotería filtrada.
+                    var mejorPos = null, mejorLotRez = null, saliordeTop = false;
+                    sel.forEach(function(L) {
+                        var pos = (F.rankRezagoLot[L] || {})[nn];
+                        if (pos && (mejorPos === null || pos < mejorPos)) { mejorPos = pos; mejorLotRez = L; }
+                        var picoPos = (F.rankRezagoPrevLot[L] || {})[nn];
+                        if (picoPos && picoPos <= 18) {
+                            var ultEnL = (F.ultPorNumLot[nn] || {})[L];
+                            if (ultEnL && F.difDias(ultEnL, F.hoyStr) <= 2) {
+                                saliordeTop = true;
+                                if (mejorPos === null || picoPos < mejorPos) { mejorPos = picoPos; mejorLotRez = L; }
+                            }
+                        }
+                    });
+                    var esTopRez = (mejorPos !== null && mejorPos <= 18);
+                    if (scoreSel > 0 || rezSel.length || esTopRez) {
+                        filas.push({ num: nn, grupo: g, grupoIdx: gi, score: scoreSel, tipos: tiposSel, rez: rezSel, sn: sn, ultAp: ultAp, sortSin: sortSin, ultEnSel: ultEnSel, esTopRez: esTopRez, mejorPos: mejorPos, mejorLotRez: mejorLotRez, saliordeTop: saliordeTop });
                     }
                 });
             });
             // ordenar: por orden de grupo (el ya considerado más acertado) y dentro por score
             filas.sort(function(a, b) {
                 if (a.grupoIdx !== b.grupoIdx) return a.grupoIdx - b.grupoIdx;
+                // V46.9.128: dentro del grupo, los que salieron del top de rezagos primero,
+                // luego los que están en el top, luego por score
+                var ta = a.saliordeTop ? 2 : (a.esTopRez ? 1 : 0);
+                var tb = b.saliordeTop ? 2 : (b.esTopRez ? 1 : 0);
+                if (ta !== tb) return tb - ta;
                 return b.score - a.score;
             });
             if (!filas.length) { cont.innerHTML = '<div style="font-size:11px;color:#94a3b8;padding:10px;">Ningún número con señales para ' + sel.join(', ') + ' en este momento.</div>'; return; }
@@ -28355,11 +28378,17 @@ ${groups.map((g,i)=>`
                     html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,205px),1fr));gap:5px;">';
                 }
                 var scoreCol = f.score >= 6 ? '#6ee7b7' : f.score >= 3 ? '#fde68a' : '#cbd5e1';
-                html += '<div style="background:rgba(0,0,0,0.28);border:1px solid rgba(56,189,248,0.2);border-radius:6px;padding:5px 7px;">';
+                // V46.9.128: resaltar tarjetas de números en el top de rezagos
+                var destacaT = f.esTopRez && f.saliordeTop;
+                var cardBorde = destacaT ? '2px solid #fbbf24' : (f.esTopRez ? '1px solid #f87171' : '1px solid rgba(56,189,248,0.2)');
+                var cardBg = destacaT ? 'rgba(251,191,36,0.12)' : (f.esTopRez ? 'rgba(220,38,38,0.14)' : 'rgba(0,0,0,0.28)');
+                var cardShadow = destacaT ? 'box-shadow:0 0 8px rgba(251,191,36,0.5);' : '';
+                html += '<div style="background:' + cardBg + ';border:' + cardBorde + ';border-radius:6px;padding:5px 7px;' + cardShadow + '">';
                 // fila 1: número + score
-                html += '<div style="display:flex;align-items:center;gap:6px;">';
+                html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">';
                 html += '<span style="font-family:monospace;font-size:17px;font-weight:bold;color:#fff;background:rgba(56,189,248,0.2);border-radius:5px;padding:1px 8px;">' + f.num + '</span>';
                 html += '<span style="font-size:9px;font-weight:bold;color:' + scoreCol + ';">' + f.score + ' señ.</span>';
+                if (f.esTopRez) html += '<span title="Está en el puesto #' + f.mejorPos + ' de más rezagados de ' + f.mejorLotRez + (f.saliordeTop ? ' — ¡acaba de salir del top!' : '') + '" style="background:' + (destacaT ? '#dc2626' : 'rgba(220,38,38,0.6)') + ';color:#fff;border-radius:4px;padding:1px 5px;font-size:8px;font-weight:bold;">🏆 #' + f.mejorPos + ' rezag ' + f.mejorLotRez + (destacaT ? ' ⚡' : '') + '</span>';
                 html += '</div>';
                 // fila 2: última salida + sorteos sin salir
                 if (f.ultAp) {
@@ -68974,7 +69003,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r61 · v46.9.127</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r62 · v46.9.128</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
