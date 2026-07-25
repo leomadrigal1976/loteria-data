@@ -28116,20 +28116,15 @@ ${groups.map((g,i)=>`
                             });
                             grupoHTML += '<span style="font-size:9px;color:#7dd3fc;">▾</span>';
                             grupoHTML += '</summary>';
-                            grupoHTML += '<div style="padding:4px 10px 8px 16px;"><div style="font-size:9px;color:#94a3b8;margin-bottom:3px;">Números del grupo (más pegado primero) — con las loterías donde tienen más posibilidad:</div>';
-                            grupoHTML += '<div style="display:flex;flex-direction:column;gap:3px;">';
+                            grupoHTML += '<div style="padding:4px 10px 8px 16px;"><div style="font-size:9px;color:#94a3b8;margin-bottom:5px;">Números del grupo (más pegado primero) — cada tarjeta con sus señales, dónde está más vencido y dónde más probable. Las píldoras <span style="color:#f87171;">rojas parpadeantes</span> = está en el top de rezagos de esa lotería.</div>';
+                            grupoHTML += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,215px),1fr));gap:6px;">';
                             gi.pend.forEach(function(p) {
                                 var pc2 = (p.dias === null) ? '#f0abfc' : (p.dias >= 30 ? '#fca5a5' : p.dias >= 15 ? '#fbbf24' : 'rgba(148,163,184,0.6)');
                                 var tip = p.num + ': ' + (p.dias === null ? 'nunca ha salido' : p.dias + ' días sin salir · última vez ' + p.ult + (p.lot ? ' en ' + p.lot : '')) + ' · ' + p.veces + ' salidas totales';
-                                // V46.9.127: ¿el número está (o estaba justo antes de salir)
-                                // en el top 18 de rezagos de alguna lotería? Cubre el caso de
-                                // Leo: el 51 salió anoche siendo el #1 del top de rezagos.
                                 var mejorPos = null, mejorLotRez = null, saliordeTop = false;
                                 lotsActivas.forEach(function(L) {
                                     var pos = (rankRezagoLot[L] || {})[p.num];
                                     if (pos && (mejorPos === null || pos < mejorPos)) { mejorPos = pos; mejorLotRez = L; }
-                                    // pico histórico: si salió hace muy poco (<=2 días) en L pero
-                                    // venía de un rezago largo, marcarlo como "salió del top"
                                     var picoPos = (rankRezagoPrevLot[L] || {})[p.num];
                                     if (picoPos && picoPos <= 18) {
                                         var ultEnL = (ultPorNumLot[p.num] || {})[L];
@@ -28141,70 +28136,84 @@ ${groups.map((g,i)=>`
                                 });
                                 var esTopRez = (mejorPos !== null && mejorPos <= 18);
                                 var destacar = esTopRez && (gi.reactivado || saliordeTop);
-                                var filaBg = destacar ? 'rgba(251,191,36,0.14)' : 'rgba(0,0,0,0.25)';
-                                var filaBorde = destacar ? '1px solid #fbbf24' : '1px solid transparent';
-                                grupoHTML += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:' + filaBg + ';border:' + filaBorde + ';border-radius:5px;padding:3px 7px;">';
-                                grupoHTML += '<span title="' + tip + '" style="border:1px solid ' + pc2 + ';border-radius:5px;padding:1px 6px;font-size:10px;color:#e2e8f0;"><strong style="font-family:monospace;color:#fff;">' + p.num + '</strong> <span style="color:' + pc2 + ';">' + (p.dias === null ? 'nunca' : p.dias + 'd') + '</span> <span style="font-size:8px;color:#94a3b8;">' + p.veces + 'x</span></span>';
-                                if (esTopRez) { var _tipTop = '\ud83c\udfc6 = esta entre los mas rezagados de ' + mejorLotRez + '. Puesto #' + mejorPos + ' (mientras mas bajo, mas vencido; #1 es el mas rezagado de todos).' + (saliordeTop ? ' \u26a1 = acaba de salir del top de rezagos (estaba vencido y salio hace 1-2 dias, se esta activando).' : '') + (gi.reactivado ? ' El grupo se acaba de reactivar.' : ''); grupoHTML += '<span class="' + (destacar ? 'ngp-parpadea' : '') + '" title="' + _tipTop + '" style="background:' + (destacar ? '#dc2626' : 'rgba(220,38,38,0.5)') + ';color:#fff;border-radius:4px;padding:1px 6px;font-size:8px;font-weight:bold;">\ud83c\udfc6 #' + mejorPos + ' rezag en ' + mejorLotRez + (destacar ? ' \u26a1' : '') + '</span>'; }
-                                // V46.9.115: dónde tiene más posibilidad ese número rezagado
-                                // V46.9.116: señales de confluencia que dan más peso al número
+                                // ── tarjeta ──
+                                var cardBorde = destacar ? '2px solid #fbbf24' : (esTopRez ? '2px solid #f87171' : '1px solid rgba(56,189,248,0.25)');
+                                var cardBg = destacar ? 'rgba(251,191,36,0.10)' : (esTopRez ? 'rgba(220,38,38,0.10)' : 'rgba(30,41,59,0.55)');
+                                var cardShadow = destacar ? 'box-shadow:0 0 9px rgba(251,191,36,0.45);' : '';
+                                grupoHTML += '<div style="position:relative;background:' + cardBg + ';border:' + cardBorde + ';border-radius:9px;padding:8px;' + cardShadow + '">';
+                                // trofeo esquina superior derecha
+                                if (esTopRez) {
+                                    var _tipTop = '\ud83c\udfc6 = esta entre los mas rezagados de ' + mejorLotRez + '. Puesto #' + mejorPos + ' (mientras mas bajo, mas vencido; #1 es el mas rezagado de todos).' + (saliordeTop ? ' \u26a1 = acaba de salir del top de rezagos (estaba vencido y salio hace 1-2 dias, se esta activando).' : '') + (gi.reactivado ? ' El grupo se acaba de reactivar.' : '');
+                                    grupoHTML += '<div class="' + (destacar ? 'ngp-parpadea' : '') + '" title="' + _tipTop + '" style="position:absolute;top:-8px;right:-6px;background:' + (destacar ? '#dc2626' : 'rgba(220,38,38,0.85)') + ';color:#fff;border-radius:6px;padding:2px 6px;font-size:8px;font-weight:bold;box-shadow:0 2px 6px rgba(0,0,0,0.4);">\ud83c\udfc6 #' + mejorPos + (destacar ? ' \u26a1' : '') + '</div>';
+                                }
+                                // fila 1: número grande + score + veces
                                 var sn = senalesDe(p.num);
+                                var scoreCol = sn.score >= 6 ? '#6ee7b7' : sn.score >= 3 ? '#fde68a' : '#cbd5e1';
+                                grupoHTML += '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">';
+                                grupoHTML += '<span title="' + tip + '" style="font-family:monospace;font-size:24px;font-weight:bold;color:#fff;line-height:1;">' + p.num + '</span>';
+                                grupoHTML += '<div style="text-align:right;">';
+                                if (sn.score > 0) grupoHTML += '<div style="font-size:10px;font-weight:bold;color:' + scoreCol + ';background:rgba(0,0,0,0.25);border-radius:8px;padding:1px 7px;">' + sn.score + ' señ.</div>';
+                                grupoHTML += '<div style="font-size:8px;color:#94a3b8;margin-top:2px;">' + (p.dias === null ? 'nunca' : p.dias + 'd sin salir') + ' · ' + p.veces + 'x</div>';
+                                grupoHTML += '</div></div>';
+                                // línea de rezago (dónde es top)
+                                if (esTopRez) {
+                                    var rc0 = destacar ? '#f87171' : '#fca5a5';
+                                    grupoHTML += '<div class="' + (destacar ? 'ngp-parpadea' : '') + '" title="Puesto #' + mejorPos + ' entre los mas rezagados de ' + mejorLotRez + '" style="font-size:9px;color:' + rc0 + ';font-weight:bold;margin-top:3px;">\ud83c\udfc6 #' + mejorPos + ' rezag en ' + mejorLotRez + '</div>';
+                                }
+                                // fila 2: badges de señales
                                 if (sn.score > 0) {
                                     var badges = [];
-                                    if (sn.rezEnLots.length) { var _rezClase = esTopRez ? 'ngp-parpadea' : ''; var _rezBg = esTopRez ? '#dc2626' : 'rgba(239,68,68,0.18)'; var _rezCol = esTopRez ? '#fff' : '#fecaca'; badges.push('<span class="' + _rezClase + '" title="Este numero esta sin salir hace 15+ dias en ' + sn.rezEnLots.length + ' loteria(s): ' + sn.rezEnLots.map(function(x){return x.lot+(x.dias!==null?' '+x.dias+'d':' nunca');}).join(', ') + (esTopRez ? ' — y esta en el TOP de mas rezagados de ' + mejorLotRez + ' (puesto #' + mejorPos + ')' : '') + '" style="background:' + _rezBg + ';border:1px solid #fca5a5;border-radius:4px;padding:1px 5px;font-size:8px;color:' + _rezCol + ';font-weight:bold;">\u23f3 rezagado en ' + sn.rezEnLots.length + '</span>'); }
-                                    if (sn.decPend.length) badges.push('<span title="Decena ' + p.num[0] + 'x pendiente en: ' + sn.decPend.join(', ') + '" style="background:rgba(56,189,248,0.15);border:1px solid #7dd3fc;border-radius:4px;padding:1px 5px;font-size:8px;color:#bae6fd;">\ud83d\udd1f dec pend ' + sn.decPend.length + '</span>');
-                                    if (sn.termPend.length) badges.push('<span title="Terminacion x' + p.num[1] + ' pendiente en: ' + sn.termPend.join(', ') + '" style="background:rgba(56,189,248,0.15);border:1px solid #7dd3fc;border-radius:4px;padding:1px 5px;font-size:8px;color:#bae6fd;">\ud83c\udf80 term pend ' + sn.termPend.length + '</span>');
-                                    if (sn.despues.length) badges.push('<span title="Tiende a salir despues del ultimo numero de: ' + sn.despues.map(function(x){return x.lot+' (tras '+x.tras+', '+x.veces+'x)';}).join(', ') + '" style="background:rgba(251,191,36,0.15);border:1px solid #fbbf24;border-radius:4px;padding:1px 5px;font-size:8px;color:#fde68a;">\u27a1\ufe0f despues en ' + sn.despues.length + '</span>');
-                                    if (sn.vib) badges.push('<span title="Esta en la vibracion de hoy" style="background:rgba(236,72,153,0.18);border:1px solid #f9a8d4;border-radius:4px;padding:1px 5px;font-size:8px;color:#fbcfe8;">\u2728 vibracion</span>');
-                                    if (sn.termCaliente) badges.push('<span title="Su terminacion x' + p.num[1] + ' salio ' + sn.termCalienteHoy + ' veces hoy en total (todas las loterias de 2 digitos)" style="background:rgba(239,68,68,0.18);border:1px solid #fca5a5;border-radius:4px;padding:1px 5px;font-size:8px;color:#fecaca;">\ud83d\udd25 term caliente ' + sn.termCalienteHoy + 'x</span>');
-                                    if (sn.invReciente.length) badges.push('<span title="Su inverso ' + (p.num[1]+p.num[0]) + ' salio hace 1-2 dias en: ' + sn.invReciente.map(function(x){return x.lot+' ('+x.dias+'d)';}).join(', ') + '" style="background:rgba(139,92,246,0.15);border:1px solid #c4b5fd;border-radius:4px;padding:1px 5px;font-size:8px;color:#ddd6fe;">\ud83d\udd04 inverso reciente ' + sn.invReciente.length + '</span>');
+                                    if (sn.rezEnLots.length) { var _rezClase = esTopRez ? 'ngp-parpadea' : ''; var _rezBg = esTopRez ? '#dc2626' : 'rgba(239,68,68,0.18)'; var _rezCol = esTopRez ? '#fff' : '#fecaca'; badges.push('<span class="' + _rezClase + '" title="Este numero esta sin salir hace 15+ dias en ' + sn.rezEnLots.length + ' loteria(s): ' + sn.rezEnLots.map(function(x){return x.lot+(x.dias!==null?' '+x.dias+'d':' nunca');}).join(', ') + (esTopRez ? ' — y esta en el TOP de mas rezagados de ' + mejorLotRez + ' (puesto #' + mejorPos + ')' : '') + '" style="background:' + _rezBg + ';border:1px solid #fca5a5;border-radius:4px;padding:1px 5px;font-size:8px;color:' + _rezCol + ';font-weight:bold;">\u23f3 rez ' + sn.rezEnLots.length + '</span>'); }
+                                    if (sn.decPend.length) badges.push('<span title="Decena ' + p.num[0] + 'x pendiente en: ' + sn.decPend.join(', ') + '" style="background:rgba(56,189,248,0.15);border:1px solid #7dd3fc;border-radius:4px;padding:1px 5px;font-size:8px;color:#bae6fd;">\ud83d\udd1f dec ' + sn.decPend.length + '</span>');
+                                    if (sn.termPend.length) badges.push('<span title="Terminacion x' + p.num[1] + ' pendiente en: ' + sn.termPend.join(', ') + '" style="background:rgba(56,189,248,0.15);border:1px solid #7dd3fc;border-radius:4px;padding:1px 5px;font-size:8px;color:#bae6fd;">\ud83c\udf80 term ' + sn.termPend.length + '</span>');
+                                    if (sn.despues.length) badges.push('<span title="Tiende a salir despues del ultimo numero de: ' + sn.despues.map(function(x){return x.lot+' (tras '+x.tras+', '+x.veces+'x)';}).join(', ') + '" style="background:rgba(251,191,36,0.15);border:1px solid #fbbf24;border-radius:4px;padding:1px 5px;font-size:8px;color:#fde68a;">\u27a1\ufe0f desp ' + sn.despues.length + '</span>');
+                                    if (sn.vib) badges.push('<span title="Esta en la vibracion de hoy" style="background:rgba(236,72,153,0.18);border:1px solid #f9a8d4;border-radius:4px;padding:1px 5px;font-size:8px;color:#fbcfe8;">\u2728 vib</span>');
+                                    if (sn.termCaliente) badges.push('<span title="Su terminacion x' + p.num[1] + ' salio ' + sn.termCalienteHoy + ' veces hoy en total (todas las loterias de 2 digitos)" style="background:rgba(239,68,68,0.18);border:1px solid #fca5a5;border-radius:4px;padding:1px 5px;font-size:8px;color:#fecaca;">\ud83d\udd25 term ' + sn.termCalienteHoy + 'x</span>');
+                                    if (sn.invReciente.length) badges.push('<span title="Su inverso ' + (p.num[1]+p.num[0]) + ' salio hace 1-2 dias en: ' + sn.invReciente.map(function(x){return x.lot+' ('+x.dias+'d)';}).join(', ') + '" style="background:rgba(139,92,246,0.15);border:1px solid #c4b5fd;border-radius:4px;padding:1px 5px;font-size:8px;color:#ddd6fe;">\ud83d\udd04 inv ' + sn.invReciente.length + '</span>');
                                     if (sn.pmGrupo.length) badges.push('<span title="En grupo rezagado del Panel Maestro en: ' + sn.pmGrupo.join(', ') + '" style="background:rgba(168,85,247,0.18);border:1px solid #d8b4fe;border-radius:4px;padding:1px 5px;font-size:8px;color:#e9d5ff;">\ud83c\udfaf PM ' + sn.pmGrupo.length + '</span>');
-                                    var scoreCol = sn.score >= 6 ? '#6ee7b7' : sn.score >= 3 ? '#fde68a' : '#cbd5e1';
-                                    grupoHTML += '<span style="font-size:8px;font-weight:bold;color:' + scoreCol + ';" title="Cuantas mas senales coincidan, mas peso tiene el numero">' + sn.score + ' senales:</span>';
-                                    grupoHTML += badges.join(' ');
+                                    grupoHTML += '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;">' + badges.join('') + '</div>';
                                 }
-                                // V46.9.119: dónde SE CONCENTRAN las señales (más confluencia)
+                                // fila 3: más señales (confluencia por lotería)
                                 if (sn.porLoteria && sn.porLoteria.length) {
-                                    var topConf = sn.porLoteria.filter(function(x) { return x.score >= 2; }).slice(0, 4);
+                                    var topConf = sn.porLoteria.filter(function(x) { return x.score >= 2; }).slice(0, 3);
                                     if (topConf.length) {
-                                        grupoHTML += '<span style="font-size:8px;color:#fde68a;font-weight:bold;" title="Loterías donde este número junta más señales a la vez (rezago + decena/terminación pendiente + después + PM). Ahí la confluencia es más fuerte.">🎪 más señales:</span>';
+                                        grupoHTML += '<div style="margin-top:5px;"><span style="font-size:8px;color:#fde68a;font-weight:bold;" title="Loterías donde este número junta más señales a la vez">🎪 señales:</span> ';
                                         topConf.forEach(function(cf, ci) {
                                             var cc = ci === 0 ? '#fde68a' : 'rgba(253,230,138,0.6)';
-                                            grupoHTML += '<span title="' + cf.lot + ': ' + cf.score + ' señales — ' + cf.tipos.join(', ') + '" style="background:rgba(251,191,36,0.12);border:1px solid ' + cc + ';border-radius:4px;padding:1px 5px;font-size:9px;color:#fef3c7;">' + (ci === 0 ? '🎯' : '') + cf.lot + ' <strong style="color:' + cc + ';">' + cf.score + ' señ.</strong></span>';
+                                            grupoHTML += '<span title="' + cf.lot + ': ' + cf.score + ' señales — ' + cf.tipos.join(', ') + '" style="background:rgba(251,191,36,0.12);border:1px solid ' + cc + ';border-radius:4px;padding:1px 5px;font-size:8px;color:#fef3c7;">' + (ci === 0 ? '🎯' : '') + cf.lot + ' ' + cf.score + '</span> ';
                                         });
+                                        grupoHTML += '</div>';
                                     }
                                 }
                                 var rkAll = rankLots(p.num, null);
-                                // V46.9.117: dónde está más VENCIDO (señal de rezago de Leo)
+                                // fila 4: más vencido
                                 var rkRez = porRezago(rkAll).filter(function(x) { return x.dias !== null && (x.ratio === null || x.ratio >= 1); }).slice(0, 3);
                                 if (rkRez.length) {
-                                    grupoHTML += '<span style="font-size:8px;color:#fca5a5;font-weight:bold;" title="Loterías donde este número lleva más tiempo sin salir respecto a su ritmo normal — ahí es donde tu patrón de reaparición aplicaría">⏳ más vencido:</span>';
+                                    grupoHTML += '<div style="margin-top:5px;"><div style="font-size:8px;color:#fca5a5;font-weight:bold;" title="Loterías donde este número lleva más tiempo sin salir respecto a su ritmo normal">⏳ más vencido:</div><div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:2px;">';
                                     rkRez.forEach(function(rr) {
-                                        var sTxt = (rr.sorteosSin !== null) ? rr.sorteosSin + ' sorteos' : (rr.dias + 'd');
+                                        var sTxt = (rr.sorteosSin !== null) ? rr.sorteosSin + ' sort' : (rr.dias + 'd');
                                         var desdeTxt = '';
                                         if (rr.ult) { var du = rr.ult.split('-'); desdeTxt = ' desde ' + du[2] + '-' + du[1] + '-' + du[0]; }
                                         else { desdeTxt = ' (nunca ha salido ahí)'; }
                                         var rtip = rr.lot + ': lleva ' + sTxt + ' sin salir' + desdeTxt + (rr.ratio !== null ? ' (' + rr.ratio.toFixed(1) + '× su ciclo)' : '') + ' · prob. real ' + rr.prob7.toFixed(0) + '% en 7d';
                                         var posRez = (rankRezagoLot[rr.lot] || {})[p.num] || null;
                                         var enTop = (posRez !== null && posRez <= 18);
-                                        var topBadge = enTop ? '<span style="background:#dc2626;color:#fff;border-radius:3px;padding:0 4px;font-size:8px;font-weight:bold;margin-left:3px;">🏆 #' + posRez + ' rezag</span>' : '';
-                                        var bordeChip = enTop ? '2px solid #fbbf24' : '1px solid #fca5a5';
+                                        var topBadge = enTop ? ' <span style="background:#dc2626;color:#fff;border-radius:3px;padding:0 3px;font-size:7px;font-weight:bold;">🏆#' + posRez + '</span>' : '';
+                                        var chipCls = enTop ? 'ngp-parpadea' : '';
+                                        var bordeChip = enTop ? '1px solid #fbbf24' : '1px solid #fca5a5';
                                         var bgChip = enTop ? 'rgba(220,38,38,0.28)' : 'rgba(239,68,68,0.15)';
-                                        grupoHTML += '<span title="' + rtip + (enTop ? ' · 🏆 está en el puesto #' + posRez + ' de más rezagados de ' + rr.lot : '') + '" style="background:' + bgChip + ';border:' + bordeChip + ';border-radius:4px;padding:1px 5px;font-size:9px;color:#fecaca;' + (enTop ? 'box-shadow:0 0 6px rgba(251,191,36,0.5);' : '') + '">' + rr.lot + ' <strong style="color:#fca5a5;">' + sTxt + '</strong>' + (rr.ult ? ' <span style="font-size:8px;color:#fca5a5;opacity:0.8;">desde ' + rr.ult.split('-').reverse().slice(0, 2).join('-') + '</span>' : '') + topBadge + '</span>';
+                                        grupoHTML += '<span class="' + chipCls + '" title="' + rtip + (enTop ? ' · 🏆 puesto #' + posRez + ' de más rezagados de ' + rr.lot : '') + '" style="background:' + bgChip + ';border:' + bordeChip + ';border-radius:4px;padding:1px 5px;font-size:8px;color:#fecaca;">' + rr.lot + ' <strong style="color:#fca5a5;">' + sTxt + '</strong>' + topBadge + '</span>';
                                     });
+                                    grupoHTML += '</div></div>';
                                 }
-                                // dónde tiene más VOLUMEN (probabilidad real de salir)
+                                // fila 5: más probable
                                 var rk = porVolumen(rkAll).slice(0, 3);
                                 if (rk.length) {
-                                    grupoHTML += '<span style="font-size:8px;color:#7dd3fc;" title="Loterías con más sorteos diarios = más chance real de que salga (no depende del rezago)">🎯 más probable:</span>';
+                                    grupoHTML += '<div style="margin-top:5px;"><div style="font-size:8px;color:#7dd3fc;font-weight:bold;" title="Loterías con más sorteos diarios = más chance real de que salga">🎯 más probable:</div><div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:2px;">';
                                     rk.forEach(function(rr, ri) {
                                         var rc = ri === 0 ? '#6ee7b7' : 'rgba(148,163,184,0.7)';
-                                        // V46.9.129 (pedido de Leo): si esta lotería probable tiene al número
-                                        // en su top 18 de rezagos, la píldora parpadea en rojo y muestra el
-                                        // puesto + sorteos sin salir + desde cuándo.
                                         var posEnRk = (rankRezagoLot[rr.lot] || {})[p.num] || null;
                                         var alertaRk = (posEnRk !== null && posEnRk <= 18);
-                                        // sorteos sin salir y fecha en esa lotería
                                         var sortSinRk = null, ultRk = (ultPorNumLot[p.num] || {})[rr.lot] || null;
                                         if (alertaRk) {
                                             var cRk = 0, hRk = false;
@@ -28217,14 +28226,15 @@ ${groups.map((g,i)=>`
                                         }
                                         var rtip = rr.lot + ': ' + rr.prob7.toFixed(0) + '% de que salga en 7 días (' + rr.xDia.toFixed(1) + ' sorteos/día)' + (rr.dias !== null ? ' · ' + rr.dias + 'd sin salir ahí' : ' · nunca salió ahí') + (alertaRk ? ' · 🏆 está #' + posEnRk + ' en el top de rezagos de ' + rr.lot + (sortSinRk !== null ? ' (' + sortSinRk + ' sorteos sin salir' + (ultRk ? ' desde ' + ultRk.split('-').reverse().slice(0,2).join('-') : '') + ')' : '') : '');
                                         if (alertaRk) {
-                                            grupoHTML += '<span class="ngp-parpadea" title="' + rtip + '" style="background:#dc2626;border:1px solid #fecaca;border-radius:4px;padding:1px 5px;font-size:9px;color:#fff;font-weight:bold;display:inline-flex;flex-direction:column;line-height:1.3;">' +
-                                                '<span>' + (ri === 0 ? '⭐' : '') + rr.lot + ' ' + rr.prob7.toFixed(0) + '% 🔴 🏆 #' + posEnRk + '</span>' +
-                                                (sortSinRk !== null ? '<span style="font-weight:normal;font-size:7.5px;opacity:0.92;">' + sortSinRk + ' sort' + (ultRk ? ' · desde ' + ultRk.split('-').reverse().slice(0,2).join('-') : '') + '</span>' : '') +
+                                            grupoHTML += '<span class="ngp-parpadea" title="' + rtip + '" style="background:#dc2626;border:1px solid #fecaca;border-radius:4px;padding:1px 5px;font-size:8px;color:#fff;font-weight:bold;display:inline-flex;flex-direction:column;line-height:1.3;">' +
+                                                '<span>' + (ri === 0 ? '⭐' : '') + rr.lot + ' ' + rr.prob7.toFixed(0) + '% 🔴 🏆#' + posEnRk + '</span>' +
+                                                (sortSinRk !== null ? '<span style="font-weight:normal;font-size:7px;opacity:0.92;">' + sortSinRk + ' sort' + (ultRk ? ' · ' + ultRk.split('-').reverse().slice(0,2).join('-') : '') + '</span>' : '') +
                                                 '</span>';
                                         } else {
-                                            grupoHTML += '<span title="' + rtip + '" style="background:rgba(0,0,0,0.35);border:1px solid ' + rc + ';border-radius:4px;padding:1px 5px;font-size:9px;color:#e2e8f0;">' + (ri === 0 ? '⭐' : '') + rr.lot + ' <strong style="color:' + rc + ';">' + rr.prob7.toFixed(0) + '%</strong></span>';
+                                            grupoHTML += '<span title="' + rtip + '" style="background:rgba(0,0,0,0.35);border:1px solid ' + rc + ';border-radius:4px;padding:1px 5px;font-size:8px;color:#e2e8f0;">' + (ri === 0 ? '⭐' : '') + rr.lot + ' <strong style="color:' + rc + ';">' + rr.prob7.toFixed(0) + '%</strong></span>';
                                         }
                                     });
+                                    grupoHTML += '</div></div>';
                                 }
                                 grupoHTML += '</div>';
                             });
@@ -69032,7 +69042,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r63 · v46.9.129</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r64 · v46.9.130</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
