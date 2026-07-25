@@ -27938,7 +27938,20 @@ ${groups.map((g,i)=>`
                 }
 
                 var h = '<div style="background:rgba(15,23,42,0.96);border:2px solid #38bdf8;border-radius:12px;padding:14px;margin-top:18px;">';
-                h += '<div style="font-size:16px;font-weight:bold;color:#7dd3fc;text-shadow:0 0 8px rgba(125,211,252,0.35);">🔗 NÚMEROS PEGADOS QUE REAPARECEN — ¿se contagian entre loterías?</div>';
+                h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">';
+                h += '<div style="flex:1;min-width:240px;"><div style="font-size:16px;font-weight:bold;color:#7dd3fc;text-shadow:0 0 8px rgba(125,211,252,0.35);">🔗 NÚMEROS PEGADOS QUE REAPARECEN — ¿se contagian entre loterías?</div></div>';
+                h += '<button onclick="_ngpFiltroToggle()" style="background:linear-gradient(135deg,#0e7490,#22d3ee);border:1px solid #67e8f9;color:#06222b;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;">🎚️ Filtrar por lotería</button>';
+                h += '</div>';
+                // panel del filtro (oculto por defecto)
+                h += '<div id="ngpFiltroPanel" style="display:none;background:rgba(8,47,73,0.6);border:1px solid #22d3ee;border-radius:9px;padding:10px;margin-top:9px;">';
+                h += '<div style="font-size:11px;font-weight:bold;color:#a5f3fc;margin-bottom:6px;">Elegí una o varias loterías — se muestran sus números con más señales, en el orden de grupos más acertado:</div>';
+                h += '<div style="display:flex;flex-wrap:wrap;gap:5px 12px;margin-bottom:8px;">';
+                lotsActivas.slice().sort().forEach(function(L) {
+                    h += '<label style="font-size:11px;color:#e0f2fe;cursor:pointer;display:flex;align-items:center;gap:4px;"><input type="checkbox" class="ngpFiltroLot" value="' + L + '" onchange="_ngpFiltroRender()" style="cursor:pointer;"> ' + L + '</label>';
+                });
+                h += '</div>';
+                h += '<div id="ngpFiltroResultado" style="max-height:400px;overflow-y:auto;"><div style="font-size:11px;color:#94a3b8;padding:6px;">Elegí al menos una lotería.</div></div>';
+                h += '</div>';
                 h += '<div style="font-size:10px;color:#bae6fd;margin-top:3px;">Rastrea números que dejaron de salir en <strong>todas</strong> las loterías por ' + DIAS_REZAGO + '+ días y volvieron a aparecer en los últimos ' + DIAS_RECIENTE + ' días. Para cada uno se muestra en qué otras loterías sigue pendiente.</div>';
 
                 // ── Veredicto honesto de la hipótesis ──
@@ -28020,6 +28033,7 @@ ${groups.map((g,i)=>`
                             var nb = parseInt((b.grupo.match(/\d+/) || [0])[0]);
                             return nb - na;
                         });
+                        window._ngpGInfoOrden = gInfo.map(function(x) { return x.grupo; });
 
                         grupoHTML += '<div style="font-size:13px;font-weight:bold;color:#7dd3fc;margin-top:14px;">📦 GRUPOS — ¿hace cuántos días dejó de salir cada uno?</div>';
                         grupoHTML += '<div style="font-size:10px;color:#94a3b8;margin-bottom:6px;">Días sin que salga <strong>ningún</strong> número del grupo en <strong>ninguna</strong> lotería, su frecuencia normal, y los números más pegados con dónde están más vencidos. <span style="color:#fb923c;">Orden: primero los que más predominan hoy (🔥 N hoy)</span> y los grupos <span style="color:#34d399;">⚡ reactivados</span> (dormían y volvieron hace 1-2 días).</div>';
@@ -28153,8 +28167,93 @@ ${groups.map((g,i)=>`
                 }
                 h += '<div style="font-size:10px;color:#94a3b8;font-style:italic;margin-top:11px;">Cómo leer el % : es la probabilidad de que ese número salga en esa lotería en los próximos 7 días, calculada con su volumen real de sorteos diarios (más sorteos = más chances). NO sube por estar rezagado — el rezago se muestra aparte solo como referencia. Nota: cada lotería sortea por separado, así que no hay una conexión mecánica entre ellas. El veredicto de arriba te dice si, con TUS datos, la reaparición tras un rezago largo realmente precede a salidas en otras loterías o si es la misma tasa de siempre.</div>';
                 h += '</div>';
+
+                // ═══ V46.9.123 (pedido de Leo): FILTRO ÁGIL POR LOTERÍA ═══════════════
+                // Expone lo necesario para, sin recalcular todo, mostrar los números con más
+                // señales para la(s) lotería(s) elegida(s), respetando el orden de grupos.
+                window._ngpFiltro = {
+                    lotsActivas: lotsActivas.slice(),
+                    grupos: (function() {
+                        try {
+                            if (typeof NUMBER_GROUPS === 'undefined' || !NUMBER_GROUPS) return [];
+                            // reusar el orden ya calculado de gInfo si existe
+                            return (window._ngpGInfoOrden || Object.keys(NUMBER_GROUPS)).slice();
+                        } catch (e) { return []; }
+                    })(),
+                    NUMBER_GROUPS: (typeof NUMBER_GROUPS !== 'undefined') ? NUMBER_GROUPS : {},
+                    senalesDe: senalesDe,
+                    rankLots: rankLots, porRezago: porRezago, porVolumen: porVolumen,
+                    ultPorNumLot: ultPorNumLot, difDias: difDias, hoyStr: hoyStr, porNum: porNum
+                };
                 return h;
             } catch (e) { console.error('[NGP-CONTAGIO]', e); return ''; }
+        }
+
+        // Render del filtro por lotería: números con más señales para lo elegido
+        function _ngpFiltroRender() {
+            var cont = document.getElementById('ngpFiltroResultado');
+            if (!cont || !window._ngpFiltro) return;
+            var F = window._ngpFiltro;
+            var checks = document.querySelectorAll('.ngpFiltroLot:checked');
+            var sel = [];
+            checks.forEach(function(c) { sel.push(c.value); });
+            if (!sel.length) { cont.innerHTML = '<div style="font-size:11px;color:#94a3b8;padding:10px;">Elegí al menos una lotería para ver sus números con más señales.</div>'; return; }
+
+            // recolectar todos los números de todos los grupos, con sus señales
+            var vistos = {};
+            var filas = [];
+            F.grupos.forEach(function(g, gi) {
+                var miembros = F.NUMBER_GROUPS[g] || [];
+                miembros.forEach(function(nn) {
+                    if (vistos[nn]) return; vistos[nn] = true;
+                    var sn = F.senalesDe(nn);
+                    // score SOLO para las loterías elegidas (confluencia en ellas)
+                    var scoreSel = 0, tiposSel = [];
+                    (sn.porLoteria || []).forEach(function(cf) {
+                        if (sel.indexOf(cf.lot) >= 0) { scoreSel += cf.score; cf.tipos.forEach(function(t) { tiposSel.push(cf.lot + ': ' + t); }); }
+                    });
+                    // rezago del número en las loterías elegidas
+                    var rezSel = [];
+                    sel.forEach(function(L) {
+                        var ult = (F.ultPorNumLot[nn] || {})[L];
+                        var d = ult ? F.difDias(ult, F.hoyStr) : null;
+                        if (d === null || d >= 15) rezSel.push({ lot: L, dias: d, ult: ult });
+                    });
+                    if (scoreSel > 0 || rezSel.length) {
+                        filas.push({ num: nn, grupo: g, grupoIdx: gi, score: scoreSel, tipos: tiposSel, rez: rezSel, sn: sn });
+                    }
+                });
+            });
+            // ordenar: por orden de grupo (el ya considerado más acertado) y dentro por score
+            filas.sort(function(a, b) {
+                if (a.grupoIdx !== b.grupoIdx) return a.grupoIdx - b.grupoIdx;
+                return b.score - a.score;
+            });
+            if (!filas.length) { cont.innerHTML = '<div style="font-size:11px;color:#94a3b8;padding:10px;">Ningún número con señales para ' + sel.join(', ') + ' en este momento.</div>'; return; }
+
+            var html = '<div style="font-size:10px;color:#7dd3fc;margin-bottom:6px;">Números con más señales para <strong>' + sel.join(', ') + '</strong>, en el orden de grupos que el sistema considera más acertado. ' + filas.length + ' números.</div>';
+            var grupoActual = null;
+            filas.forEach(function(f) {
+                if (f.grupo !== grupoActual) {
+                    grupoActual = f.grupo;
+                    html += '<div style="font-size:11px;font-weight:bold;color:#fbbf24;margin:7px 0 3px;">' + f.grupo + '</div>';
+                }
+                var scoreCol = f.score >= 6 ? '#6ee7b7' : f.score >= 3 ? '#fde68a' : '#cbd5e1';
+                html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:rgba(0,0,0,0.25);border-radius:5px;padding:3px 7px;margin-bottom:2px;">';
+                html += '<span style="font-family:monospace;font-size:16px;font-weight:bold;color:#fff;background:rgba(56,189,248,0.2);border-radius:5px;padding:1px 8px;">' + f.num + '</span>';
+                html += '<span style="font-size:9px;font-weight:bold;color:' + scoreCol + ';">' + f.score + ' señ.</span>';
+                // badges de tipos de señal en las loterías elegidas
+                f.tipos.slice(0, 8).forEach(function(t) {
+                    html += '<span style="background:rgba(251,191,36,0.12);border:1px solid rgba(253,230,138,0.5);border-radius:4px;padding:1px 5px;font-size:8px;color:#fef3c7;">' + t + '</span>';
+                });
+                html += '</div>';
+            });
+            cont.innerHTML = html;
+        }
+        function _ngpFiltroToggle() {
+            var p = document.getElementById('ngpFiltroPanel');
+            if (!p) return;
+            p.style.display = (p.style.display === 'none') ? 'block' : 'none';
         }
 
         function ejecutarAnalisisUnificadoPendientes() {
@@ -68740,7 +68839,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r56 · v46.9.122</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r57 · v46.9.123</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
