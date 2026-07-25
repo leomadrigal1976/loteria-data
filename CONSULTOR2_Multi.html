@@ -28183,7 +28183,7 @@ ${groups.map((g,i)=>`
                     NUMBER_GROUPS: (typeof NUMBER_GROUPS !== 'undefined') ? NUMBER_GROUPS : {},
                     senalesDe: senalesDe,
                     rankLots: rankLots, porRezago: porRezago, porVolumen: porVolumen,
-                    ultPorNumLot: ultPorNumLot, difDias: difDias, hoyStr: hoyStr, porNum: porNum
+                    ultPorNumLot: ultPorNumLot, difDias: difDias, hoyStr: hoyStr, porNum: porNum, serie: serie
                 };
                 return h;
             } catch (e) { console.error('[NGP-CONTAGIO]', e); return ''; }
@@ -28210,7 +28210,7 @@ ${groups.map((g,i)=>`
                     // score SOLO para las loterías elegidas (confluencia en ellas)
                     var scoreSel = 0, tiposSel = [];
                     (sn.porLoteria || []).forEach(function(cf) {
-                        if (sel.indexOf(cf.lot) >= 0) { scoreSel += cf.score; cf.tipos.forEach(function(t) { tiposSel.push(cf.lot + ': ' + t); }); }
+                        if (sel.indexOf(cf.lot) >= 0) { scoreSel += cf.score; cf.tipos.forEach(function(t) { tiposSel.push(t); }); }
                     });
                     // rezago del número en las loterías elegidas
                     var rezSel = [];
@@ -28219,8 +28219,24 @@ ${groups.map((g,i)=>`
                         var d = ult ? F.difDias(ult, F.hoyStr) : null;
                         if (d === null || d >= 15) rezSel.push({ lot: L, dias: d, ult: ult });
                     });
+                    // V46.9.124: última vez que salió (en cualquier lotería) y cuántos
+                    // sorteos lleva sin salir en las loterías elegidas
+                    var aps = F.porNum[nn] || [];
+                    var ultAp = aps.length ? aps[aps.length - 1] : null; // más reciente (global)
+                    // sorteos sin salir en la 1ª lotería elegida (la que activa el filtro)
+                    var sortSin = null, ultEnSel = null;
+                    if (F.serie) {
+                        var Lref = sel[0];
+                        var cnt = 0, hall = false;
+                        for (var si = F.serie.length - 1; si >= 0; si--) {
+                            if (F.serie[si].lot !== Lref) continue;
+                            if (F.serie[si].n === nn) { hall = true; ultEnSel = F.serie[si]; break; }
+                            cnt++;
+                        }
+                        sortSin = hall ? cnt : null;
+                    }
                     if (scoreSel > 0 || rezSel.length) {
-                        filas.push({ num: nn, grupo: g, grupoIdx: gi, score: scoreSel, tipos: tiposSel, rez: rezSel, sn: sn });
+                        filas.push({ num: nn, grupo: g, grupoIdx: gi, score: scoreSel, tipos: tiposSel, rez: rezSel, sn: sn, ultAp: ultAp, sortSin: sortSin, ultEnSel: ultEnSel });
                     }
                 });
             });
@@ -28231,23 +28247,45 @@ ${groups.map((g,i)=>`
             });
             if (!filas.length) { cont.innerHTML = '<div style="font-size:11px;color:#94a3b8;padding:10px;">Ningún número con señales para ' + sel.join(', ') + ' en este momento.</div>'; return; }
 
-            var html = '<div style="font-size:10px;color:#7dd3fc;margin-bottom:6px;">Números con más señales para <strong>' + sel.join(', ') + '</strong>, en el orden de grupos que el sistema considera más acertado. ' + filas.length + ' números.</div>';
+            function fmtFecha(d) { if (!d) return '—'; var p = d.split('-'); return p[2] + '-' + p[1] + '-' + p[0].substring(2); }
+
+            var html = '<div style="font-size:10px;color:#7dd3fc;margin-bottom:6px;">Números con más señales para <strong>' + sel.join(', ') + '</strong>, en el orden de grupos que el sistema considera más acertado. ' + filas.length + ' números. <span style="color:#94a3b8;">"Se activa desde" = dónde salió por última vez el número.</span></div>';
             var grupoActual = null;
             filas.forEach(function(f) {
                 if (f.grupo !== grupoActual) {
+                    if (grupoActual !== null) html += '</div>'; // cerrar grid anterior
                     grupoActual = f.grupo;
-                    html += '<div style="font-size:11px;font-weight:bold;color:#fbbf24;margin:7px 0 3px;">' + f.grupo + '</div>';
+                    html += '<div style="font-size:11px;font-weight:bold;color:#fbbf24;margin:9px 0 4px;">' + f.grupo + '</div>';
+                    // V46.9.124: grid de columnas — se acomoda al ancho disponible
+                    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:5px;">';
                 }
                 var scoreCol = f.score >= 6 ? '#6ee7b7' : f.score >= 3 ? '#fde68a' : '#cbd5e1';
-                html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:rgba(0,0,0,0.25);border-radius:5px;padding:3px 7px;margin-bottom:2px;">';
-                html += '<span style="font-family:monospace;font-size:16px;font-weight:bold;color:#fff;background:rgba(56,189,248,0.2);border-radius:5px;padding:1px 8px;">' + f.num + '</span>';
+                html += '<div style="background:rgba(0,0,0,0.28);border:1px solid rgba(56,189,248,0.2);border-radius:6px;padding:5px 7px;">';
+                // fila 1: número + score
+                html += '<div style="display:flex;align-items:center;gap:6px;">';
+                html += '<span style="font-family:monospace;font-size:17px;font-weight:bold;color:#fff;background:rgba(56,189,248,0.2);border-radius:5px;padding:1px 8px;">' + f.num + '</span>';
                 html += '<span style="font-size:9px;font-weight:bold;color:' + scoreCol + ';">' + f.score + ' señ.</span>';
-                // badges de tipos de señal en las loterías elegidas
-                f.tipos.slice(0, 8).forEach(function(t) {
-                    html += '<span style="background:rgba(251,191,36,0.12);border:1px solid rgba(253,230,138,0.5);border-radius:4px;padding:1px 5px;font-size:8px;color:#fef3c7;">' + t + '</span>';
-                });
+                html += '</div>';
+                // fila 2: última salida + sorteos sin salir
+                if (f.ultAp) {
+                    var t12 = f.ultAp.time ? (typeof convertTo12Hour === 'function' ? convertTo12Hour(f.ultAp.time) : f.ultAp.time) : '';
+                    html += '<div style="font-size:8px;color:#cbd5e1;margin-top:3px;line-height:1.5;">';
+                    html += '🎯 <span style="color:#6ee7b7;">Se activa desde ' + f.ultAp.lot + '</span> · últ. ' + fmtFecha(f.ultAp.date) + (t12 ? ' ' + t12 : '');
+                    if (f.sortSin !== null) html += '<br>⏳ lleva <strong style="color:#fca5a5;">' + f.sortSin + ' sorteos</strong> sin salir en ' + sel[0] + (f.ultEnSel ? ' (desde ' + fmtFecha(f.ultEnSel.date) + ')' : '');
+                    else html += '<br>⏳ <span style="color:#f0abfc;">nunca ha salido en ' + sel[0] + '</span>';
+                    html += '</div>';
+                }
+                // fila 3: badges de señales
+                if (f.tipos.length) {
+                    html += '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">';
+                    f.tipos.slice(0, 6).forEach(function(t) {
+                        html += '<span style="background:rgba(251,191,36,0.12);border:1px solid rgba(253,230,138,0.4);border-radius:4px;padding:1px 4px;font-size:8px;color:#fef3c7;">' + t + '</span>';
+                    });
+                    html += '</div>';
+                }
                 html += '</div>';
             });
+            if (grupoActual !== null) html += '</div>';
             cont.innerHTML = html;
         }
         function _ngpFiltroToggle() {
@@ -68839,7 +68877,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r57 · v46.9.123</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r58 · v46.9.124</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
