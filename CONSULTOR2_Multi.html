@@ -28033,6 +28033,10 @@ function senalesDe(nn) {
                 // panel del filtro (oculto por defecto)
                 h += '<div id="ngpFiltroPanel" style="display:none;background:rgba(8,47,73,0.6);border:1px solid #22d3ee;border-radius:9px;padding:10px;margin-top:9px;">';
                 h += '<div style="font-size:11px;font-weight:bold;color:#a5f3fc;margin-bottom:6px;">Elegí una o varias loterías — se muestran sus números con más señales, en el orden de grupos más acertado:</div>';
+                h += '<div style="display:flex;gap:8px;margin-bottom:7px;">';
+                h += '<button onclick="_ngpFiltroTodas(true)" style="background:rgba(34,211,238,0.15);border:1px solid #22d3ee;color:#a5f3fc;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">✓ Todas</button>';
+                h += '<button onclick="_ngpFiltroTodas(false)" style="background:rgba(148,163,184,0.12);border:1px solid #64748b;color:#cbd5e1;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">✕ Ninguna (limpiar)</button>';
+                h += '</div>';
                 h += '<div style="display:flex;flex-wrap:wrap;gap:5px 12px;margin-bottom:8px;">';
                 lotsActivas.slice().sort().forEach(function(L) {
                     h += '<label style="font-size:11px;color:#e0f2fe;cursor:pointer;display:flex;align-items:center;gap:4px;"><input type="checkbox" class="ngpFiltroLot" value="' + L + '" onchange="_ngpFiltroRender()" style="cursor:pointer;"> ' + L + '</label>';
@@ -28045,7 +28049,10 @@ function senalesDe(nn) {
                 h += '<div id="ngpExtractoPanel" style="display:none;background:rgba(69,26,3,0.5);border:1px solid #f59e0b;border-radius:9px;padding:10px;margin-top:9px;">';
                 h += '<div style="font-size:11px;font-weight:bold;color:#fcd34d;margin-bottom:6px;">Elegí lotería(s) — se extraen SOLO los números con más señales que coinciden con su rezago en cada grupo, en orden de importancia de los grupos:</div>';
                 h += '<div style="display:flex;flex-wrap:wrap;gap:5px 12px;margin-bottom:8px;">';
-                h += '<label style="font-size:11px;color:#fed7aa;cursor:pointer;display:flex;align-items:center;gap:4px;font-weight:bold;"><input type="checkbox" class="ngpExtractoLot" value="__TODAS__" onchange="_ngpExtractoTodas(this)" style="cursor:pointer;"> TODAS</label>';
+                h += '<div style="display:flex;gap:8px;margin-bottom:7px;">';
+                h += '<button onclick="_ngpExtractoTodasBtn(true)" style="background:rgba(245,158,11,0.15);border:1px solid #f59e0b;color:#fcd34d;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">✓ Todas</button>';
+                h += '<button onclick="_ngpExtractoTodasBtn(false)" style="background:rgba(148,163,184,0.12);border:1px solid #64748b;color:#cbd5e1;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">✕ Ninguna (limpiar)</button>';
+                h += '</div>';
                 lotsActivas.slice().sort().forEach(function(L) {
                     h += '<label style="font-size:11px;color:#e0f2fe;cursor:pointer;display:flex;align-items:center;gap:4px;"><input type="checkbox" class="ngpExtractoLot" value="' + L + '" onchange="_ngpExtractoRender()" style="cursor:pointer;"> ' + L + '</label>';
                 });
@@ -28566,6 +28573,9 @@ function senalesDe(nn) {
         function _ngpFiltroToggle() {
             var p = document.getElementById('ngpFiltroPanel');
             if (!p) return;
+            // V46.9.138: cerrar el otro panel al abrir este
+            var otro = document.getElementById('ngpExtractoPanel');
+            if (otro) otro.style.display = 'none';
             p.style.display = (p.style.display === 'none') ? 'block' : 'none';
         }
 
@@ -28575,7 +28585,20 @@ function senalesDe(nn) {
         function _ngpExtractoToggle() {
             var p = document.getElementById('ngpExtractoPanel');
             if (!p) return;
+            // V46.9.138: cerrar el otro panel al abrir este
+            var otro = document.getElementById('ngpFiltroPanel');
+            if (otro) otro.style.display = 'none';
             p.style.display = (p.style.display === 'none') ? 'block' : 'none';
+        }
+        // V46.9.138 (pedido de Leo): botones Todas / Ninguna para el filtro por lotería
+        function _ngpFiltroTodas(marcar) {
+            document.querySelectorAll('.ngpFiltroLot').forEach(function(c) { c.checked = !!marcar; });
+            _ngpFiltroRender();
+        }
+        // V46.9.138: botones Todas / Ninguna para el extracto
+        function _ngpExtractoTodasBtn(marcar) {
+            document.querySelectorAll('.ngpExtractoLot').forEach(function(c) { c.checked = !!marcar; });
+            _ngpExtractoRender();
         }
         function _ngpExtractoTodas(chk) {
             // al marcar TODAS, desmarca las individuales; al desmarcar, deja elegir
@@ -28591,9 +28614,8 @@ function senalesDe(nn) {
             if (!cont || !window._ngpFiltro) return;
             var F = window._ngpFiltro;
             var checks = document.querySelectorAll('.ngpExtractoLot:checked');
-            var todas = false, sel = [];
-            checks.forEach(function(c) { if (c.value === '__TODAS__') todas = true; else sel.push(c.value); });
-            if (todas) sel = F.lotsActivas.slice();
+            var sel = [];
+            checks.forEach(function(c) { sel.push(c.value); });
             if (!sel.length) { cont.innerHTML = '<div style="font-size:11px;color:#94a3b8;padding:10px;">Elegí al menos una lotería (o TODAS).</div>'; return; }
 
             function fmtFecha(d) { if (!d) return '—'; var p = d.split('-'); return p[2] + '-' + p[1] + '-' + p[0].substring(2); }
@@ -69250,7 +69272,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r71 · v46.9.137</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r72 · v46.9.138</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {

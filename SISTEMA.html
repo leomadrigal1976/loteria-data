@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo</h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.138</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6314,7 +6314,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.137</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.138</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -28372,6 +28372,10 @@ ${groups.map((g,i)=>`
                 // panel del filtro (oculto por defecto)
                 h += '<div id="ngpFiltroPanel" style="display:none;background:rgba(8,47,73,0.6);border:1px solid #22d3ee;border-radius:9px;padding:10px;margin-top:9px;">';
                 h += '<div style="font-size:11px;font-weight:bold;color:#a5f3fc;margin-bottom:6px;">Elegí una o varias loterías — se muestran sus números con más señales, en el orden de grupos más acertado:</div>';
+                h += '<div style="display:flex;gap:8px;margin-bottom:7px;">';
+                h += '<button onclick="_ngpFiltroTodas(true)" style="background:rgba(34,211,238,0.15);border:1px solid #22d3ee;color:#a5f3fc;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">✓ Todas</button>';
+                h += '<button onclick="_ngpFiltroTodas(false)" style="background:rgba(148,163,184,0.12);border:1px solid #64748b;color:#cbd5e1;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">✕ Ninguna (limpiar)</button>';
+                h += '</div>';
                 h += '<div style="display:flex;flex-wrap:wrap;gap:5px 12px;margin-bottom:8px;">';
                 lotsActivas.slice().sort().forEach(function(L) {
                     h += '<label style="font-size:11px;color:#e0f2fe;cursor:pointer;display:flex;align-items:center;gap:4px;"><input type="checkbox" class="ngpFiltroLot" value="' + L + '" onchange="_ngpFiltroRender()" style="cursor:pointer;"> ' + L + '</label>';
@@ -28384,7 +28388,10 @@ ${groups.map((g,i)=>`
                 h += '<div id="ngpExtractoPanel" style="display:none;background:rgba(69,26,3,0.5);border:1px solid #f59e0b;border-radius:9px;padding:10px;margin-top:9px;">';
                 h += '<div style="font-size:11px;font-weight:bold;color:#fcd34d;margin-bottom:6px;">Elegí lotería(s) — se extraen SOLO los números con más señales que coinciden con su rezago en cada grupo, en orden de importancia de los grupos:</div>';
                 h += '<div style="display:flex;flex-wrap:wrap;gap:5px 12px;margin-bottom:8px;">';
-                h += '<label style="font-size:11px;color:#fed7aa;cursor:pointer;display:flex;align-items:center;gap:4px;font-weight:bold;"><input type="checkbox" class="ngpExtractoLot" value="__TODAS__" onchange="_ngpExtractoTodas(this)" style="cursor:pointer;"> TODAS</label>';
+                h += '<div style="display:flex;gap:8px;margin-bottom:7px;">';
+                h += '<button onclick="_ngpExtractoTodasBtn(true)" style="background:rgba(245,158,11,0.15);border:1px solid #f59e0b;color:#fcd34d;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">✓ Todas</button>';
+                h += '<button onclick="_ngpExtractoTodasBtn(false)" style="background:rgba(148,163,184,0.12);border:1px solid #64748b;color:#cbd5e1;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">✕ Ninguna (limpiar)</button>';
+                h += '</div>';
                 lotsActivas.slice().sort().forEach(function(L) {
                     h += '<label style="font-size:11px;color:#e0f2fe;cursor:pointer;display:flex;align-items:center;gap:4px;"><input type="checkbox" class="ngpExtractoLot" value="' + L + '" onchange="_ngpExtractoRender()" style="cursor:pointer;"> ' + L + '</label>';
                 });
@@ -28903,6 +28910,9 @@ ${groups.map((g,i)=>`
         function _ngpFiltroToggle() {
             var p = document.getElementById('ngpFiltroPanel');
             if (!p) return;
+            // V46.9.138: cerrar el otro panel al abrir este
+            var otro = document.getElementById('ngpExtractoPanel');
+            if (otro) otro.style.display = 'none';
             p.style.display = (p.style.display === 'none') ? 'block' : 'none';
         }
 
@@ -28912,7 +28922,20 @@ ${groups.map((g,i)=>`
         function _ngpExtractoToggle() {
             var p = document.getElementById('ngpExtractoPanel');
             if (!p) return;
+            // V46.9.138: cerrar el otro panel al abrir este
+            var otro = document.getElementById('ngpFiltroPanel');
+            if (otro) otro.style.display = 'none';
             p.style.display = (p.style.display === 'none') ? 'block' : 'none';
+        }
+        // V46.9.138 (pedido de Leo): botones Todas / Ninguna para el filtro por lotería
+        function _ngpFiltroTodas(marcar) {
+            document.querySelectorAll('.ngpFiltroLot').forEach(function(c) { c.checked = !!marcar; });
+            _ngpFiltroRender();
+        }
+        // V46.9.138: botones Todas / Ninguna para el extracto
+        function _ngpExtractoTodasBtn(marcar) {
+            document.querySelectorAll('.ngpExtractoLot').forEach(function(c) { c.checked = !!marcar; });
+            _ngpExtractoRender();
         }
         function _ngpExtractoTodas(chk) {
             // al marcar TODAS, desmarca las individuales; al desmarcar, deja elegir
@@ -28928,9 +28951,8 @@ ${groups.map((g,i)=>`
             if (!cont || !window._ngpFiltro) return;
             var F = window._ngpFiltro;
             var checks = document.querySelectorAll('.ngpExtractoLot:checked');
-            var todas = false, sel = [];
-            checks.forEach(function(c) { if (c.value === '__TODAS__') todas = true; else sel.push(c.value); });
-            if (todas) sel = F.lotsActivas.slice();
+            var sel = [];
+            checks.forEach(function(c) { sel.push(c.value); });
             if (!sel.length) { cont.innerHTML = '<div style="font-size:11px;color:#94a3b8;padding:10px;">Elegí al menos una lotería (o TODAS).</div>'; return; }
 
             function fmtFecha(d) { if (!d) return '—'; var p = d.split('-'); return p[2] + '-' + p[1] + '-' + p[0].substring(2); }
