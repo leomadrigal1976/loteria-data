@@ -28634,9 +28634,14 @@ function senalesDe(nn) {
                         // salvaguarda: si salió hace <=2 días en L, ya no está rezagado ahí
                         var ultEnL = (F.ultPorNumLot[nn] || {})[L];
                         var salioReciente = (ultEnL && F.difDias(ultEnL, F.hoyStr) <= 2);
-                        var esRezagoL = (pos !== null && pos <= 18 && !salioReciente);
-                        if (!esRezagoL) return;
-                        var sn = F.senalesDe(nn);
+                        var esRezagoL = (pos !== null && pos <= 30 && !salioReciente);
+                        // V46.9.139: también incluir si tiene señales fuertes en L aunque no
+                        // esté tan arriba en el rezago (para que el extracto sea útil).
+                        var sn0 = F.senalesDe(nn);
+                        var tieneSenalesL = false;
+                        (sn0.porLoteria || []).forEach(function(cf) { if (cf.lot === L && cf.score >= 2) tieneSenalesL = true; });
+                        if (!esRezagoL && !(tieneSenalesL && pos !== null && !salioReciente)) return;
+                        var sn = sn0;
                         // score específico para L (confluencia en L) + señales globales fuertes
                         var scoreL = 0, tiposL = [];
                         (sn.porLoteria || []).forEach(function(cf) {
@@ -28654,7 +28659,14 @@ function senalesDe(nn) {
                     });
                     bloquesGrupo.push({ grupo: g, grupoIdx: gi, nums: candidatos });
                 });
-                if (!bloquesGrupo.length) return;
+                if (!bloquesGrupo.length) {
+                    // V46.9.139: no dejar en blanco — avisar por lotería
+                    htmlLots += '<div style="margin-bottom:8px;border:1px solid rgba(148,163,184,0.3);border-radius:8px;padding:8px;background:rgba(0,0,0,0.15);">';
+                    htmlLots += '<div style="font-size:12px;font-weight:bold;color:#cbd5e1;">🎯 ' + L + '</div>';
+                    htmlLots += '<div style="font-size:10px;color:#94a3b8;margin-top:3px;">Ningún número de esta lotería está entre los más rezagados (top 18) con señales en este momento. Probá con "Filtrar por lotería" (el otro botón) para verla completa.</div>';
+                    htmlLots += '</div>';
+                    return;
+                }
                 htmlLots += '<div style="margin-bottom:12px;border:1px solid rgba(245,158,11,0.4);border-radius:8px;padding:8px;background:rgba(0,0,0,0.2);">';
                 htmlLots += '<div style="font-size:13px;font-weight:bold;color:#fcd34d;margin-bottom:6px;">🎯 ' + L + ' <span style="font-size:9px;color:#94a3b8;font-weight:normal;">— top de cada grupo por rezago + señales, en orden de importancia</span></div>';
                 bloquesGrupo.forEach(function(bg) {
@@ -69272,7 +69284,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r72 · v46.9.138</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r73 · v46.9.139</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {

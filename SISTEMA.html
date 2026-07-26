@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.138</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.139</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6314,7 +6314,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.138</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.139</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -28971,9 +28971,14 @@ ${groups.map((g,i)=>`
                         // salvaguarda: si salió hace <=2 días en L, ya no está rezagado ahí
                         var ultEnL = (F.ultPorNumLot[nn] || {})[L];
                         var salioReciente = (ultEnL && F.difDias(ultEnL, F.hoyStr) <= 2);
-                        var esRezagoL = (pos !== null && pos <= 18 && !salioReciente);
-                        if (!esRezagoL) return;
-                        var sn = F.senalesDe(nn);
+                        var esRezagoL = (pos !== null && pos <= 30 && !salioReciente);
+                        // V46.9.139: también incluir si tiene señales fuertes en L aunque no
+                        // esté tan arriba en el rezago (para que el extracto sea útil).
+                        var sn0 = F.senalesDe(nn);
+                        var tieneSenalesL = false;
+                        (sn0.porLoteria || []).forEach(function(cf) { if (cf.lot === L && cf.score >= 2) tieneSenalesL = true; });
+                        if (!esRezagoL && !(tieneSenalesL && pos !== null && !salioReciente)) return;
+                        var sn = sn0;
                         // score específico para L (confluencia en L) + señales globales fuertes
                         var scoreL = 0, tiposL = [];
                         (sn.porLoteria || []).forEach(function(cf) {
@@ -28991,7 +28996,14 @@ ${groups.map((g,i)=>`
                     });
                     bloquesGrupo.push({ grupo: g, grupoIdx: gi, nums: candidatos });
                 });
-                if (!bloquesGrupo.length) return;
+                if (!bloquesGrupo.length) {
+                    // V46.9.139: no dejar en blanco — avisar por lotería
+                    htmlLots += '<div style="margin-bottom:8px;border:1px solid rgba(148,163,184,0.3);border-radius:8px;padding:8px;background:rgba(0,0,0,0.15);">';
+                    htmlLots += '<div style="font-size:12px;font-weight:bold;color:#cbd5e1;">🎯 ' + L + '</div>';
+                    htmlLots += '<div style="font-size:10px;color:#94a3b8;margin-top:3px;">Ningún número de esta lotería está entre los más rezagados (top 18) con señales en este momento. Probá con "Filtrar por lotería" (el otro botón) para verla completa.</div>';
+                    htmlLots += '</div>';
+                    return;
+                }
                 htmlLots += '<div style="margin-bottom:12px;border:1px solid rgba(245,158,11,0.4);border-radius:8px;padding:8px;background:rgba(0,0,0,0.2);">';
                 htmlLots += '<div style="font-size:13px;font-weight:bold;color:#fcd34d;margin-bottom:6px;">🎯 ' + L + ' <span style="font-size:9px;color:#94a3b8;font-weight:normal;">— top de cada grupo por rezago + señales, en orden de importancia</span></div>';
                 bloquesGrupo.forEach(function(bg) {
