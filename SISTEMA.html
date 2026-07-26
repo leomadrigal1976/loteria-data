@@ -6314,7 +6314,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.135</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.137</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -28238,6 +28238,30 @@ ${groups.map((g,i)=>`
                     return sig;
                 }
 
+                // ═══ V46.9.136 (pedido de Leo): FACTOR "GRUPO DEL DÍA" ═══════════════════
+                // Cada día del mes (01-31) pertenece al grupo numérico que contiene ese
+                // número. Ej: hoy 25 → Grupo 5 (contiene 25). Los números de ese grupo tienen
+                // mayor posibilidad de salir en esa fecha, así que suman peso FUERTE.
+                var _grupoDelDiaNums = (function() {
+                    try {
+                        if (typeof NUMBER_GROUPS === 'undefined' || !NUMBER_GROUPS) return { grupo: null, nums: {} };
+                        var hoyDate = new Date();
+                        var dia = hoyDate.getDate(); // 1..31
+                        var diaStr = (dia < 10 ? '0' + dia : '' + dia); // "01".."31"
+                        // buscar el grupo que contiene el número del día
+                        var grupoEncontrado = null;
+                        Object.keys(NUMBER_GROUPS).forEach(function(g) {
+                            if ((NUMBER_GROUPS[g] || []).indexOf(diaStr) >= 0) grupoEncontrado = g;
+                        });
+                        if (!grupoEncontrado) return { grupo: null, nums: {} };
+                        // todos los números de ese grupo tienen el factor
+                        var mapa = {};
+                        (NUMBER_GROUPS[grupoEncontrado] || []).forEach(function(n) { mapa[n] = true; });
+                        return { grupo: grupoEncontrado, nums: mapa, dia: diaStr };
+                    } catch (e) { return { grupo: null, nums: {} }; }
+                })();
+                function _esGrupoDelDia(nn) { return !!_grupoDelDiaNums.nums[nn]; }
+
                 function senalesDe(nn) {
                     var dec = nn[0], term = nn[1];
                     var inverso = nn[1] + nn[0];
@@ -28271,10 +28295,14 @@ ${groups.map((g,i)=>`
                             if (ultInv) { var di = difDias(ultInv, hoyStr); if (di <= 2) out.invReciente.push({ lot: L, dias: di, fecha: ultInv }); }
                         }
                     });
+                    // V46.9.136: factor "grupo del día" — peso FUERTE (+4). Si hoy es día 25,
+                    // los números del Grupo 5 (que contiene al 25) suben bastante.
+                    out.esGrupoDia = _esGrupoDelDia(nn);
                     // puntaje simple para ordenar (cada tipo de señal suma)
                     out.score = out.rezEnLots.length + out.decPend.length + out.termPend.length +
                                 out.despues.length + (out.vib ? 2 : 0) + out.pmGrupo.length * 2 +
-                                (out.termCaliente ? 1 : 0) + out.invReciente.length;
+                                (out.termCaliente ? 1 : 0) + out.invReciente.length +
+                                (out.esGrupoDia ? 4 : 0);
                     // V46.9.119: confluencia POR LOTERÍA
                     var conf = {};
                     function bump(L, tipo) { if (!conf[L]) conf[L] = { lot: L, score: 0, tipos: [] }; conf[L].score++; conf[L].tipos.push(tipo); }
@@ -28339,6 +28367,7 @@ ${groups.map((g,i)=>`
                 h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">';
                 h += '<div style="flex:1;min-width:240px;"><div style="font-size:16px;font-weight:bold;color:#7dd3fc;text-shadow:0 0 8px rgba(125,211,252,0.35);">🔗 NÚMEROS PEGADOS QUE REAPARECEN — ¿se contagian entre loterías?</div></div>';
                 h += '<button onclick="_ngpFiltroToggle()" style="background:linear-gradient(135deg,#0e7490,#22d3ee);border:1px solid #67e8f9;color:#06222b;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;">🎚️ Filtrar por lotería</button>';
+                h += '<button onclick="_ngpExtractoToggle()" style="background:linear-gradient(135deg,#b45309,#f59e0b);border:1px solid #fcd34d;color:#3a1d00;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🎯 Filtrar por Lotería Con Mayores Señales</button>';
                 h += '</div>';
                 // panel del filtro (oculto por defecto)
                 h += '<div id="ngpFiltroPanel" style="display:none;background:rgba(8,47,73,0.6);border:1px solid #22d3ee;border-radius:9px;padding:10px;margin-top:9px;">';
@@ -28349,6 +28378,16 @@ ${groups.map((g,i)=>`
                 });
                 h += '</div>';
                 h += '<div id="ngpFiltroResultado" style="max-height:400px;overflow-y:auto;"><div style="font-size:11px;color:#94a3b8;padding:6px;">Elegí al menos una lotería.</div></div>';
+                h += '</div>';
+                // V46.9.136 (pedido de Leo): panel del EXTRACTO — top de cada grupo que combina
+                // más señales + rezago en ese grupo, respetando el orden de importancia.
+                h += '<div id="ngpExtractoPanel" style="display:none;background:rgba(69,26,3,0.5);border:1px solid #f59e0b;border-radius:9px;padding:10px;margin-top:9px;">';
+                h += '<div style="font-size:11px;font-weight:bold;color:#fcd34d;margin-bottom:6px;">Elegí lotería(s) — se extraen SOLO los números con más señales que coinciden con su rezago en cada grupo, en orden de importancia de los grupos:</div>';
+                h += '<div style="display:flex;flex-wrap:wrap;gap:5px 12px;margin-bottom:8px;">';
+                h += '<label style="font-size:11px;color:#fed7aa;cursor:pointer;display:flex;align-items:center;gap:4px;font-weight:bold;"><input type="checkbox" class="ngpExtractoLot" value="__TODAS__" onchange="_ngpExtractoTodas(this)" style="cursor:pointer;"> TODAS</label>';
+                lotsActivas.slice().sort().forEach(function(L) {
+                    h += '<label style="font-size:11px;color:#e0f2fe;cursor:pointer;display:flex;align-items:center;gap:4px;"><input type="checkbox" class="ngpExtractoLot" value="' + L + '" onchange="_ngpExtractoRender()" style="cursor:pointer;"> ' + L + '</label>';
+                });
                 h += '</div>';
                 h += '<div style="font-size:10px;color:#bae6fd;margin-top:3px;">Rastrea números que dejaron de salir en <strong>todas</strong> las loterías por ' + DIAS_REZAGO + '+ días y volvieron a aparecer en los últimos ' + DIAS_RECIENTE + ' días. Para cada uno se muestra en qué otras loterías sigue pendiente.</div>';
 
@@ -28400,9 +28439,13 @@ ${groups.map((g,i)=>`
                             // del grupo, en todas las loterías de 2 díg? Es la señal de qué grupo
                             // está "predominando hoy" (como el resumen de grupos del día).
                             var salieronHoy = 0;
+                            // V46.9.137: racha de activación — en cuántas loterías distintas
+                            // salió algún número del grupo HOY (cadena de confirmación).
+                            var _lotsHoyGrupo = {};
                             miembros.forEach(function(nn) {
-                                (porNum[nn] || []).forEach(function(a) { if (a.date === _ultDiaDatos) salieronHoy++; });
+                                (porNum[nn] || []).forEach(function(a) { if (a.date === _ultDiaDatos) { salieronHoy++; _lotsHoyGrupo[a.lot] = true; } });
                             });
+                            var rachaLots = Object.keys(_lotsHoyGrupo).length;
                             var porSemana = salidas / (diasTotal / 7);
                             var pendM = miembros.map(function(nn) {
                                 var aps = porNum[nn] || [];
@@ -28414,7 +28457,7 @@ ${groups.map((g,i)=>`
                                 if (b.dias === null) return 1;
                                 return b.dias - a.dias;
                             });
-                            return { grupo: g, diasSinG: diasSinG, salidas: salidas, porSemana: porSemana, miembros: miembros.length, pend: pendM, reactivado: reactivado, huecoPrevio: huecoPrevio, ultG: ultG, salieronHoy: salieronHoy };
+                            return { grupo: g, diasSinG: diasSinG, salidas: salidas, porSemana: porSemana, miembros: miembros.length, pend: pendM, reactivado: reactivado, huecoPrevio: huecoPrevio, ultG: ultG, salieronHoy: salieronHoy, rachaLots: rachaLots };
                         }).sort(function(a, b) {
                             // V46.9.122: orden — (1) grupos reactivados (dormido → volvió),
                             // (2) los que MÁS predominan hoy (más números salieron hoy),
@@ -28436,6 +28479,60 @@ ${groups.map((g,i)=>`
                         grupoHTML += '<div style="font-size:13px;font-weight:bold;color:#7dd3fc;margin-top:14px;">📦 GRUPOS — ¿hace cuántos días dejó de salir cada uno?</div>';
                         grupoHTML += '<div style="font-size:10px;color:#94a3b8;margin-bottom:6px;">Días sin que salga <strong>ningún</strong> número del grupo en <strong>ninguna</strong> lotería, su frecuencia normal, y los números más pegados con dónde están más vencidos. <span style="color:#fb923c;">Orden: primero los que más predominan hoy (🔥 N hoy)</span> y los grupos <span style="color:#34d399;">⚡ reactivados</span> (dormían y volvieron hace 1-2 días).</div>';
                         grupoHTML += '<div style="display:flex;flex-direction:column;gap:4px;">';
+                        // V46.9.136 (pedido de Leo): alerta del "grupo del día". Hoy es día N →
+                        // el grupo que contiene ese número tiene mayor posibilidad. Avisa si ya
+                        // se activó (salió algún número del grupo hoy) o si aún está pendiente.
+                        if (_grupoDelDiaNums.grupo) {
+                            var _gdNums = NUMBER_GROUPS[_grupoDelDiaNums.grupo] || [];
+                            var _gdSalieron = [];
+                            // V46.9.137: cadena de activación — cuántas apariciones del grupo HOY
+                            // en cuántas loterías distintas (racha de confirmación).
+                            var _gdApariciones = [];
+                            _gdNums.forEach(function(n) {
+                                (porNum[n] || []).forEach(function(a) {
+                                    if (a.date === _ultDiaDatos) {
+                                        if (_gdSalieron.indexOf(n) < 0) _gdSalieron.push(n);
+                                        _gdApariciones.push({ num: n, lot: a.lot, time: a.time });
+                                    }
+                                });
+                            });
+                            var _gdLotsDistintas = {};
+                            _gdApariciones.forEach(function(a) { _gdLotsDistintas[a.lot] = true; });
+                            var _gdNumLots = Object.keys(_gdLotsDistintas).length;
+                            var _gdActivo = _gdSalieron.length > 0;
+                            // V46.9.137: ¿el grupo del día ESTÁ reactivado? (confluencia máxima)
+                            var _gdReactivado = false;
+                            try {
+                                var _giDia = gInfo.filter(function(x) { return x.grupo === _grupoDelDiaNums.grupo; })[0];
+                                _gdReactivado = _giDia && _giDia.reactivado;
+                            } catch (e) {}
+
+                            // colores según intensidad
+                            var _gdBg, _gdBorde;
+                            if (_gdReactivado && _gdActivo) { _gdBg = 'linear-gradient(135deg,#7f1d1d,#dc2626)'; _gdBorde = '#fca5a5'; }
+                            else if (_gdActivo) { _gdBg = 'linear-gradient(135deg,#166534,#16a34a)'; _gdBorde = '#86efac'; }
+                            else { _gdBg = 'linear-gradient(135deg,#5b21b6,#7c3aed)'; _gdBorde = '#c4b5fd'; }
+
+                            grupoHTML += '<div class="' + ((_gdReactivado && _gdActivo) ? 'ngp-parpadea' : '') + '" style="background:' + _gdBg + ';border:2px solid ' + _gdBorde + ';border-radius:8px;padding:8px 11px;margin-bottom:4px;">';
+                            // línea 1: confluencia máxima si aplica
+                            if (_gdReactivado && _gdActivo) {
+                                grupoHTML += '<div style="font-size:12px;font-weight:bold;color:#fff;">🚨 CONFLUENCIA MÁXIMA — HOY es día ' + _grupoDelDiaNums.dia + ' (día del <span style="color:#fde68a;">' + _grupoDelDiaNums.grupo + '</span>) Y ese grupo está REACTIVADO</div>';
+                            } else {
+                                grupoHTML += '<div style="font-size:12px;font-weight:bold;color:#fff;">📅 HOY es día ' + _grupoDelDiaNums.dia + ' → día del <span style="color:#fde68a;">' + _grupoDelDiaNums.grupo + '</span> (' + _gdNums.join(', ') + ')</div>';
+                            }
+                            // línea 2: estado + cadena de activación
+                            var _gdMsg;
+                            if (_gdActivo) {
+                                _gdMsg = '✅ Ya se activó hoy: salió ' + _gdSalieron.join(', ');
+                                if (_gdNumLots >= 2) _gdMsg += ' en ' + _gdNumLots + ' loterías distintas (🔗 racha de confirmación — el grupo está insistiendo)';
+                                else _gdMsg += ' de este grupo';
+                                _gdMsg += '. Ojo con los demás del grupo.';
+                            } else {
+                                _gdMsg = '⏳ Aún sin activarse hoy — vigilá este grupo, tiene mayor posibilidad en esta fecha.';
+                            }
+                            grupoHTML += '<div style="font-size:10px;color:#f1f5f9;margin-top:3px;">' + _gdMsg + ' <span style="opacity:0.8;">Estos números suman peso fuerte en las sugerencias de hoy.</span></div>';
+                            grupoHTML += '</div>';
+                        }
                         gInfo.forEach(function(gi) {
                             var col = (gi.diasSinG === null) ? '#f0abfc' : (gi.diasSinG >= 7 ? '#fca5a5' : gi.diasSinG >= 3 ? '#fbbf24' : '#6ee7b7');
                             // V46.9.118: abiertos por defecto (open); borde resaltado si se reactivó
@@ -28446,6 +28543,8 @@ ${groups.map((g,i)=>`
                             if (gi.reactivado) grupoHTML += '<span title="Estuvo dormido ' + gi.huecoPrevio + ' días y volvió a salir hace ' + gi.diasSinG + (gi.diasSinG === 1 ? ' día' : ' días') + ' — se está reactivando" style="font-size:9px;font-weight:bold;color:#022c22;background:#34d399;border-radius:5px;padding:1px 7px;">⚡ REACTIVADO (dormía ' + gi.huecoPrevio + 'd)</span>';
                             grupoHTML += '<span style="font-size:11px;color:' + col + ';font-weight:bold;">' + (gi.diasSinG === null ? 'nunca salió' : gi.diasSinG + ' días sin salir') + '</span>';
                             if (gi.salieronHoy > 0) grupoHTML += '<span title="Hoy salieron ' + gi.salieronHoy + ' número(s) de este grupo en el total de loterías de 2 dígitos — está predominando" style="font-size:10px;font-weight:bold;color:#fb923c;background:rgba(251,146,60,0.15);border:1px solid #fb923c;border-radius:5px;padding:1px 7px;">🔥 ' + gi.salieronHoy + ' hoy</span>';
+                            // V46.9.137: badge de racha — el grupo se confirmó en 2+ loterías hoy
+                            if (gi.rachaLots >= 2) grupoHTML += '<span class="ngp-parpadea" title="El grupo se activó en ' + gi.rachaLots + ' loterías distintas HOY — racha de confirmación (como el caso Honduras/PAPA/Dominicana). Cuando un grupo insiste en varias loterías el mismo día, la señal es más fuerte." style="font-size:10px;font-weight:bold;color:#fff;background:#dc2626;border:1px solid #fca5a5;border-radius:5px;padding:1px 7px;">🔗 racha ' + gi.rachaLots + ' loterías</span>';
                             grupoHTML += '<span style="font-size:10px;color:#94a3b8;">frecuencia: <strong style="color:#bae6fd;">' + gi.porSemana.toFixed(1) + '</strong> salidas/semana · ' + gi.salidas + ' totales · ' + gi.miembros + ' números</span>';
                             // los 3 más pegados del grupo
                             var top3 = gi.pend.slice(0, 3);
@@ -28486,6 +28585,11 @@ ${groups.map((g,i)=>`
                                 }
                                 // fila 1: número grande + score + veces
                                 var sn = senalesDe(p.num);
+                                // V46.9.136 (pedido de Leo): peso extra cuando el grupo está
+                                // REACTIVADO (dormido y despertó) Y el número está rezagado —
+                                // señal reforzada (caso Honduras/PAPA/Dominicana de ayer).
+                                var _bonusReact = (gi.reactivado && esTopRez) ? 5 : (gi.reactivado ? 2 : 0);
+                                if (_bonusReact > 0) sn.score += _bonusReact;
                                 var scoreCol = sn.score >= 6 ? '#6ee7b7' : sn.score >= 3 ? '#fde68a' : '#cbd5e1';
                                 grupoHTML += '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">';
                                 grupoHTML += '<span title="' + tip + '" style="font-family:monospace;font-size:24px;font-weight:bold;color:#fff;line-height:1;">' + p.num + '</span>';
@@ -28501,6 +28605,10 @@ ${groups.map((g,i)=>`
                                 // fila 2: badges de señales
                                 if (sn.score > 0) {
                                     var badges = [];
+                                    // V46.9.136: badge grupo del día (peso fuerte)
+                                    if (sn.esGrupoDia) badges.push('<span class="ngp-parpadea" title="Hoy es día ' + (_grupoDelDiaNums.dia || '') + ' — este número pertenece al ' + (_grupoDelDiaNums.grupo || '') + ', que es el grupo de la fecha de hoy. En esta fecha tiene mayor posibilidad de salir." style="background:#7c3aed;border:1px solid #c4b5fd;border-radius:4px;padding:1px 5px;font-size:8px;color:#fff;font-weight:bold;">📅 grupo del día</span>');
+                                    // V46.9.136: badge reactivado + rezago (señal reforzada)
+                                    if (gi.reactivado && esTopRez) badges.push('<span class="ngp-parpadea" title="El grupo estaba dormido y despertó, Y este número está rezagado — señal reforzada (como el caso Honduras/PAPA/Dominicana)." style="background:#16a34a;border:1px solid #86efac;border-radius:4px;padding:1px 5px;font-size:8px;color:#fff;font-weight:bold;">⚡🏆 despertó+rezag</span>');
                                     if (sn.rezEnLots.length) { var _rezClase = esTopRez ? 'ngp-parpadea' : ''; var _rezBg = esTopRez ? '#dc2626' : 'rgba(239,68,68,0.18)'; var _rezCol = esTopRez ? '#fff' : '#fecaca'; badges.push('<span class="' + _rezClase + '" title="Este numero esta sin salir hace 15+ dias en ' + sn.rezEnLots.length + ' loteria(s): ' + sn.rezEnLots.map(function(x){return x.lot+(x.dias!==null?' '+x.dias+'d':' nunca');}).join(', ') + (esTopRez ? ' — y esta en el TOP de mas rezagados de ' + mejorLotRez + ' (puesto #' + mejorPos + ')' : '') + '" style="background:' + _rezBg + ';border:1px solid #fca5a5;border-radius:4px;padding:1px 5px;font-size:8px;color:' + _rezCol + ';font-weight:bold;">\u23f3 rez ' + sn.rezEnLots.length + '</span>'); }
                                     if (sn.decPend.length) badges.push('<span title="Decena ' + p.num[0] + 'x pendiente en: ' + sn.decPend.join(', ') + '" style="background:rgba(56,189,248,0.15);border:1px solid #7dd3fc;border-radius:4px;padding:1px 5px;font-size:8px;color:#bae6fd;">\ud83d\udd1f dec ' + sn.decPend.length + '</span>');
                                     if (sn.termPend.length) badges.push('<span title="Terminacion x' + p.num[1] + ' pendiente en: ' + sn.termPend.join(', ') + '" style="background:rgba(56,189,248,0.15);border:1px solid #7dd3fc;border-radius:4px;padding:1px 5px;font-size:8px;color:#bae6fd;">\ud83c\udf80 term ' + sn.termPend.length + '</span>');
@@ -28796,6 +28904,104 @@ ${groups.map((g,i)=>`
             var p = document.getElementById('ngpFiltroPanel');
             if (!p) return;
             p.style.display = (p.style.display === 'none') ? 'block' : 'none';
+        }
+
+        // V46.9.136 (pedido de Leo): EXTRACTO — top de cada grupo por lotería, en orden de
+        // importancia de los grupos. Solo los números con más señales que coinciden con su
+        // rezago en ese grupo.
+        function _ngpExtractoToggle() {
+            var p = document.getElementById('ngpExtractoPanel');
+            if (!p) return;
+            p.style.display = (p.style.display === 'none') ? 'block' : 'none';
+        }
+        function _ngpExtractoTodas(chk) {
+            // al marcar TODAS, desmarca las individuales; al desmarcar, deja elegir
+            if (chk.checked) {
+                document.querySelectorAll('.ngpExtractoLot').forEach(function(c) {
+                    if (c.value !== '__TODAS__') c.checked = false;
+                });
+            }
+            _ngpExtractoRender();
+        }
+        function _ngpExtractoRender() {
+            var cont = document.getElementById('ngpExtractoResultado');
+            if (!cont || !window._ngpFiltro) return;
+            var F = window._ngpFiltro;
+            var checks = document.querySelectorAll('.ngpExtractoLot:checked');
+            var todas = false, sel = [];
+            checks.forEach(function(c) { if (c.value === '__TODAS__') todas = true; else sel.push(c.value); });
+            if (todas) sel = F.lotsActivas.slice();
+            if (!sel.length) { cont.innerHTML = '<div style="font-size:11px;color:#94a3b8;padding:10px;">Elegí al menos una lotería (o TODAS).</div>'; return; }
+
+            function fmtFecha(d) { if (!d) return '—'; var p = d.split('-'); return p[2] + '-' + p[1] + '-' + p[0].substring(2); }
+
+            var htmlLots = '';
+            sel.forEach(function(L) {
+                // por cada grupo (en orden de importancia), tomar los números que:
+                //  - están rezagados en L (top de rezago de esa lotería), Y
+                //  - tienen señales (score > 0)
+                var bloquesGrupo = [];
+                F.grupos.forEach(function(g, gi) {
+                    var miembros = F.NUMBER_GROUPS[g] || [];
+                    var candidatos = [];
+                    miembros.forEach(function(nn) {
+                        var pos = (F.rankRezagoLot[L] || {})[nn] || null;
+                        // salvaguarda: si salió hace <=2 días en L, ya no está rezagado ahí
+                        var ultEnL = (F.ultPorNumLot[nn] || {})[L];
+                        var salioReciente = (ultEnL && F.difDias(ultEnL, F.hoyStr) <= 2);
+                        var esRezagoL = (pos !== null && pos <= 18 && !salioReciente);
+                        if (!esRezagoL) return;
+                        var sn = F.senalesDe(nn);
+                        // score específico para L (confluencia en L) + señales globales fuertes
+                        var scoreL = 0, tiposL = [];
+                        (sn.porLoteria || []).forEach(function(cf) {
+                            if (cf.lot === L) { scoreL += cf.score; cf.tipos.forEach(function(t) { tiposL.push(t); }); }
+                        });
+                        // sumar factores globales de peso (grupo del día)
+                        if (sn.esGrupoDia) { scoreL += 4; tiposL.push('grupo del día'); }
+                        candidatos.push({ num: nn, pos: pos, score: scoreL, tipos: tiposL, sn: sn, ultEnL: ultEnL });
+                    });
+                    if (!candidatos.length) return;
+                    // dentro del grupo: por score desc, luego por rezago (pos asc = más vencido)
+                    candidatos.sort(function(a, b) {
+                        if (b.score !== a.score) return b.score - a.score;
+                        return a.pos - b.pos;
+                    });
+                    bloquesGrupo.push({ grupo: g, grupoIdx: gi, nums: candidatos });
+                });
+                if (!bloquesGrupo.length) return;
+                htmlLots += '<div style="margin-bottom:12px;border:1px solid rgba(245,158,11,0.4);border-radius:8px;padding:8px;background:rgba(0,0,0,0.2);">';
+                htmlLots += '<div style="font-size:13px;font-weight:bold;color:#fcd34d;margin-bottom:6px;">🎯 ' + L + ' <span style="font-size:9px;color:#94a3b8;font-weight:normal;">— top de cada grupo por rezago + señales, en orden de importancia</span></div>';
+                bloquesGrupo.forEach(function(bg) {
+                    htmlLots += '<div style="font-size:11px;font-weight:bold;color:#fbbf24;margin:6px 0 3px;">' + bg.grupo + '</div>';
+                    htmlLots += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr));gap:5px;">';
+                    bg.nums.forEach(function(c) {
+                        var scoreCol = c.score >= 6 ? '#6ee7b7' : c.score >= 3 ? '#fde68a' : '#cbd5e1';
+                        var dEnL = c.ultEnL ? F.difDias(c.ultEnL, F.hoyStr) : null;
+                        htmlLots += '<div style="background:rgba(220,38,38,0.14);border:1px solid #f87171;border-radius:6px;padding:5px 7px;">';
+                        htmlLots += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">';
+                        htmlLots += '<span style="font-family:monospace;font-size:17px;font-weight:bold;color:#fff;">' + c.num + '</span>';
+                        htmlLots += '<span style="font-size:9px;font-weight:bold;color:' + scoreCol + ';">' + c.score + ' señ.</span>';
+                        htmlLots += '<span style="background:#dc2626;color:#fff;border-radius:4px;padding:1px 5px;font-size:8px;font-weight:bold;">🏆 #' + c.pos + ' rezag ' + L + '</span>';
+                        htmlLots += '</div>';
+                        htmlLots += '<div style="font-size:8px;color:#cbd5e1;margin-top:3px;">⏳ lleva ' + (dEnL !== null ? dEnL + ' días' : 'nunca salió') + ' sin salir en ' + L + (c.ultEnL ? ' (desde ' + fmtFecha(c.ultEnL) + ')' : '') + '</div>';
+                        if (c.tipos.length) {
+                            htmlLots += '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">';
+                            c.tipos.slice(0, 6).forEach(function(t) {
+                                var bg2 = (t === 'grupo del día') ? '#7c3aed' : 'rgba(251,191,36,0.12)';
+                                var col2 = (t === 'grupo del día') ? '#fff' : '#fef3c7';
+                                htmlLots += '<span style="background:' + bg2 + ';border:1px solid rgba(253,230,138,0.4);border-radius:4px;padding:1px 4px;font-size:8px;color:' + col2 + ';">' + t + '</span>';
+                            });
+                            htmlLots += '</div>';
+                        }
+                        htmlLots += '</div>';
+                    });
+                    htmlLots += '</div>';
+                });
+                htmlLots += '</div>';
+            });
+            if (!htmlLots) htmlLots = '<div style="font-size:11px;color:#94a3b8;padding:10px;">Ningún número cumple (rezago en la lotería + señales) en este momento.</div>';
+            cont.innerHTML = htmlLots;
         }
 
         function ejecutarAnalisisUnificadoPendientes() {
