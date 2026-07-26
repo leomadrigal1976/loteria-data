@@ -2654,6 +2654,11 @@
                             <input type="checkbox" id="ghSyncActivo" onchange="_ghActivoCambio()" style="cursor:pointer;accent-color:#3b82f6;"> Subida automática al capturar
                         </label>
                     </div>
+                    <label style="display:flex;align-items:flex-start;gap:6px;color:#fbbf24;font-size:12px;cursor:pointer;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.4);border-radius:6px;padding:8px 10px;margin-top:6px;">
+                        <input type="checkbox" id="ghDispositivoPrincipal" onchange="_ghGuardarDispositivoPrincipal()" style="cursor:pointer;accent-color:#f59e0b;margin-top:2px;">
+                        <span><strong>Este dispositivo puede BORRAR y MODIFICAR registros.</strong><br><span style="font-size:10px;color:#fed7aa;">Marcá esto SOLO en tu equipo principal (la laptop). En los demás (celular) dejalo desmarcado: ahí solo se pueden AGREGAR datos. Motivo: por la fusión de nube, borrar/modificar solo funciona bien desde un único dispositivo — si no, el dato borrado "revive" desde otro equipo.</span></span>
+                    </label>
+
                     <div id="ghSyncEstado" style="font-size:12px;color:#94a3b8;padding:6px 0;">☁️ Sin configurar todavía.</div>
                     <div id="ghSyncUltima" style="font-size:11px;color:#94a3b8;padding:2px 0;"></div>
                 </div>
@@ -6309,7 +6314,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.134</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.135</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -13156,6 +13161,7 @@
         // FUNCIONES PARA EDITAR Y ELIMINAR RESULTADOS
         // ==============================================
         function editResult(index) {
+            if (!_puedeEditarBorrar()) return;
             const result = capturedResults[index];
             if (!result) return;
             
@@ -13293,6 +13299,7 @@
         }
 
         function deleteResult(timestamp) {
+            if (!_puedeEditarBorrar()) return;
             if (confirm('¿Está seguro de eliminar este resultado?')) {
                 capturedResults = capturedResults.filter(r => r.timestamp !== timestamp);
                 saveData();
@@ -13304,6 +13311,7 @@
         }
 
         function deleteResultByIndex(index) {
+            if (!_puedeEditarBorrar()) return;
             if (index < 0 || index >= capturedResults.length) { alert('Índice inválido'); return; }
             var r = capturedResults[index];
             if (confirm('¿Eliminar resultado?\n' + r.lottery + ' ' + r.date + ' ' + r.time + ' → ' + r.number)) {
@@ -14221,6 +14229,36 @@ ${groups.map((g,i)=>`
 
         // Llamado automático tras capturar (con debounce para no saturar)
         var _ghDebounceTimer = null;
+        // V46.9.135 (pedido de Leo): candado de borrado/modificación por dispositivo.
+        // Por la fusión con la nube, borrar o modificar solo funciona bien desde UN
+        // dispositivo (el principal). En los demás se bloquea para que un dato borrado
+        // no "reviva" desde otro equipo. La preferencia se guarda por dispositivo.
+        var _GH_DISPOSITIVO_KEY = 'ghDispositivoPrincipal';
+        function _ghEsDispositivoPrincipal() {
+            try { return localStorage.getItem(_GH_DISPOSITIVO_KEY) === 'si'; } catch (e) { return false; }
+        }
+        function _ghGuardarDispositivoPrincipal() {
+            var box = document.getElementById('ghDispositivoPrincipal');
+            var val = box && box.checked;
+            try { localStorage.setItem(_GH_DISPOSITIVO_KEY, val ? 'si' : 'no'); } catch (e) {}
+            if (val) {
+                _ghActualizarEstado('ok', '✅ Este dispositivo quedó marcado como PRINCIPAL: puede borrar y modificar registros.');
+            } else {
+                _ghActualizarEstado('idle', 'Este dispositivo ya NO puede borrar ni modificar (solo agregar). Marcá la casilla si es tu equipo principal.');
+            }
+        }
+        // Devuelve true si se puede borrar/modificar; si no, avisa y devuelve false.
+        function _puedeEditarBorrar() {
+            if (_ghEsDispositivoPrincipal()) return true;
+            var msg = '🔒 Este dispositivo NO puede borrar ni modificar registros.\n\n' +
+                      'Por la sincronización con la nube, borrar o modificar solo funciona bien desde UN dispositivo (tu equipo principal, la laptop).\n\n' +
+                      'Si borraras acá, el registro volvería a aparecer al sincronizar con la laptop.\n\n' +
+                      'Qué hacer: hacé el borrado o la corrección desde tu laptop. Si ESTE es tu equipo principal, activá la casilla en Respaldo → Sincronización ("Este dispositivo puede BORRAR y MODIFICAR").';
+            try { alert(msg); } catch (e) {}
+            try { _ghActualizarEstado('error', '🔒 Borrado/modificación bloqueado en este dispositivo — hacelo desde la laptop (o marcá este equipo como principal en Respaldo).'); } catch (e) {}
+            return false;
+        }
+
         function _ghSyncAuto() {
             var cfg = _ghLeerConfig();
             // V46.9.74: NUNCA en silencio — si no va a subir, decir por qué
@@ -14308,6 +14346,8 @@ ${groups.map((g,i)=>`
             if (elRepo) elRepo.value = cfg.repo || '';
             if (elToken) elToken.value = cfg.token || '';
             if (elActivo) elActivo.checked = !!cfg.activo;
+            var elPrinc = document.getElementById('ghDispositivoPrincipal');
+            if (elPrinc) elPrinc.checked = _ghEsDispositivoPrincipal();
             if (cfg.activo && cfg.token && cfg.repo) _ghActualizarEstado('idle', 'Configurado. Subida automática activada.');
             else if (cfg.token && cfg.repo) _ghActualizarEstado('idle', 'Configurado (subida automática desactivada — marcá la casilla si querés que cada captura suba sola).');
             try { _ghMostrarUltimaOk(); } catch (e) {}
