@@ -28432,12 +28432,14 @@ function senalesDe(nn) {
 
         // Render del filtro por lotería: números con más señales para lo elegido
         function _ngpFiltroRender() {
-            var cont = document.getElementById('ngpFiltroResultado');
-            if (!cont || !window._ngpFiltro) return;
+            // V46.9.140: escribir en TODAS las instancias (IDs duplicados entre vistas)
+            var conts = document.querySelectorAll('[id="ngpFiltroResultado"]');
+            if (!conts.length || !window._ngpFiltro) return;
+            var cont = { set innerHTML(v) { conts.forEach(function(x) { x.innerHTML = v; }); } };
             var F = window._ngpFiltro;
             var checks = document.querySelectorAll('.ngpFiltroLot:checked');
             var sel = [];
-            checks.forEach(function(c) { sel.push(c.value); });
+            checks.forEach(function(c) { if (sel.indexOf(c.value) < 0) sel.push(c.value); });
             if (!sel.length) { cont.innerHTML = '<div style="font-size:11px;color:#94a3b8;padding:10px;">Elegí al menos una lotería para ver sus números con más señales.</div>'; return; }
 
             // recolectar todos los números de todos los grupos, con sus señales
@@ -28571,24 +28573,25 @@ function senalesDe(nn) {
             cont.innerHTML = html;
         }
         function _ngpFiltroToggle() {
-            var p = document.getElementById('ngpFiltroPanel');
-            if (!p) return;
-            // V46.9.138: cerrar el otro panel al abrir este
-            var otro = document.getElementById('ngpExtractoPanel');
-            if (otro) otro.style.display = 'none';
-            p.style.display = (p.style.display === 'none') ? 'block' : 'none';
+            // V46.9.140: el módulo puede estar en varias vistas → IDs duplicados.
+            // Actuar sobre TODAS las instancias, no solo la primera del DOM.
+            var ps = document.querySelectorAll('[id="ngpFiltroPanel"]');
+            if (!ps.length) return;
+            var abrir = (ps[0].style.display === 'none');
+            document.querySelectorAll('[id="ngpExtractoPanel"]').forEach(function(o) { o.style.display = 'none'; });
+            ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
         }
 
         // V46.9.136 (pedido de Leo): EXTRACTO — top de cada grupo por lotería, en orden de
         // importancia de los grupos. Solo los números con más señales que coinciden con su
         // rezago en ese grupo.
         function _ngpExtractoToggle() {
-            var p = document.getElementById('ngpExtractoPanel');
-            if (!p) return;
-            // V46.9.138: cerrar el otro panel al abrir este
-            var otro = document.getElementById('ngpFiltroPanel');
-            if (otro) otro.style.display = 'none';
-            p.style.display = (p.style.display === 'none') ? 'block' : 'none';
+            // V46.9.140: actuar sobre TODAS las instancias (IDs duplicados entre vistas)
+            var ps = document.querySelectorAll('[id="ngpExtractoPanel"]');
+            if (!ps.length) return;
+            var abrir = (ps[0].style.display === 'none');
+            document.querySelectorAll('[id="ngpFiltroPanel"]').forEach(function(o) { o.style.display = 'none'; });
+            ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
         }
         // V46.9.138 (pedido de Leo): botones Todas / Ninguna para el filtro por lotería
         function _ngpFiltroTodas(marcar) {
@@ -28610,12 +28613,14 @@ function senalesDe(nn) {
             _ngpExtractoRender();
         }
         function _ngpExtractoRender() {
-            var cont = document.getElementById('ngpExtractoResultado');
-            if (!cont || !window._ngpFiltro) return;
+            // V46.9.140: escribir en TODAS las instancias (IDs duplicados entre vistas)
+            var conts = document.querySelectorAll('[id="ngpExtractoResultado"]');
+            if (!conts.length || !window._ngpFiltro) return;
+            var cont = { set innerHTML(v) { conts.forEach(function(x) { x.innerHTML = v; }); } };
             var F = window._ngpFiltro;
             var checks = document.querySelectorAll('.ngpExtractoLot:checked');
             var sel = [];
-            checks.forEach(function(c) { sel.push(c.value); });
+            checks.forEach(function(c) { if (sel.indexOf(c.value) < 0) sel.push(c.value); });
             if (!sel.length) { cont.innerHTML = '<div style="font-size:11px;color:#94a3b8;padding:10px;">Elegí al menos una lotería (o TODAS).</div>'; return; }
 
             function fmtFecha(d) { if (!d) return '—'; var p = d.split('-'); return p[2] + '-' + p[1] + '-' + p[0].substring(2); }
@@ -69284,7 +69289,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r73 · v46.9.139</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r74 · v46.9.140</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
