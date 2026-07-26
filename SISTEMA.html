@@ -6309,7 +6309,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.133</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.134</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -7411,6 +7411,10 @@
             updateHistoricalCounts();
             updateRecentResults();
             updateStats();
+            // V46.9.134 (pedido de Leo): bajar y fusionar con la nube al abrir la app,
+            // para arrancar al día con lo cargado desde otros dispositivos. Se hace tras
+            // cargar lo local (loadData es asíncrono con IndexedDB, damos un margen).
+            try { setTimeout(function() { _ghBajarYFusionarAlAbrir(); }, 2000); } catch (e) {}
             mostrarDashboardInteligente(); // Cargar dashboard al iniciar
             mostrarDashboardEme(); // Cargar dashboard de números Eme
             setEmeEfectividadDate(); // Inicializar fecha de efectividad Eme
@@ -14224,6 +14228,45 @@ ${groups.map((g,i)=>`
             if (!cfg.activo) { _ghPill('aviso', 'Captura guardada localmente · subida automática DESACTIVADA (activá la casilla en Respaldo)'); return; }
             if (_ghDebounceTimer) clearTimeout(_ghDebounceTimer);
             _ghDebounceTimer = setTimeout(function() { _ghSubirData(true); }, 2500);
+        }
+
+        // V46.9.134 (pedido de Leo): al ABRIR la app, baja de la nube y fusiona con lo
+        // local (sin subir). Así este dispositivo arranca al día con lo que hayan cargado
+        // otros dispositivos, sin que Leo tenga que darle "Subir ahora" a mano.
+        var _ghYaBajoAlAbrir = false;
+        function _ghBajarYFusionarAlAbrir() {
+            if (_ghYaBajoAlAbrir) return; // una sola vez por sesión
+            var cfg = _ghLeerConfig();
+            // sin repo configurado no hay de dónde bajar; con repo aunque no haya token se puede LEER
+            var repo = (cfg.repo && cfg.repo.indexOf('/') > 0) ? cfg.repo : 'leomadrigal1976/loteria-data';
+            _ghYaBajoAlAbrir = true;
+            _ghPill('subiendo', 'Trayendo datos de la nube al abrir…');
+            _ghFusionarConNube({ repo: repo }).then(function(fus) {
+                var rf = fus.resumen || {};
+                if (rf.huboNube && (rf.nuevosDeNube > 0 || rf.seqFusion > 0)) {
+                    // hay registros nuevos en la nube que este dispositivo no tenía → incorporarlos
+                    capturedResults = fus.merged;
+                    sequenceHistory = fus.seq;
+                    try { saveData(); } catch (e) {}
+                    // refrescar vistas para que se vean de una
+                    try { updateHistoricalCounts(); } catch (e) {}
+                    try { updateRecentResults(); } catch (e) {}
+                    try { updateStats(); } catch (e) {}
+                    var msg = '✅ Al abrir se trajeron ' + rf.nuevosDeNube + ' registro(s) de la nube (cargados desde otro dispositivo). Ahora tenés ' + rf.total + ' registros, todo al día.';
+                    _ghPill('ok', 'Al día con la nube · ' + rf.total + ' reg. (se bajaron ' + rf.nuevosDeNube + ')');
+                    try { if (typeof _ghToastOk === 'function') _ghToastOk(msg); } catch (e) {}
+                    try { _ghActualizarEstado('ok', msg); } catch (e) {}
+                } else if (rf.huboNube) {
+                    // ya estaba al día
+                    _ghPill('ok', 'Al día con la nube · ' + rf.total + ' registros');
+                    try { _ghActualizarEstado('ok', '✅ Ya estabas al día con la nube (' + rf.total + ' registros).'); } catch (e) {}
+                } else {
+                    // no se pudo leer la nube (sin conexión o primera vez)
+                    _ghPill('aviso', 'No se pudo leer la nube al abrir — trabajando con los datos locales');
+                }
+            }).catch(function(e) {
+                _ghPill('aviso', 'No se pudo bajar de la nube al abrir: ' + (e && e.message ? e.message : 'error') + ' — se usan los datos locales');
+            });
         }
 
         // Guardar config desde el panel y probar la conexión
