@@ -27942,6 +27942,12 @@ ${groups.map((g,i)=>`
                     return hh + ':' + p[1].substring(0, 2);
                 }
                 function _jaleDeAyer(L) {
+                    // V46.9.146 (pedido de Leo): devuelve TODOS los horarios de ayer que hoy
+                    // siguen sin captura (no solo el primero). Cubre loterías con sorteos que
+                    // no se juegan todos los días (Nica 6PM solo mar/sáb/dom) o que adelantan
+                    // horario (Dominicana/Leidsa los domingos, Panameña variada): el jale que
+                    // aplica hoy siempre está en la lista, y si ayer un sorteo no existió,
+                    // simplemente no aparece.
                     try {
                         var dAyer = new Date(); dAyer.setDate(dAyer.getDate() - 1);
                         var ayerStr = _pmFechaLocalStr(dAyer);
@@ -27952,25 +27958,23 @@ ${groups.map((g,i)=>`
                             if (r.date === ayerStr) deAyer.push({ hora: _jaleNormHora(r.time), num: ('' + r.number) });
                             else if (r.date === hoyRealStr) deHoy[_jaleNormHora(r.time)] = true;
                         });
-                        if (!deAyer.length) return null;
+                        if (!deAyer.length) return [];
                         deAyer.sort(function(a, b) { return a.hora < b.hora ? -1 : a.hora > b.hora ? 1 : 0; });
-                        // primer horario de ayer que HOY no está capturado
-                        var enJuego = null;
-                        for (var k = 0; k < deAyer.length; k++) {
-                            if (!deHoy[deAyer[k].hora]) { enJuego = deAyer[k]; break; }
-                        }
-                        if (!enJuego) return null; // hoy ya se capturó todo lo de ayer
-                        // grupo del número de ayer a esa hora
-                        var nn2 = enJuego.num.length === 1 ? '0' + enJuego.num : enJuego.num.slice(-2);
-                        var grupoJ = null;
-                        Object.keys(NUMBER_GROUPS || {}).forEach(function(g) {
-                            if ((NUMBER_GROUPS[g] || []).indexOf(nn2) >= 0) grupoJ = g;
+                        var jales = [];
+                        deAyer.forEach(function(s) {
+                            if (deHoy[s.hora]) return; // ese sorteo de hoy ya se capturó
+                            var nn2 = s.num.length === 1 ? '0' + s.num : s.num.slice(-2);
+                            var grupoJ = null;
+                            Object.keys(NUMBER_GROUPS || {}).forEach(function(g) {
+                                if ((NUMBER_GROUPS[g] || []).indexOf(nn2) >= 0) grupoJ = g;
+                            });
+                            if (!grupoJ) return;
+                            var mapa = {};
+                            (NUMBER_GROUPS[grupoJ] || []).forEach(function(x) { mapa[x] = true; });
+                            jales.push({ hora: s.hora, horaFmt: (typeof convertTo12Hour === 'function' ? convertTo12Hour(s.hora) : s.hora), numAyer: nn2, grupo: grupoJ, nums: mapa });
                         });
-                        if (!grupoJ) return null;
-                        var mapa = {};
-                        (NUMBER_GROUPS[grupoJ] || []).forEach(function(x) { mapa[x] = true; });
-                        return { hora: enJuego.hora, horaFmt: (typeof convertTo12Hour === 'function' ? convertTo12Hour(enJuego.hora) : enJuego.hora), numAyer: nn2, grupo: grupoJ, nums: mapa };
-                    } catch (e) { return null; }
+                        return jales.slice(0, 3); // máx 3 para no saturar
+                    } catch (e) { return []; }
                 }
 
                 // ═══ V46.9.144 (pedido de Leo): EFECTIVIDAD del extracto por SNAPSHOTS ═══
@@ -28630,8 +28634,8 @@ function senalesDe(nn) {
             checks.forEach(function(c) { if (sel.indexOf(c.value) < 0) sel.push(c.value); });
             if (!sel.length) { cont.innerHTML = '<div style="font-size:11px;color:#94a3b8;padding:10px;">Elegí al menos una lotería para ver sus números con más señales.</div>'; return; }
 
-            // V46.9.142: JALE DEL DÍA DE AYER (por la lotería de referencia = la 1ª elegida)
-            var jaleF = (F.jaleDe ? F.jaleDe(sel[0]) : null);
+            // V46.9.142/146: JALE(s) DEL DÍA DE AYER (por la lotería de referencia = la 1ª elegida)
+            var jalesF = (F.jaleDe ? (F.jaleDe(sel[0]) || []) : []);
             var dthF = F.decTermHoy || { decTop: [], termTop: [] };
 
             // recolectar todos los números de todos los grupos, con sus señales
@@ -28647,8 +28651,10 @@ function senalesDe(nn) {
                     (sn.porLoteria || []).forEach(function(cf) {
                         if (sel.indexOf(cf.lot) >= 0) { scoreSel += cf.score; cf.tipos.forEach(function(t) { tiposSel.push(t); }); }
                     });
-                    // V46.9.142: JALE del día de ayer (+4) y dec/term globales HOY (+1 c/u)
-                    if (jaleF && jaleF.nums[nn]) { scoreSel += 4; tiposSel.push('⏰ jale de ayer ' + jaleF.horaFmt); }
+                    // V46.9.142/146: JALE(s) del día de ayer (+4) y dec/term globales HOY (+1 c/u)
+                    for (var _jf = 0; _jf < jalesF.length; _jf++) {
+                        if (jalesF[_jf].nums[nn]) { scoreSel += 4; tiposSel.push('⏰ jale de ayer ' + jalesF[_jf].horaFmt); break; }
+                    }
                     if (dthF.decTop.indexOf(nn[0]) >= 0) { scoreSel += 1; tiposSel.push('dec ' + nn[0] + 'x HOY'); }
                     if (dthF.termTop.indexOf(nn[1]) >= 0) { scoreSel += 1; tiposSel.push('term x' + nn[1] + ' HOY'); }
                     // rezago del número en las loterías elegidas
@@ -28695,9 +28701,11 @@ function senalesDe(nn) {
             });
             // ordenar: por orden de grupo (el ya considerado más acertado) y dentro por score
             // V46.9.142: si hay JALE, su grupo va de PRIMERO
+            var _jGruposF = jalesF.map(function(j) { return j.grupo; });
             filas.sort(function(a, b) {
-                var ga = (jaleF && a.grupo === jaleF.grupo) ? -1 : a.grupoIdx;
-                var gb = (jaleF && b.grupo === jaleF.grupo) ? -1 : b.grupoIdx;
+                var ia = _jGruposF.indexOf(a.grupo), ib = _jGruposF.indexOf(b.grupo);
+                var ga = (ia >= 0) ? (ia - 100) : a.grupoIdx;
+                var gb = (ib >= 0) ? (ib - 100) : b.grupoIdx;
                 if (ga !== gb) return ga - gb;
                 // V46.9.131: dentro del grupo, los que están en el top de rezagos primero,
                 // luego por score
@@ -28714,11 +28722,12 @@ function senalesDe(nn) {
             // la(s) lotería(s), que abarca todo el alto del resultado.
             var etiquetaLot = sel.join(' + ');
             var html = '<div style="font-size:10px;color:#7dd3fc;margin-bottom:6px;">Números con más señales para <strong>' + etiquetaLot + '</strong>, en el orden de grupos que el sistema considera más acertado. ' + filas.length + ' números. <span style="color:#94a3b8;">"Se activa desde" = dónde salió por última vez el número.</span></div>';
-            // V46.9.142: alerta del JALE DEL DÍA DE AYER (lotería de referencia)
-            if (jaleF) {
+            // V46.9.142/146: alerta con TODOS los jales (lotería de referencia)
+            if (jalesF.length) {
+                var _jTxtF = jalesF.map(function(j) { return 'a las ' + j.horaFmt + ' salió el <span style="color:#fde68a;">' + j.numAyer + '</span> (' + j.grupo + ')'; }).join(' · ');
                 html += '<div class="ngp-parpadea" style="background:linear-gradient(135deg,#7c2d12,#ea580c);border:2px solid #fdba74;border-radius:7px;padding:7px 10px;margin-bottom:8px;">';
-                html += '<div style="font-size:11px;font-weight:bold;color:#fff;">⏰ JALE DEL DÍA DE AYER (' + sel[0] + ') — ayer a las ' + jaleF.horaFmt + ' salió el <span style="color:#fde68a;">' + jaleF.numAyer + '</span> (' + jaleF.grupo + ')</div>';
-                html += '<div style="font-size:9px;color:#fed7aa;margin-top:2px;">Hoy el sorteo de las ' + jaleF.horaFmt + ' está pendiente de capturar → los rezagados del ' + jaleF.grupo + ' van de primeros y suman peso fuerte para ese sorteo.</div>';
+                html += '<div style="font-size:11px;font-weight:bold;color:#fff;">⏰ JALE' + (jalesF.length > 1 ? 'S' : '') + ' DEL DÍA DE AYER (' + sel[0] + ') — ayer ' + _jTxtF + '</div>';
+                html += '<div style="font-size:9px;color:#fed7aa;margin-top:2px;">' + (jalesF.length > 1 ? 'Esos sorteos de hoy están pendientes de capturar → sus grupos van de primeros y suman peso fuerte. Si alguno de esos horarios no se juega hoy (ej. Nica 6 PM solo mar/sáb/dom; Dominicana/Leidsa adelantan los domingos; Panameña varía), consideralo solo como referencia del que sí aplique.' : 'Hoy el sorteo de las ' + jalesF[0].horaFmt + ' está pendiente de capturar → los rezagados del ' + jalesF[0].grupo + ' van de primeros y suman peso fuerte para ese sorteo.') + '</div>';
                 html += '</div>';
             }
             html += '<div style="display:flex;align-items:stretch;gap:0;">';
@@ -28906,9 +28915,14 @@ function senalesDe(nn) {
                 // V46.9.142: JALE DEL DÍA DE AYER — grupo del sorteo de ayer a la hora
                 // del próximo sorteo de hoy sin capturar. Ese grupo va PRIMERO y sus
                 // números suman +4.
-                var jale = (F.jaleDe ? F.jaleDe(L) : null);
+                var jales = (F.jaleDe ? (F.jaleDe(L) || []) : []);
                 var gruposOrden = F.grupos;
-                if (jale) gruposOrden = [jale.grupo].concat(F.grupos.filter(function(g) { return g !== jale.grupo; }));
+                if (jales.length) {
+                    var _gJales = jales.map(function(j) { return j.grupo; });
+                    gruposOrden = _gJales.concat(F.grupos.filter(function(g) { return _gJales.indexOf(g) < 0; }));
+                    // sin duplicados si dos jales comparten grupo
+                    gruposOrden = gruposOrden.filter(function(g, ix) { return gruposOrden.indexOf(g) === ix; });
+                }
                 var dth = F.decTermHoy || { decTop: [], termTop: [] };
                 // por cada grupo (en orden de importancia), tomar los números que:
                 //  - están rezagados en L (top de rezago de esa lotería), Y
@@ -28937,8 +28951,10 @@ function senalesDe(nn) {
                         });
                         // sumar factores globales de peso (grupo del día)
                         if (sn.esGrupoDia) { scoreL += 4; tiposL.push('grupo del día'); }
-                        // V46.9.142: JALE del día de ayer — peso FUERTE (+4)
-                        if (jale && jale.nums[nn]) { scoreL += 4; tiposL.push('⏰ jale de ayer ' + jale.horaFmt); }
+                        // V46.9.142/146: JALE(s) del día de ayer — peso FUERTE (+4)
+                        for (var _ji = 0; _ji < jales.length; _ji++) {
+                            if (jales[_ji].nums[nn]) { scoreL += 4; tiposL.push('⏰ jale de ayer ' + jales[_ji].horaFmt); break; }
+                        }
                         // V46.9.142: decenas/terminaciones predominantes HOY (global)
                         if (dth.decTop.indexOf(nn[0]) >= 0) { scoreL += 1; tiposL.push('dec ' + nn[0] + 'x HOY'); }
                         if (dth.termTop.indexOf(nn[1]) >= 0) { scoreL += 1; tiposL.push('term x' + nn[1] + ' HOY'); }
@@ -28962,11 +28978,12 @@ function senalesDe(nn) {
                 }
                 htmlLots += '<div style="margin-bottom:12px;border:1px solid rgba(245,158,11,0.4);border-radius:8px;padding:8px;background:rgba(0,0,0,0.2);">';
                 htmlLots += '<div style="font-size:13px;font-weight:bold;color:#fcd34d;margin-bottom:6px;">🎯 ' + L + ' <span style="font-size:9px;color:#94a3b8;font-weight:normal;">— top de cada grupo por rezago + señales, en orden de importancia</span></div>';
-                // V46.9.142: alerta del JALE DEL DÍA DE AYER
-                if (jale) {
+                // V46.9.142/146: alerta con TODOS los jales candidatos
+                if (jales.length) {
+                    var _jTxt = jales.map(function(j) { return 'a las ' + j.horaFmt + ' salió el <span style="color:#fde68a;">' + j.numAyer + '</span> (' + j.grupo + ')'; }).join(' · ');
                     htmlLots += '<div class="ngp-parpadea" style="background:linear-gradient(135deg,#7c2d12,#ea580c);border:2px solid #fdba74;border-radius:7px;padding:7px 10px;margin-bottom:8px;">';
-                    htmlLots += '<div style="font-size:11px;font-weight:bold;color:#fff;">⏰ JALE DEL DÍA DE AYER — ayer a las ' + jale.horaFmt + ' salió el <span style="color:#fde68a;">' + jale.numAyer + '</span> (' + jale.grupo + ')</div>';
-                    htmlLots += '<div style="font-size:9px;color:#fed7aa;margin-top:2px;">Hoy el sorteo de las ' + jale.horaFmt + ' está pendiente de capturar → los rezagados del ' + jale.grupo + ' van de primeros y suman peso fuerte para ese sorteo.</div>';
+                    htmlLots += '<div style="font-size:11px;font-weight:bold;color:#fff;">⏰ JALE' + (jales.length > 1 ? 'S' : '') + ' DEL DÍA DE AYER — ayer ' + _jTxt + '</div>';
+                    htmlLots += '<div style="font-size:9px;color:#fed7aa;margin-top:2px;">' + (jales.length > 1 ? 'Esos sorteos de hoy están pendientes de capturar → sus grupos van de primeros y suman peso fuerte. Si alguno de esos horarios no se juega hoy (ej. Nica 6 PM solo mar/sáb/dom; Dominicana/Leidsa adelantan los domingos), consideralo solo como referencia del que sí aplique.' : 'Hoy el sorteo de las ' + jales[0].horaFmt + ' está pendiente de capturar → los rezagados del ' + jales[0].grupo + ' van de primeros y suman peso fuerte para ese sorteo.') + '</div>';
                     htmlLots += '</div>';
                 }
                 bloquesGrupo.forEach(function(bg) {
@@ -69585,7 +69602,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r79 · v46.9.145</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r80 · v46.9.146</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
