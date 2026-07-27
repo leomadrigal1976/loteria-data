@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.146</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.147</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6320,7 +6320,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.146</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.147</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -29085,7 +29085,14 @@ function senalesDe(nn) {
                 if (f.grupo !== grupoActual) {
                     if (grupoActual !== null) html += '</div>'; // cerrar grid anterior
                     grupoActual = f.grupo;
-                    html += '<div style="font-size:11px;font-weight:bold;color:#fbbf24;margin:9px 0 4px;">' + f.grupo + '</div>';
+                    // V46.9.147 (pedido de Leo): el grupo del JALE con encabezado naranja distintivo
+                    var _jG = null;
+                    for (var _jz = 0; _jz < jalesF.length; _jz++) { if (jalesF[_jz].grupo === f.grupo) { _jG = jalesF[_jz]; break; } }
+                    if (_jG) {
+                        html += '<div style="font-size:11px;font-weight:bold;color:#fff;background:linear-gradient(90deg,#ea580c,#f97316);border:1px solid #fdba74;border-radius:5px;padding:3px 8px;display:inline-block;margin:9px 0 4px;">⏰ ' + f.grupo + ' — grupo del JALE de ayer ' + _jG.horaFmt + ' (salió ' + _jG.numAyer + ')</div>';
+                    } else {
+                        html += '<div style="font-size:11px;font-weight:bold;color:#fbbf24;margin:9px 0 4px;">' + f.grupo + '</div>';
+                    }
                     // grid de columnas — se acomoda al ancho disponible
                     html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,205px),1fr));gap:5px;">';
                 }
@@ -29326,7 +29333,16 @@ function senalesDe(nn) {
                     htmlLots += '</div>';
                 }
                 bloquesGrupo.forEach(function(bg) {
-                    htmlLots += '<div style="font-size:11px;font-weight:bold;color:#fbbf24;margin:6px 0 3px;">' + bg.grupo + '</div>';
+                    // V46.9.147 (pedido de Leo): el grupo que viene del JALE se distingue con
+                    // recuadro y encabezado naranja, para no confundirlo con los reactivados.
+                    var _jDelG = null;
+                    for (var _jq = 0; _jq < jales.length; _jq++) { if (jales[_jq].grupo === bg.grupo) { _jDelG = jales[_jq]; break; } }
+                    if (_jDelG) {
+                        htmlLots += '<div style="border:2px dashed #fb923c;border-radius:8px;padding:6px 8px;margin:6px 0;background:rgba(124,45,18,0.25);">';
+                        htmlLots += '<div style="font-size:11px;font-weight:bold;color:#fff;background:linear-gradient(90deg,#ea580c,#f97316);border-radius:5px;padding:3px 8px;display:inline-block;margin-bottom:4px;">⏰ ' + bg.grupo + ' — grupo del JALE de ayer ' + _jDelG.horaFmt + ' (salió ' + _jDelG.numAyer + ')</div>';
+                    } else {
+                        htmlLots += '<div style="font-size:11px;font-weight:bold;color:#fbbf24;margin:6px 0 3px;">' + bg.grupo + '</div>';
+                    }
                     htmlLots += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr));gap:5px;">';
                     bg.nums.forEach(function(c) {
                         var scoreCol = c.score >= 6 ? '#6ee7b7' : c.score >= 3 ? '#fde68a' : '#cbd5e1';
@@ -29351,6 +29367,7 @@ function senalesDe(nn) {
                         htmlLots += '</div>';
                     });
                     htmlLots += '</div>';
+                    if (_jDelG) htmlLots += '</div>'; // V46.9.147: cierre del recuadro del jale
                 });
                 htmlLots += '</div>';
             });
