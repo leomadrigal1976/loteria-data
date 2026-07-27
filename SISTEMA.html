@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.142</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.144</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6314,7 +6314,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.142</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.144</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -28306,6 +28306,82 @@ ${groups.map((g,i)=>`
                     } catch (e) { return null; }
                 }
 
+                // ═══ V46.9.144 (pedido de Leo): EFECTIVIDAD del extracto por SNAPSHOTS ═══
+                // Cada día, el sistema guarda una "foto" de los números que el extracto
+                // muestra por lotería (la lista real, con señales incluidas). La efectividad
+                // compara los ganadores de cada sorteo contra la foto de ESE día. Mide
+                // exactamente lo que el extracto dijo — acumula desde que esta versión corre.
+                var _EFV_SNAP_KEY = 'efvSnapshots';
+                function _efvNorm(n) { var s = '' + n; return s.length === 1 ? '0' + s : s.slice(-2); }
+                function _efvLeerSnaps() {
+                    try { return JSON.parse(localStorage.getItem(_EFV_SNAP_KEY) || '{}'); } catch (e) { return {}; }
+                }
+                // Membresía del extracto para una lotería (la MISMA condición del render):
+                // rezago top-30 en L sin salir <=2 días, O señales fuertes en L (score>=2).
+                function _efvSetExtracto(L) {
+                    var lista = [];
+                    try {
+                        Object.keys(NUMBER_GROUPS || {}).forEach(function(g) {
+                            (NUMBER_GROUPS[g] || []).forEach(function(nn) {
+                                if (lista.indexOf(nn) >= 0) return;
+                                var pos = (rankRezagoLot[L] || {})[nn] || null;
+                                var ultEnL = (ultPorNumLot[nn] || {})[L];
+                                var salioReciente = (ultEnL && difDias(ultEnL, hoyStr) <= 2);
+                                var esRezagoL = (pos !== null && pos <= 30 && !salioReciente);
+                                var sn0 = senalesDe(nn);
+                                var tieneSenalesL = false;
+                                (sn0.porLoteria || []).forEach(function(cf) { if (cf.lot === L && cf.score >= 2) tieneSenalesL = true; });
+                                if (esRezagoL || (tieneSenalesL && pos !== null && !salioReciente)) lista.push(nn);
+                            });
+                        });
+                    } catch (e) {}
+                    return lista;
+                }
+                // Guardar la foto de HOY (una vez por día por lotería); recorte a 60 días.
+                function _efvGuardarSnapshotHoy() {
+                    try {
+                        var hoyReal = _pmFechaLocalStr(new Date());
+                        var snaps = _efvLeerSnaps();
+                        if (!snaps[hoyReal]) snaps[hoyReal] = {};
+                        var cambio = false;
+                        lotsActivas.forEach(function(L) {
+                            if (snaps[hoyReal][L]) return; // ya hay foto de hoy
+                            snaps[hoyReal][L] = _efvSetExtracto(L);
+                            cambio = true;
+                        });
+                        if (cambio) {
+                            // recorte: conservar solo los últimos 60 días
+                            var fechas = Object.keys(snaps).sort();
+                            while (fechas.length > 60) { delete snaps[fechas[0]]; fechas.shift(); }
+                            localStorage.setItem(_EFV_SNAP_KEY, JSON.stringify(snaps));
+                        }
+                    } catch (e) {}
+                }
+                // Efectividad: ganadores del rango vs la foto del día de cada sorteo.
+                function _efvCalcular(diasAtras, lotFiltro) {
+                    var snaps = _efvLeerSnaps();
+                    var dIni = new Date(); dIni.setDate(dIni.getDate() - (diasAtras || 0));
+                    var iniStr = _pmFechaLocalStr(dIni);
+                    var res = { total: { sorteos: 0, aciertos: 0 }, porLot: {}, detalles: [], sinSnapshot: 0 };
+                    (capturedResults || []).forEach(function(r) {
+                        if (!r || !r.date || r.date < iniStr) return;
+                        var L = r.lottery;
+                        if (lotFiltro && lotFiltro !== '__TODAS__' && L !== lotFiltro) return;
+                        var foto = snaps[r.date] && snaps[r.date][L];
+                        if (!foto) { res.sinSnapshot++; return; }
+                        var nn = _efvNorm(r.number);
+                        res.total.sorteos++;
+                        if (!res.porLot[L]) res.porLot[L] = { sorteos: 0, aciertos: 0 };
+                        res.porLot[L].sorteos++;
+                        if (foto.indexOf(nn) >= 0) {
+                            res.total.aciertos++;
+                            res.porLot[L].aciertos++;
+                            res.detalles.push({ lot: L, date: r.date, time: _jaleNormHora(r.time), num: nn });
+                        }
+                    });
+                    return res;
+                }
+
                 // ═══ V46.9.142: decenas/terminaciones PREDOMINANTES HOY (global) ═════════
                 // Las que más salieron HOY en todas las loterías (último día con datos).
                 var _decTermHoy = (function() {
@@ -28426,9 +28502,12 @@ function senalesDe(nn) {
                     } catch (e) { return null; }
                 }
 
-                var h = '<div style="background:rgba(15,23,42,0.96);border:2px solid #38bdf8;border-radius:12px;padding:14px;margin-top:18px;">';
-                h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">';
-                h += '<div style="flex:1;min-width:240px;"><div style="font-size:16px;font-weight:bold;color:#7dd3fc;text-shadow:0 0 8px rgba(125,211,252,0.35);">🔗 NÚMEROS PEGADOS QUE REAPARECEN — ¿se contagian entre loterías?</div></div>';
+                // V46.9.144 (pedido de Leo): todo el módulo colapsado en una sección
+                // plegable (clic para abrir), para no desplazarse tanto en la pestaña.
+                var h = '<details style="background:rgba(15,23,42,0.96);border:2px solid #38bdf8;border-radius:12px;margin-top:18px;">';
+                h += '<summary style="cursor:pointer;padding:12px 14px;font-size:15px;font-weight:bold;color:#7dd3fc;text-shadow:0 0 8px rgba(125,211,252,0.35);">🔗 NÚMEROS PEGADOS QUE REAPARECEN — ¿se contagian entre loterías? <span style="font-size:10px;color:#94a3b8;font-weight:normal;">(clic para abrir/cerrar)</span></summary>';
+                h += '<div style="padding:0 14px 14px;">';
+                h += '<div style="display:flex;justify-content:flex-end;align-items:flex-start;gap:10px;flex-wrap:wrap;">';
                 h += '<button onclick="_ngpFiltroToggle()" style="background:linear-gradient(135deg,#0e7490,#22d3ee);border:1px solid #67e8f9;color:#06222b;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;">🎚️ Filtrar por lotería</button>';
                 h += '<button onclick="_ngpExtractoToggle()" style="background:linear-gradient(135deg,#b45309,#f59e0b);border:1px solid #fcd34d;color:#3a1d00;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🎯 Filtrar por Lotería Con Mayores Señales</button>';
                 h += '</div>';
@@ -28454,6 +28533,22 @@ function senalesDe(nn) {
                 h += '<div style="display:flex;gap:8px;margin-bottom:7px;">';
                 h += '<button onclick="_ngpExtractoTodasBtn(true)" style="background:rgba(245,158,11,0.15);border:1px solid #f59e0b;color:#fcd34d;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">✓ Todas</button>';
                 h += '<button onclick="_ngpExtractoTodasBtn(false)" style="background:rgba(148,163,184,0.12);border:1px solid #64748b;color:#cbd5e1;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">✕ Ninguna (limpiar)</button>';
+                h += '<button onclick="_efvToggle()" style="background:linear-gradient(135deg,#065f46,#10b981);border:1px solid #6ee7b7;color:#fff;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">📊 Efectividad</button>';
+                h += '</div>';
+                // V46.9.143 (pedido de Leo): panel de EFECTIVIDAD del extracto — mide, sorteo
+                // por sorteo, si el ganador estaba en el criterio central del extracto
+                // (top-30 rezagados de esa lotería AL MOMENTO del sorteo). Backtest honesto:
+                // reconstruye el pasado solo con lo capturado hasta ese instante.
+                h += '<div id="efvPanel" style="display:none;background:rgba(6,78,59,0.35);border:1px solid #10b981;border-radius:8px;padding:9px;margin-bottom:8px;">';
+                h += '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:6px;">';
+                h += '<span style="font-size:10px;font-weight:bold;color:#6ee7b7;">Rango:</span>';
+                h += '<select id="efvRango" onchange="_efvSync(this);_efvRender()" style="background:#064e3b;color:#d1fae5;border:1px solid #10b981;border-radius:5px;font-size:10px;padding:2px 6px;"><option value="0" selected>Hoy</option><option value="7">Últimos 7 días</option><option value="30">Últimos 30 días</option></select>';
+                h += '<span style="font-size:10px;font-weight:bold;color:#6ee7b7;">Lotería:</span>';
+                h += '<select id="efvLot" onchange="_efvSync(this);_efvRender()" style="background:#064e3b;color:#d1fae5;border:1px solid #10b981;border-radius:5px;font-size:10px;padding:2px 6px;"><option value="__TODAS__" selected>Todas</option>';
+                lotsActivas.slice().sort().forEach(function(L) { h += '<option value="' + L + '">' + L + '</option>'; });
+                h += '</select>';
+                h += '</div>';
+                h += '<div id="efvResultado" style="max-height:380px;overflow-y:auto;font-size:10px;color:#d1fae5;">…</div>';
                 h += '</div>';
                 lotsActivas.slice().sort().forEach(function(L) {
                     h += '<label style="font-size:11px;color:#e0f2fe;cursor:pointer;display:flex;align-items:center;gap:4px;"><input type="checkbox" class="ngpExtractoLot" value="' + L + '" onchange="_ngpExtractoRender()" style="cursor:pointer;"> ' + L + '</label>';
@@ -28827,8 +28922,10 @@ function senalesDe(nn) {
                     rankLots: rankLots, porRezago: porRezago, porVolumen: porVolumen,
                     ultPorNumLot: ultPorNumLot, difDias: difDias, hoyStr: hoyStr, porNum: porNum, serie: serie,
                     rankRezagoLot: rankRezagoLot, rankRezagoPrevLot: rankRezagoPrevLot,
-                    jaleDe: _jaleDeAyer, decTermHoy: _decTermHoy
+                    jaleDe: _jaleDeAyer, decTermHoy: _decTermHoy, efvCalcular: _efvCalcular
                 };
+                try { _efvGuardarSnapshotHoy(); } catch (eSnap) {} // V46.9.144: foto diaria del extracto
+                h += '</details>'; // V46.9.144: cierre del acordeón (el </div> del cuerpo ya existía como cierre del contenedor original)
                 return h;
             } catch (e) { console.error('[NGP-CONTAGIO]', e); return ''; }
         }
@@ -29024,6 +29121,61 @@ function senalesDe(nn) {
         function _ngpExtractoTodasBtn(marcar) {
             document.querySelectorAll('.ngpExtractoLot').forEach(function(c) { c.checked = !!marcar; });
             _ngpExtractoRender();
+        }
+        // V46.9.143 (pedido de Leo): panel de EFECTIVIDAD del extracto
+        function _efvToggle() {
+            var ps = document.querySelectorAll('[id="efvPanel"]');
+            if (!ps.length) return;
+            var abrir = (ps[0].style.display === 'none');
+            ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
+            if (abrir) _efvRender(); // default: Hoy · Todas
+        }
+        function _efvSync(sel) {
+            // sincronizar el valor a todas las instancias del mismo select (vistas duplicadas)
+            try { document.querySelectorAll('[id="' + sel.id + '"]').forEach(function(s) { s.value = sel.value; }); } catch (e) {}
+        }
+        function _efvRender() {
+            var conts = document.querySelectorAll('[id="efvResultado"]');
+            if (!conts.length || !window._ngpFiltro || !window._ngpFiltro.efvCalcular) return;
+            var selR = document.querySelector('[id="efvRango"]');
+            var selL = document.querySelector('[id="efvLot"]');
+            var dias = selR ? parseInt(selR.value, 10) : 0;
+            var lot = selL ? selL.value : '__TODAS__';
+            var r = window._ngpFiltro.efvCalcular(dias, lot);
+            var etiqR = dias === 0 ? 'HOY' : 'últimos ' + dias + ' días';
+            var etiqL = (lot === '__TODAS__') ? 'todas las loterías' : lot;
+            var pct = r.total.sorteos ? (100 * r.total.aciertos / r.total.sorteos) : 0;
+            var pctCol = pct >= 40 ? '#6ee7b7' : pct >= 25 ? '#fde68a' : '#fca5a5';
+            var html = '<div style="font-size:12px;font-weight:bold;color:#fff;margin-bottom:5px;">📊 Efectividad (' + etiqR + ' · ' + etiqL + '): <span style="color:' + pctCol + ';">' + r.total.aciertos + ' / ' + r.total.sorteos + ' sorteos = ' + pct.toFixed(1) + '%</span></div>';
+            // tabla por lotería
+            var lots = Object.keys(r.porLot).sort(function(a, b) { return r.porLot[b].sorteos - r.porLot[a].sorteos; });
+            if (lots.length > 1) {
+                html += '<div style="display:flex;flex-wrap:wrap;gap:4px 10px;margin-bottom:6px;">';
+                lots.forEach(function(L) {
+                    var pl = r.porLot[L];
+                    var p2 = pl.sorteos ? (100 * pl.aciertos / pl.sorteos).toFixed(0) : '0';
+                    html += '<span style="font-size:9px;color:#a7f3d0;">' + L + ': <strong>' + pl.aciertos + '/' + pl.sorteos + '</strong> (' + p2 + '%)</span>';
+                });
+                html += '</div>';
+            }
+            // detalle de aciertos (los más recientes primero, máx 40)
+            if (r.detalles.length) {
+                html += '<div style="font-size:9px;font-weight:bold;color:#6ee7b7;margin-bottom:3px;">✅ Aciertos (el ganador estaba en la lista al momento del sorteo):</div>';
+                html += '<div style="display:flex;flex-wrap:wrap;gap:3px;">';
+                r.detalles.slice().reverse().slice(0, 40).forEach(function(d) {
+                    var hf = d.time; try { if (typeof convertTo12Hour === 'function') hf = convertTo12Hour(d.time); } catch (e) {}
+                    html += '<span style="background:rgba(16,185,129,0.15);border:1px solid #10b981;border-radius:4px;padding:1px 6px;font-size:9px;color:#d1fae5;"><strong>' + d.num + '</strong> · ' + d.lot + ' · ' + d.date.substring(5) + ' ' + hf + '</span>';
+                });
+                html += '</div>';
+            } else {
+                html += '<div style="font-size:9px;color:#94a3b8;">Sin aciertos en este rango' + (r.total.sorteos === 0 ? ' (no hay sorteos evaluables: se necesita la foto del extracto de ese día)' : '') + '.</div>';
+            }
+            if (r.sinSnapshot > 0) {
+                html += '<div style="font-size:9px;color:#fbbf24;margin-top:4px;">⚠️ ' + r.sinSnapshot + ' sorteo(s) del rango no se evaluaron: no había foto del extracto ese día (las fotos se guardan a diario desde v46.9.144 en adelante).</div>';
+            }
+            html += '<div style="font-size:8px;color:#64748b;margin-top:6px;">Mide la LISTA REAL del extracto: cada día el sistema guarda una foto de los números que "Filtrar por Lotería Con Mayores Señales" muestra por lotería (con todas sus señales), y compara los ganadores de cada sorteo contra la foto de ese día. Acumula desde que corre esta versión, en este dispositivo. Recordá que cada sorteo es independiente — esto mide qué tan bien organiza el análisis, no probabilidad.</div>';
+
+            conts.forEach(function(x) { x.innerHTML = html; });
         }
         function _ngpExtractoTodas(chk) {
             // al marcar TODAS, desmarca las individuales; al desmarcar, deja elegir
