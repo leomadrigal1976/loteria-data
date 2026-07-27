@@ -28050,6 +28050,18 @@ ${groups.map((g,i)=>`
                             while (fechas.length > 60) { delete snaps[fechas[0]]; fechas.shift(); }
                             localStorage.setItem(_EFV_SNAP_KEY, JSON.stringify(snaps));
                         }
+                        // V46.9.149: foto diaria del TOP 10 de jugadas del resumen
+                        var snapsT = _efvT10Leer();
+                        var hoyR2 = _pmFechaLocalStr(new Date());
+                        if (!snapsT[hoyR2]) {
+                            try {
+                                var rc = _resumenCalc();
+                                snapsT[hoyR2] = rc.jugadas.slice(0, 10).map(function(j) { return { n: j.num, l: j.lot }; });
+                                var fT = Object.keys(snapsT).sort();
+                                while (fT.length > 60) { delete snapsT[fT[0]]; fT.shift(); }
+                                localStorage.setItem(_EFV_T10_KEY, JSON.stringify(snapsT));
+                            } catch (eT) {}
+                        }
                     } catch (e) {}
                 }
                 // Efectividad: ganadores del rango vs la foto del día de cada sorteo.
@@ -28607,6 +28619,97 @@ function senalesDe(nn) {
                 // ═══ V46.9.123 (pedido de Leo): FILTRO ÁGIL POR LOTERÍA ═══════════════
                 // Expone lo necesario para, sin recalcular todo, mostrar los números con más
                 // señales para la(s) lotería(s) elegida(s), respetando el orden de grupos.
+                // ═══ V46.9.149 (pedido de Leo): cálculo del RESUMEN dentro del módulo, para
+                // poder guardar la foto diaria del Top 10 y medir su efectividad.
+                // (candidatos: mantener en sincronía con _ngpExtractoRender)
+                function _resumenCalc() {
+                    var _gruposOrd = (window._ngpGInfoOrden || Object.keys(NUMBER_GROUPS || {})).slice();
+                    var dth2 = _decTermHoy || { decTop: [], termTop: [] };
+                    function candidatosDe(L, jalesL) {
+                        var lista = [], vistos = {};
+                        _gruposOrd.forEach(function(g) {
+                            (NUMBER_GROUPS[g] || []).forEach(function(nn) {
+                                if (vistos[nn]) return; vistos[nn] = true;
+                                var pos = (rankRezagoLot[L] || {})[nn] || null;
+                                var ultEnL = (ultPorNumLot[nn] || {})[L];
+                                var salioReciente = (ultEnL && difDias(ultEnL, hoyStr) <= 2);
+                                var esRezagoL = (pos !== null && pos <= 30 && !salioReciente);
+                                var sn0 = senalesDe(nn);
+                                var tieneSenalesL = false;
+                                (sn0.porLoteria || []).forEach(function(cf) { if (cf.lot === L && cf.score >= 2) tieneSenalesL = true; });
+                                if (!esRezagoL && !(tieneSenalesL && pos !== null && !salioReciente)) return;
+                                var scoreL = 0, tiposL = [];
+                                (sn0.porLoteria || []).forEach(function(cf) {
+                                    if (cf.lot === L) { scoreL += cf.score; cf.tipos.forEach(function(t) { tiposL.push(t); }); }
+                                });
+                                if (sn0.esGrupoDia) { scoreL += 4; tiposL.push('grupo del día'); }
+                                for (var _ji = 0; _ji < jalesL.length; _ji++) {
+                                    if (jalesL[_ji].nums[nn]) { scoreL += 4; tiposL.push('⏰ jale ' + jalesL[_ji].horaFmt); break; }
+                                }
+                                if (dth2.decTop.indexOf(nn[0]) >= 0) { scoreL += 1; tiposL.push('dec HOY'); }
+                                if (dth2.termTop.indexOf(nn[1]) >= 0) { scoreL += 1; tiposL.push('term HOY'); }
+                                lista.push({ num: nn, score: scoreL, tipos: tiposL, pos: pos });
+                            });
+                        });
+                        lista.sort(function(a, b) { return b.score !== a.score ? b.score - a.score : a.pos - b.pos; });
+                        return lista;
+                    }
+                    var ranking = [], jugadas = [];
+                    lotsActivas.forEach(function(L) {
+                        var jalesL = _jaleDeAyer(L) || [];
+                        var cands = candidatosDe(L, jalesL);
+                        var top5 = cands.slice(0, 5);
+                        var fuerza = 0;
+                        top5.forEach(function(x) { fuerza += x.score; });
+                        fuerza += 3 * jalesL.length;
+                        var tieneGrupoDia = top5.some(function(x) { return x.tipos.indexOf('grupo del día') >= 0; });
+                        ranking.push({ lot: L, fuerza: fuerza, top: cands.slice(0, 3), jales: jalesL, grupoDia: tieneGrupoDia });
+                        top5.forEach(function(x) { jugadas.push({ lot: L, num: x.num, score: x.score, tipos: x.tipos }); });
+                    });
+                    ranking.sort(function(a, b) { return b.fuerza - a.fuerza; });
+                    jugadas.sort(function(a, b) { return b.score - a.score; });
+                    return { ranking: ranking, jugadas: jugadas };
+                }
+                var _EFV_T10_KEY = 'efvTop10Snaps';
+                function _efvT10Leer() {
+                    try { return JSON.parse(localStorage.getItem(_EFV_T10_KEY) || '{}'); } catch (e) { return {}; }
+                }
+                // Efectividad del Top 10: de las 10 jugadas guardadas cada día, ¿cuántas
+                // salieron ese día en SU lotería? (cualquier sorteo del día)
+                function _efvTop10Calc(diasAtras) {
+                    var snaps = _efvT10Leer();
+                    var dIni = new Date(); dIni.setDate(dIni.getDate() - (diasAtras || 0));
+                    var iniStr = _pmFechaLocalStr(dIni);
+                    var hoyReal = _pmFechaLocalStr(new Date());
+                    var res = { porDia: [], total: { aciertos: 0, evaluadas: 0 }, sinFoto: 0 };
+                    // ganadores por fecha+lotería
+                    var gan = {};
+                    (capturedResults || []).forEach(function(r) {
+                        if (!r || !r.date || r.date < iniStr) return;
+                        var k = r.date + '|' + r.lottery;
+                        if (!gan[k]) gan[k] = [];
+                        gan[k].push({ num: _efvNorm(r.number), time: _jaleNormHora(r.time) });
+                    });
+                    // recorrer días del rango
+                    for (var dd = 0; dd <= (diasAtras || 0); dd++) {
+                        var dx = new Date(); dx.setDate(dx.getDate() - dd);
+                        var fx = _pmFechaLocalStr(dx);
+                        var foto = snaps[fx];
+                        if (!foto || !foto.length) { if (fx !== hoyReal || (diasAtras || 0) > 0) res.sinFoto++; continue; }
+                        var dia = { fecha: fx, aciertos: 0, total: foto.length, hits: [] };
+                        foto.forEach(function(j) {
+                            var lst = gan[fx + '|' + j.l] || [];
+                            for (var q = 0; q < lst.length; q++) {
+                                if (lst[q].num === j.n) { dia.aciertos++; dia.hits.push({ n: j.n, l: j.l, time: lst[q].time }); break; }
+                            }
+                        });
+                        res.total.aciertos += dia.aciertos;
+                        res.total.evaluadas += dia.total;
+                        res.porDia.push(dia);
+                    }
+                    return res;
+                }
+
                 window._ngpFiltro = {
                     lotsActivas: lotsActivas.slice(),
                     grupos: (function() {
@@ -28621,7 +28724,8 @@ function senalesDe(nn) {
                     rankLots: rankLots, porRezago: porRezago, porVolumen: porVolumen,
                     ultPorNumLot: ultPorNumLot, difDias: difDias, hoyStr: hoyStr, porNum: porNum, serie: serie,
                     rankRezagoLot: rankRezagoLot, rankRezagoPrevLot: rankRezagoPrevLot,
-                    jaleDe: _jaleDeAyer, decTermHoy: _decTermHoy, efvCalcular: _efvCalcular
+                    jaleDe: _jaleDeAyer, decTermHoy: _decTermHoy, efvCalcular: _efvCalcular,
+                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc
                 };
                 try { _efvGuardarSnapshotHoy(); } catch (eSnap) {} // V46.9.144: foto diaria del extracto
                 return h;
@@ -28836,65 +28940,19 @@ function senalesDe(nn) {
         }
         function _ngpResumenRender() {
             var conts = document.querySelectorAll('[id="ngpResumenResultado"]');
-            if (!conts.length || !window._ngpFiltro) return;
+            if (!conts.length || !window._ngpFiltro || !window._ngpFiltro.resumenCalc) return;
             var F = window._ngpFiltro;
-            // ─── candidatos por lotería (MISMOS criterios que el extracto — mantener en
-            // sincronía con _ngpExtractoRender): rezago top-30 en L sin salir ≤2d, o señales
-            // fuertes en L; score = confluencia en L + grupo del día + jale + dec/term HOY.
-            var dth = F.decTermHoy || { decTop: [], termTop: [] };
-            function candidatosDe(L, jales) {
-                var lista = [], vistos = {};
-                F.grupos.forEach(function(g) {
-                    (F.NUMBER_GROUPS[g] || []).forEach(function(nn) {
-                        if (vistos[nn]) return; vistos[nn] = true;
-                        var pos = (F.rankRezagoLot[L] || {})[nn] || null;
-                        var ultEnL = (F.ultPorNumLot[nn] || {})[L];
-                        var salioReciente = (ultEnL && F.difDias(ultEnL, F.hoyStr) <= 2);
-                        var esRezagoL = (pos !== null && pos <= 30 && !salioReciente);
-                        var sn0 = F.senalesDe(nn);
-                        var tieneSenalesL = false;
-                        (sn0.porLoteria || []).forEach(function(cf) { if (cf.lot === L && cf.score >= 2) tieneSenalesL = true; });
-                        if (!esRezagoL && !(tieneSenalesL && pos !== null && !salioReciente)) return;
-                        var scoreL = 0, tiposL = [];
-                        (sn0.porLoteria || []).forEach(function(cf) {
-                            if (cf.lot === L) { scoreL += cf.score; cf.tipos.forEach(function(t) { tiposL.push(t); }); }
-                        });
-                        if (sn0.esGrupoDia) { scoreL += 4; tiposL.push('grupo del día'); }
-                        for (var _ji = 0; _ji < jales.length; _ji++) {
-                            if (jales[_ji].nums[nn]) { scoreL += 4; tiposL.push('⏰ jale ' + jales[_ji].horaFmt); break; }
-                        }
-                        if (dth.decTop.indexOf(nn[0]) >= 0) { scoreL += 1; tiposL.push('dec HOY'); }
-                        if (dth.termTop.indexOf(nn[1]) >= 0) { scoreL += 1; tiposL.push('term HOY'); }
-                        lista.push({ num: nn, score: scoreL, tipos: tiposL, pos: pos });
-                    });
-                });
-                lista.sort(function(a, b) { return b.score !== a.score ? b.score - a.score : a.pos - b.pos; });
-                return lista;
-            }
-            // ─── fuerza por lotería: suma del top-5 + bonus por jales activos (+3 c/u)
-            var ranking = [], jugadas = [];
-            F.lotsActivas.forEach(function(L) {
-                var jales = (F.jaleDe ? (F.jaleDe(L) || []) : []);
-                var cands = candidatosDe(L, jales);
-                var top5 = cands.slice(0, 5);
-                var fuerza = 0;
-                top5.forEach(function(x) { fuerza += x.score; });
-                fuerza += 3 * jales.length;
-                var tieneGrupoDia = top5.some(function(x) { return x.tipos.indexOf('grupo del día') >= 0; });
-                ranking.push({ lot: L, fuerza: fuerza, top: cands.slice(0, 3), jales: jales, grupoDia: tieneGrupoDia });
-                cands.slice(0, 5).forEach(function(x) { jugadas.push({ lot: L, num: x.num, score: x.score, tipos: x.tipos }); });
-            });
-            ranking.sort(function(a, b) { return b.fuerza - a.fuerza; });
-            jugadas.sort(function(a, b) { return b.score - a.score; });
-            var medallas = ['🥇', '🥈', '🥉', '4°', '5°'];
+            var rc = F.resumenCalc();
+            var ranking = rc.ranking, jugadas = rc.jugadas;
             var html = '<div style="font-size:12px;font-weight:bold;color:#e9d5ff;margin-bottom:8px;">🏆 TODAS LAS LOTERÍAS ordenadas por fuerza de señales <span style="font-size:9px;color:#94a3b8;font-weight:normal;">(fuerza = suma de señales de sus 5 números más fuertes + 3 por cada jale activo)</span></div>';
-            // ─── PODIO (top 5)
+            // ─── V46.9.149: TODAS las tarjetas con el MISMO formato e información
             html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,190px),1fr));gap:8px;margin-bottom:12px;">';
-            ranking.slice(0, 5).forEach(function(rk, ix) {
+            ranking.forEach(function(rk, ix) {
                 var esOro = ix === 0;
+                var medalla = ix === 0 ? '🥇' : ix === 1 ? '🥈' : ix === 2 ? '🥉' : (ix + 1) + '°';
                 html += '<div style="background:' + (esOro ? 'linear-gradient(135deg,#713f12,#a16207)' : 'rgba(0,0,0,0.3)') + ';border:2px solid ' + (ix < 3 ? '#fbbf24' : '#a855f7') + ';border-radius:10px;padding:9px;">';
                 html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
-                html += '<span style="font-size:14px;font-weight:bold;color:#fff;">' + medallas[ix] + ' ' + rk.lot + '</span>';
+                html += '<span style="font-size:14px;font-weight:bold;color:#fff;">' + medalla + ' ' + rk.lot + '</span>';
                 html += '<span style="font-size:16px;font-weight:bold;color:#fde68a;">' + rk.fuerza + '</span>';
                 html += '</div>';
                 var etq = [];
@@ -28911,8 +28969,19 @@ function senalesDe(nn) {
                 html += '</div></div>';
             });
             html += '</div>';
-            // ─── TOP 10 JUGADAS GLOBALES
-            html += '<div style="font-size:12px;font-weight:bold;color:#e9d5ff;margin-bottom:5px;">🎯 TOP 10 JUGADAS de todo el sistema (número + lotería con más señales):</div>';
+            // ─── TOP 10 JUGADAS GLOBALES + botón de efectividad
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;flex-wrap:wrap;gap:6px;">';
+            html += '<span style="font-size:12px;font-weight:bold;color:#e9d5ff;">🎯 TOP 10 JUGADAS de todo el sistema (número + lotería con más señales):</span>';
+            html += '<button onclick="_efvT10Toggle()" style="background:linear-gradient(135deg,#065f46,#10b981);border:1px solid #6ee7b7;color:#fff;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">📊 Efectividad del Top 10</button>';
+            html += '</div>';
+            // panel de efectividad del top 10 (cerrado por defecto)
+            html += '<div id="efvT10Panel" style="display:none;background:rgba(6,78,59,0.35);border:1px solid #10b981;border-radius:8px;padding:9px;margin-bottom:8px;">';
+            html += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">';
+            html += '<span style="font-size:10px;font-weight:bold;color:#6ee7b7;">Rango:</span>';
+            html += '<select id="efvT10Rango" onchange="_efvSync(this);_efvT10Render()" style="background:#064e3b;color:#d1fae5;border:1px solid #10b981;border-radius:5px;font-size:10px;padding:2px 6px;"><option value="0" selected>Hoy</option><option value="7">Últimos 7 días</option><option value="30">Últimos 30 días</option></select>';
+            html += '</div>';
+            html += '<div id="efvT10Resultado" style="font-size:10px;color:#d1fae5;">…</div>';
+            html += '</div>';
             html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">';
             jugadas.slice(0, 10).forEach(function(j, ix) {
                 html += '<div style="background:linear-gradient(135deg,#1e1b4b,#4c1d95);border:1px solid #a78bfa;border-radius:8px;padding:5px 10px;text-align:center;">';
@@ -28922,19 +28991,46 @@ function senalesDe(nn) {
                 html += '</div>';
             });
             html += '</div>';
-            // ─── RESTO de loterías (compactas)
-            if (ranking.length > 5) {
-                html += '<div style="font-size:11px;font-weight:bold;color:#c4b5fd;margin-bottom:4px;">Las demás, en orden:</div>';
-                html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:5px;">';
-                ranking.slice(5).forEach(function(rk, ix) {
-                    html += '<div style="background:rgba(0,0,0,0.2);border:1px solid rgba(168,85,247,0.35);border-radius:7px;padding:5px 8px;">';
-                    html += '<div style="display:flex;justify-content:space-between;"><span style="font-size:10px;font-weight:bold;color:#e2e8f0;">' + (ix + 6) + '° ' + rk.lot + '</span><span style="font-size:11px;font-weight:bold;color:#c4b5fd;">' + rk.fuerza + '</span></div>';
-                    html += '<div style="font-size:11px;font-family:monospace;color:#fca5a5;margin-top:2px;">' + rk.top.map(function(x) { return x.num; }).join(' · ') + '</div>';
+            html += '<div style="font-size:8px;color:#64748b;margin-top:4px;">La fuerza compara cuánta señal acumulada tiene cada lotería en este momento — sirve para priorizar dónde mirar. Cada sorteo es independiente: más señales no cambia la probabilidad matemática.</div>';
+            conts.forEach(function(x) { x.innerHTML = html; });
+        }
+        // V46.9.149: efectividad del TOP 10 recomendado (foto diaria automática)
+        function _efvT10Toggle() {
+            var ps = document.querySelectorAll('[id="efvT10Panel"]');
+            if (!ps.length) return;
+            var abrir = (ps[0].style.display === 'none');
+            ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
+            if (abrir) _efvT10Render();
+        }
+        function _efvT10Render() {
+            var conts = document.querySelectorAll('[id="efvT10Resultado"]');
+            if (!conts.length || !window._ngpFiltro || !window._ngpFiltro.efvTop10Calc) return;
+            var selR = document.querySelector('[id="efvT10Rango"]');
+            var dias = selR ? parseInt(selR.value, 10) : 0;
+            var r = window._ngpFiltro.efvTop10Calc(dias);
+            var pct = r.total.evaluadas ? (100 * r.total.aciertos / r.total.evaluadas) : 0;
+            var pctCol = pct >= 30 ? '#34d399' : pct >= 15 ? '#fbbf24' : '#f87171';
+            var html = '<div style="text-align:center;padding:8px;background:rgba(0,0,0,0.3);border-radius:8px;margin-bottom:8px;">';
+            html += '<div style="font-size:26px;font-weight:bold;color:' + pctCol + ';line-height:1.1;">' + pct.toFixed(1) + '%</div>';
+            html += '<div style="font-size:12px;color:#d1fae5;">' + r.total.aciertos + ' de ' + r.total.evaluadas + ' jugadas recomendadas salieron en su lotería ese día</div>';
+            html += '</div>';
+            r.porDia.forEach(function(d) {
+                html += '<div style="margin-bottom:6px;">';
+                html += '<div style="font-size:11px;font-weight:bold;color:#a7f3d0;">' + d.fecha + ' → <span style="color:' + (d.aciertos > 0 ? '#34d399' : '#94a3b8') + ';">' + d.aciertos + ' / ' + d.total + '</span></div>';
+                if (d.hits.length) {
+                    html += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:3px;">';
+                    d.hits.forEach(function(hh) {
+                        var hf = hh.time; try { if (typeof convertTo12Hour === 'function') hf = convertTo12Hour(hh.time); } catch (e) {}
+                        html += '<span style="background:linear-gradient(135deg,#065f46,#10b981);border:1px solid #6ee7b7;border-radius:6px;padding:3px 9px;font-size:11px;color:#fff;"><strong style="font-family:monospace;font-size:14px;">' + hh.n + '</strong> ' + hh.l + ' · ' + hf + '</span>';
+                    });
                     html += '</div>';
-                });
+                }
                 html += '</div>';
+            });
+            if (r.sinFoto > 0) {
+                html += '<div style="font-size:9px;color:#fbbf24;margin-top:5px;">⚠️ ' + r.sinFoto + ' día(s) del rango sin foto del Top 10 (se guarda a diario desde esta versión).</div>';
             }
-            html += '<div style="font-size:8px;color:#64748b;margin-top:8px;">La fuerza compara cuánta señal acumulada tiene cada lotería en este momento — sirve para priorizar dónde mirar. Cada sorteo es independiente: más señales no cambia la probabilidad matemática.</div>';
+            html += '<div style="font-size:8px;color:#64748b;margin-top:6px;">Cada día se guarda automáticamente la foto del Top 10 recomendado (la primera vez que abrís el sistema ese día — abrilo temprano para una medición limpia). Acierto = esa jugada salió ese día en su lotería, en cualquier sorteo. Referencia: 10 jugadas sobre ~100 números repartidas en varias loterías rondarían un acierto ocasional por azar; lo interesante es la tendencia. Cada sorteo es independiente.</div>';
             conts.forEach(function(x) { x.innerHTML = html; });
         }
         // V46.9.138 (pedido de Leo): botones Todas / Ninguna para el filtro por lotería
@@ -69740,7 +69836,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r82 · v46.9.148</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r83 · v46.9.149</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
