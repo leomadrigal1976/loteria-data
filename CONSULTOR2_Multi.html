@@ -28203,6 +28203,7 @@ function senalesDe(nn) {
                 h += '<div style="flex:1;min-width:240px;"><div style="font-size:16px;font-weight:bold;color:#7dd3fc;text-shadow:0 0 8px rgba(125,211,252,0.35);">🔗 NÚMEROS PEGADOS QUE REAPARECEN — ¿se contagian entre loterías?</div></div>';
                 h += '<button onclick="_ngpFiltroToggle()" style="background:linear-gradient(135deg,#0e7490,#22d3ee);border:1px solid #67e8f9;color:#06222b;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;">🎚️ Filtrar por lotería</button>';
                 h += '<button onclick="_ngpExtractoToggle()" style="background:linear-gradient(135deg,#b45309,#f59e0b);border:1px solid #fcd34d;color:#3a1d00;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🎯 Filtrar por Lotería Con Mayores Señales</button>';
+                h += '<button onclick="_ngpResumenToggle()" style="background:linear-gradient(135deg,#581c87,#a855f7);border:1px solid #d8b4fe;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🏆 Resumen: Loterías Más Fuertes</button>';
                 h += '</div>';
                 // panel del filtro (oculto por defecto)
                 h += '<div id="ngpFiltroPanel" style="display:none;background:rgba(8,47,73,0.6);border:1px solid #22d3ee;border-radius:9px;padding:10px;margin-top:9px;">';
@@ -28248,6 +28249,11 @@ function senalesDe(nn) {
                 });
                 h += '</div>';
                 h += '<div id="ngpExtractoResultado" style="max-height:500px;overflow-y:auto;"><div style="font-size:11px;color:#94a3b8;padding:6px;">Elegí al menos una lotería (o TODAS).</div></div>';
+                h += '</div>';
+                // V46.9.148 (pedido de Leo): panel RESUMEN — todas las loterías ordenadas por
+                // fuerza de señales (suma del top-5 + bonus por jale), podio + top de jugadas.
+                h += '<div id="ngpResumenPanel" style="display:none;background:rgba(46,16,101,0.4);border:1px solid #a855f7;border-radius:9px;padding:10px;margin-top:9px;">';
+                h += '<div id="ngpResumenResultado" style="max-height:600px;overflow-y:auto;"><div style="font-size:11px;color:#94a3b8;padding:6px;">Calculando…</div></div>';
                 h += '</div>';
                 h += '<div style="font-size:10px;color:#bae6fd;margin-top:3px;">Rastrea números que dejaron de salir en <strong>todas</strong> las loterías por ' + DIAS_REZAGO + '+ días y volvieron a aparecer en los últimos ' + DIAS_RECIENTE + ' días. Para cada uno se muestra en qué otras loterías sigue pendiente.</div>';
 
@@ -28802,6 +28808,7 @@ function senalesDe(nn) {
             if (!ps.length) return;
             var abrir = (ps[0].style.display === 'none');
             document.querySelectorAll('[id="ngpExtractoPanel"]').forEach(function(o) { o.style.display = 'none'; });
+            document.querySelectorAll('[id="ngpResumenPanel"]').forEach(function(o) { o.style.display = 'none'; });
             ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
         }
 
@@ -28814,7 +28821,121 @@ function senalesDe(nn) {
             if (!ps.length) return;
             var abrir = (ps[0].style.display === 'none');
             document.querySelectorAll('[id="ngpFiltroPanel"]').forEach(function(o) { o.style.display = 'none'; });
+            document.querySelectorAll('[id="ngpResumenPanel"]').forEach(function(o) { o.style.display = 'none'; });
             ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
+        }
+        // V46.9.148 (pedido de Leo): RESUMEN de loterías más fuertes
+        function _ngpResumenToggle() {
+            var ps = document.querySelectorAll('[id="ngpResumenPanel"]');
+            if (!ps.length) return;
+            var abrir = (ps[0].style.display === 'none');
+            document.querySelectorAll('[id="ngpFiltroPanel"]').forEach(function(o) { o.style.display = 'none'; });
+            document.querySelectorAll('[id="ngpExtractoPanel"]').forEach(function(o) { o.style.display = 'none'; });
+            ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
+            if (abrir) _ngpResumenRender();
+        }
+        function _ngpResumenRender() {
+            var conts = document.querySelectorAll('[id="ngpResumenResultado"]');
+            if (!conts.length || !window._ngpFiltro) return;
+            var F = window._ngpFiltro;
+            // ─── candidatos por lotería (MISMOS criterios que el extracto — mantener en
+            // sincronía con _ngpExtractoRender): rezago top-30 en L sin salir ≤2d, o señales
+            // fuertes en L; score = confluencia en L + grupo del día + jale + dec/term HOY.
+            var dth = F.decTermHoy || { decTop: [], termTop: [] };
+            function candidatosDe(L, jales) {
+                var lista = [], vistos = {};
+                F.grupos.forEach(function(g) {
+                    (F.NUMBER_GROUPS[g] || []).forEach(function(nn) {
+                        if (vistos[nn]) return; vistos[nn] = true;
+                        var pos = (F.rankRezagoLot[L] || {})[nn] || null;
+                        var ultEnL = (F.ultPorNumLot[nn] || {})[L];
+                        var salioReciente = (ultEnL && F.difDias(ultEnL, F.hoyStr) <= 2);
+                        var esRezagoL = (pos !== null && pos <= 30 && !salioReciente);
+                        var sn0 = F.senalesDe(nn);
+                        var tieneSenalesL = false;
+                        (sn0.porLoteria || []).forEach(function(cf) { if (cf.lot === L && cf.score >= 2) tieneSenalesL = true; });
+                        if (!esRezagoL && !(tieneSenalesL && pos !== null && !salioReciente)) return;
+                        var scoreL = 0, tiposL = [];
+                        (sn0.porLoteria || []).forEach(function(cf) {
+                            if (cf.lot === L) { scoreL += cf.score; cf.tipos.forEach(function(t) { tiposL.push(t); }); }
+                        });
+                        if (sn0.esGrupoDia) { scoreL += 4; tiposL.push('grupo del día'); }
+                        for (var _ji = 0; _ji < jales.length; _ji++) {
+                            if (jales[_ji].nums[nn]) { scoreL += 4; tiposL.push('⏰ jale ' + jales[_ji].horaFmt); break; }
+                        }
+                        if (dth.decTop.indexOf(nn[0]) >= 0) { scoreL += 1; tiposL.push('dec HOY'); }
+                        if (dth.termTop.indexOf(nn[1]) >= 0) { scoreL += 1; tiposL.push('term HOY'); }
+                        lista.push({ num: nn, score: scoreL, tipos: tiposL, pos: pos });
+                    });
+                });
+                lista.sort(function(a, b) { return b.score !== a.score ? b.score - a.score : a.pos - b.pos; });
+                return lista;
+            }
+            // ─── fuerza por lotería: suma del top-5 + bonus por jales activos (+3 c/u)
+            var ranking = [], jugadas = [];
+            F.lotsActivas.forEach(function(L) {
+                var jales = (F.jaleDe ? (F.jaleDe(L) || []) : []);
+                var cands = candidatosDe(L, jales);
+                var top5 = cands.slice(0, 5);
+                var fuerza = 0;
+                top5.forEach(function(x) { fuerza += x.score; });
+                fuerza += 3 * jales.length;
+                var tieneGrupoDia = top5.some(function(x) { return x.tipos.indexOf('grupo del día') >= 0; });
+                ranking.push({ lot: L, fuerza: fuerza, top: cands.slice(0, 3), jales: jales, grupoDia: tieneGrupoDia });
+                cands.slice(0, 5).forEach(function(x) { jugadas.push({ lot: L, num: x.num, score: x.score, tipos: x.tipos }); });
+            });
+            ranking.sort(function(a, b) { return b.fuerza - a.fuerza; });
+            jugadas.sort(function(a, b) { return b.score - a.score; });
+            var medallas = ['🥇', '🥈', '🥉', '4°', '5°'];
+            var html = '<div style="font-size:12px;font-weight:bold;color:#e9d5ff;margin-bottom:8px;">🏆 TODAS LAS LOTERÍAS ordenadas por fuerza de señales <span style="font-size:9px;color:#94a3b8;font-weight:normal;">(fuerza = suma de señales de sus 5 números más fuertes + 3 por cada jale activo)</span></div>';
+            // ─── PODIO (top 5)
+            html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,190px),1fr));gap:8px;margin-bottom:12px;">';
+            ranking.slice(0, 5).forEach(function(rk, ix) {
+                var esOro = ix === 0;
+                html += '<div style="background:' + (esOro ? 'linear-gradient(135deg,#713f12,#a16207)' : 'rgba(0,0,0,0.3)') + ';border:2px solid ' + (ix < 3 ? '#fbbf24' : '#a855f7') + ';border-radius:10px;padding:9px;">';
+                html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+                html += '<span style="font-size:14px;font-weight:bold;color:#fff;">' + medallas[ix] + ' ' + rk.lot + '</span>';
+                html += '<span style="font-size:16px;font-weight:bold;color:#fde68a;">' + rk.fuerza + '</span>';
+                html += '</div>';
+                var etq = [];
+                if (rk.jales.length) etq.push('⏰ ' + rk.jales.length + ' jale' + (rk.jales.length > 1 ? 's' : ''));
+                if (rk.grupoDia) etq.push('📅 grupo del día');
+                if (etq.length) html += '<div style="font-size:9px;color:#fdba74;margin-top:2px;">' + etq.join(' · ') + '</div>';
+                html += '<div style="display:flex;gap:5px;margin-top:6px;">';
+                rk.top.forEach(function(x) {
+                    html += '<div style="background:rgba(220,38,38,0.2);border:1px solid #f87171;border-radius:6px;padding:4px 8px;text-align:center;flex:1;">';
+                    html += '<div style="font-family:monospace;font-size:19px;font-weight:bold;color:#fff;line-height:1;">' + x.num + '</div>';
+                    html += '<div style="font-size:8px;color:#fca5a5;">' + x.score + ' señ.</div>';
+                    html += '</div>';
+                });
+                html += '</div></div>';
+            });
+            html += '</div>';
+            // ─── TOP 10 JUGADAS GLOBALES
+            html += '<div style="font-size:12px;font-weight:bold;color:#e9d5ff;margin-bottom:5px;">🎯 TOP 10 JUGADAS de todo el sistema (número + lotería con más señales):</div>';
+            html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">';
+            jugadas.slice(0, 10).forEach(function(j, ix) {
+                html += '<div style="background:linear-gradient(135deg,#1e1b4b,#4c1d95);border:1px solid #a78bfa;border-radius:8px;padding:5px 10px;text-align:center;">';
+                html += '<div style="font-size:8px;color:#c4b5fd;">' + (ix + 1) + '°</div>';
+                html += '<div style="font-family:monospace;font-size:20px;font-weight:bold;color:#fff;line-height:1;">' + j.num + '</div>';
+                html += '<div style="font-size:9px;color:#ddd6fe;">' + j.lot + ' · <strong>' + j.score + ' señ.</strong></div>';
+                html += '</div>';
+            });
+            html += '</div>';
+            // ─── RESTO de loterías (compactas)
+            if (ranking.length > 5) {
+                html += '<div style="font-size:11px;font-weight:bold;color:#c4b5fd;margin-bottom:4px;">Las demás, en orden:</div>';
+                html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:5px;">';
+                ranking.slice(5).forEach(function(rk, ix) {
+                    html += '<div style="background:rgba(0,0,0,0.2);border:1px solid rgba(168,85,247,0.35);border-radius:7px;padding:5px 8px;">';
+                    html += '<div style="display:flex;justify-content:space-between;"><span style="font-size:10px;font-weight:bold;color:#e2e8f0;">' + (ix + 6) + '° ' + rk.lot + '</span><span style="font-size:11px;font-weight:bold;color:#c4b5fd;">' + rk.fuerza + '</span></div>';
+                    html += '<div style="font-size:11px;font-family:monospace;color:#fca5a5;margin-top:2px;">' + rk.top.map(function(x) { return x.num; }).join(' · ') + '</div>';
+                    html += '</div>';
+                });
+                html += '</div>';
+            }
+            html += '<div style="font-size:8px;color:#64748b;margin-top:8px;">La fuerza compara cuánta señal acumulada tiene cada lotería en este momento — sirve para priorizar dónde mirar. Cada sorteo es independiente: más señales no cambia la probabilidad matemática.</div>';
+            conts.forEach(function(x) { x.innerHTML = html; });
         }
         // V46.9.138 (pedido de Leo): botones Todas / Ninguna para el filtro por lotería
         function _ngpFiltroTodas(marcar) {
@@ -69619,7 +69740,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r81 · v46.9.147</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r82 · v46.9.148</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
