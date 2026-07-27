@@ -5854,6 +5854,11 @@
                 </div>
                 <button onclick="ejecutarDdgVsPm()" style="background:linear-gradient(135deg,#6c3483,#ffd200);border:2px solid #ffd200;color:#1a0533;padding:12px 28px;border-radius:8px;cursor:pointer;font-size:15px;font-weight:bold;width:100%;">🎯🏆 Comparar con Panel Maestro</button>
 
+                <!-- V46.9.145 (pedido de Leo): TODAS las herramientas adicionales en un solo
+                     acordeón general, para no desplazarse tanto -->
+                <details style="margin-top:14px;background:rgba(2,44,34,0.5);border:2px solid #10b981;border-radius:12px;padding:10px 14px;">
+                    <summary style="cursor:pointer;font-size:15px;font-weight:bold;color:#6ee7b7;">🧰 HERRAMIENTAS ADICIONALES — búsquedas, patrones y análisis especiales <span style="font-size:11px;color:#94a3b8;font-weight:normal;">(clic para abrir/cerrar)</span></summary>
+
                 <!-- V46.8.13/17: Búsqueda por suma de dígitos con MÚLTIPLES reglas -->
                 <details style="margin-top:14px;background:rgba(59,130,246,0.05);border:1px solid #3b82f6;border-radius:10px;padding:10px 14px;">
                     <summary style="cursor:pointer;font-size:14px;font-weight:bold;color:#93c5fd;">🔍 Búsqueda por suma de dígitos — múltiples reglas <span style="font-size:11px;color:#94a3b8;font-weight:normal;">(clic para abrir)</span></summary>
@@ -6114,6 +6119,7 @@
                     </div>
                     <div id="agrResults" style="margin-top:14px;"></div>
                 </details>
+                </details> <!-- V46.9.145: cierre del acordeón general de herramientas -->
             </div>
 
             <div id="ddgVsPmResults"><div class="alert alert-info" style="text-align:center;padding:40px;"><h3>👆 Seleccioná lotería y fecha, luego presioná Comparar</h3><p>Se calcularán y mostrarán los Top 10 de ambos métodos lado a lado, resaltando coincidencias.</p></div></div>
@@ -27980,19 +27986,40 @@ ${groups.map((g,i)=>`
                 // Membresía del extracto para una lotería (la MISMA condición del render):
                 // rezago top-30 en L sin salir <=2 días, O señales fuertes en L (score>=2).
                 function _efvSetExtracto(L) {
+                    // V46.9.145: la foto representa el extracto AL INICIO DEL DÍA — el rezago
+                    // y la última salida se calculan SIN los resultados de hoy. Así la foto es
+                    // estable sin importar a qué hora se abra el sistema, y los aciertos de
+                    // los sorteos de hoy cuentan aunque se capture antes de abrir.
                     var lista = [];
                     try {
+                        var hoyReal = _pmFechaLocalStr(new Date());
+                        var serieL = [];
+                        (capturedResults || []).forEach(function(r) {
+                            if (r && r.lottery === L && r.date && r.date < hoyReal) serieL.push(r);
+                        });
+                        serieL.sort(function(a2, b2) {
+                            var ka = a2.date + ' ' + _jaleNormHora(a2.time), kb = b2.date + ' ' + _jaleNormHora(b2.time);
+                            return ka < kb ? -1 : ka > kb ? 1 : 0;
+                        });
+                        var lastIdx = {}, lastDate = {};
+                        serieL.forEach(function(r, ix) { var nx = _efvNorm(r.number); lastIdx[nx] = ix; lastDate[nx] = r.date; });
+                        var N = serieL.length;
+                        var arr = [];
+                        Object.keys(lastIdx).forEach(function(nx) { arr.push({ n: nx, s: N - lastIdx[nx] }); });
+                        arr.sort(function(a2, b2) { return b2.s - a2.s; });
+                        var pos = {};
+                        arr.forEach(function(e, ix) { pos[e.n] = ix + 1; });
                         Object.keys(NUMBER_GROUPS || {}).forEach(function(g) {
                             (NUMBER_GROUPS[g] || []).forEach(function(nn) {
                                 if (lista.indexOf(nn) >= 0) return;
-                                var pos = (rankRezagoLot[L] || {})[nn] || null;
-                                var ultEnL = (ultPorNumLot[nn] || {})[L];
-                                var salioReciente = (ultEnL && difDias(ultEnL, hoyStr) <= 2);
-                                var esRezagoL = (pos !== null && pos <= 30 && !salioReciente);
+                                var p = pos[nn] || null;
+                                var ld = lastDate[nn];
+                                var rec = (ld && difDias(ld, hoyReal) <= 2);
+                                var esRez = (p !== null && p <= 30 && !rec);
                                 var sn0 = senalesDe(nn);
-                                var tieneSenalesL = false;
-                                (sn0.porLoteria || []).forEach(function(cf) { if (cf.lot === L && cf.score >= 2) tieneSenalesL = true; });
-                                if (esRezagoL || (tieneSenalesL && pos !== null && !salioReciente)) lista.push(nn);
+                                var tsl = false;
+                                (sn0.porLoteria || []).forEach(function(cf) { if (cf.lot === L && cf.score >= 2) tsl = true; });
+                                if (esRez || (tsl && p !== null && !rec)) lista.push(nn);
                             });
                         });
                     } catch (e) {}
@@ -28003,7 +28030,10 @@ ${groups.map((g,i)=>`
                     try {
                         var hoyReal = _pmFechaLocalStr(new Date());
                         var snaps = _efvLeerSnaps();
-                        if (!snaps[hoyReal]) snaps[hoyReal] = {};
+                        // V46.9.145: si la foto de hoy es de la versión anterior (sin marca
+                        // _v=2, la que sufría el sesgo horario), se regenera con el método
+                        // "inicio del día".
+                        if (!snaps[hoyReal] || snaps[hoyReal]._v !== 2) snaps[hoyReal] = { _v: 2 };
                         var cambio = false;
                         lotsActivas.forEach(function(L) {
                             if (snaps[hoyReal][L]) return; // ya hay foto de hoy
@@ -28028,8 +28058,9 @@ ${groups.map((g,i)=>`
                         if (!r || !r.date || r.date < iniStr) return;
                         var L = r.lottery;
                         if (lotFiltro && lotFiltro !== '__TODAS__' && L !== lotFiltro) return;
-                        var foto = snaps[r.date] && snaps[r.date][L];
-                        if (!foto) { res.sinSnapshot++; return; }
+                        if (!snaps[r.date]) { res.sinSnapshot++; return; } // día sin foto (antes de esta versión)
+                        var foto = snaps[r.date][L];
+                        if (!foto || !foto.length) return; // lotería fuera del extracto (ej. 3 dígitos) — no aplica
                         var nn = _efvNorm(r.number);
                         res.total.sorteos++;
                         if (!res.porLot[L]) res.porLot[L] = { sorteos: 0, aciertos: 0 };
@@ -28163,12 +28194,9 @@ function senalesDe(nn) {
                     } catch (e) { return null; }
                 }
 
-                // V46.9.144 (pedido de Leo): todo el módulo colapsado en una sección
-                // plegable (clic para abrir), para no desplazarse tanto en la pestaña.
-                var h = '<details style="background:rgba(15,23,42,0.96);border:2px solid #38bdf8;border-radius:12px;margin-top:18px;">';
-                h += '<summary style="cursor:pointer;padding:12px 14px;font-size:15px;font-weight:bold;color:#7dd3fc;text-shadow:0 0 8px rgba(125,211,252,0.35);">🔗 NÚMEROS PEGADOS QUE REAPARECEN — ¿se contagian entre loterías? <span style="font-size:10px;color:#94a3b8;font-weight:normal;">(clic para abrir/cerrar)</span></summary>';
-                h += '<div style="padding:0 14px 14px;">';
-                h += '<div style="display:flex;justify-content:flex-end;align-items:flex-start;gap:10px;flex-wrap:wrap;">';
+                var h = '<div style="background:rgba(15,23,42,0.96);border:2px solid #38bdf8;border-radius:12px;padding:14px;margin-top:18px;">';
+                h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">';
+                h += '<div style="flex:1;min-width:240px;"><div style="font-size:16px;font-weight:bold;color:#7dd3fc;text-shadow:0 0 8px rgba(125,211,252,0.35);">🔗 NÚMEROS PEGADOS QUE REAPARECEN — ¿se contagian entre loterías?</div></div>';
                 h += '<button onclick="_ngpFiltroToggle()" style="background:linear-gradient(135deg,#0e7490,#22d3ee);border:1px solid #67e8f9;color:#06222b;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;">🎚️ Filtrar por lotería</button>';
                 h += '<button onclick="_ngpExtractoToggle()" style="background:linear-gradient(135deg,#b45309,#f59e0b);border:1px solid #fcd34d;color:#3a1d00;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🎯 Filtrar por Lotería Con Mayores Señales</button>';
                 h += '</div>';
@@ -28586,7 +28614,6 @@ function senalesDe(nn) {
                     jaleDe: _jaleDeAyer, decTermHoy: _decTermHoy, efvCalcular: _efvCalcular
                 };
                 try { _efvGuardarSnapshotHoy(); } catch (eSnap) {} // V46.9.144: foto diaria del extracto
-                h += '</details>'; // V46.9.144: cierre del acordeón (el </div> del cuerpo ya existía como cierre del contenedor original)
                 return h;
             } catch (e) { console.error('[NGP-CONTAGIO]', e); return ''; }
         }
@@ -28803,38 +28830,53 @@ function senalesDe(nn) {
             var dias = selR ? parseInt(selR.value, 10) : 0;
             var lot = selL ? selL.value : '__TODAS__';
             var r = window._ngpFiltro.efvCalcular(dias, lot);
-            var etiqR = dias === 0 ? 'HOY' : 'últimos ' + dias + ' días';
+            var etiqR = dias === 0 ? 'HOY' : 'ÚLTIMOS ' + dias + ' DÍAS';
             var etiqL = (lot === '__TODAS__') ? 'todas las loterías' : lot;
             var pct = r.total.sorteos ? (100 * r.total.aciertos / r.total.sorteos) : 0;
-            var pctCol = pct >= 40 ? '#6ee7b7' : pct >= 25 ? '#fde68a' : '#fca5a5';
-            var html = '<div style="font-size:12px;font-weight:bold;color:#fff;margin-bottom:5px;">📊 Efectividad (' + etiqR + ' · ' + etiqL + '): <span style="color:' + pctCol + ';">' + r.total.aciertos + ' / ' + r.total.sorteos + ' sorteos = ' + pct.toFixed(1) + '%</span></div>';
-            // tabla por lotería
-            var lots = Object.keys(r.porLot).sort(function(a, b) { return r.porLot[b].sorteos - r.porLot[a].sorteos; });
+            var pctCol = pct >= 40 ? '#34d399' : pct >= 25 ? '#fbbf24' : '#f87171';
+            // V46.9.145: presentación grande y clara
+            var html = '<div style="text-align:center;padding:10px 6px;background:rgba(0,0,0,0.3);border-radius:10px;margin-bottom:10px;">';
+            html += '<div style="font-size:12px;font-weight:bold;color:#a7f3d0;letter-spacing:1px;">📊 EFECTIVIDAD · ' + etiqR + ' · ' + etiqL.toUpperCase() + '</div>';
+            html += '<div style="font-size:34px;font-weight:bold;color:' + pctCol + ';line-height:1.2;margin-top:4px;">' + pct.toFixed(1) + '%</div>';
+            html += '<div style="font-size:14px;color:#d1fae5;">' + r.total.aciertos + ' aciertos de ' + r.total.sorteos + ' sorteos evaluados</div>';
+            html += '</div>';
+            // tarjetas por lotería (grandes)
+            var lots = Object.keys(r.porLot).sort(function(a2, b2) { return r.porLot[b2].sorteos - r.porLot[a2].sorteos; });
             if (lots.length > 1) {
-                html += '<div style="display:flex;flex-wrap:wrap;gap:4px 10px;margin-bottom:6px;">';
+                html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:6px;margin-bottom:10px;">';
                 lots.forEach(function(L) {
                     var pl = r.porLot[L];
-                    var p2 = pl.sorteos ? (100 * pl.aciertos / pl.sorteos).toFixed(0) : '0';
-                    html += '<span style="font-size:9px;color:#a7f3d0;">' + L + ': <strong>' + pl.aciertos + '/' + pl.sorteos + '</strong> (' + p2 + '%)</span>';
+                    var p2 = pl.sorteos ? (100 * pl.aciertos / pl.sorteos) : 0;
+                    var c2 = pl.aciertos > 0 ? '#34d399' : '#94a3b8';
+                    html += '<div style="background:rgba(0,0,0,0.25);border:1px solid ' + (pl.aciertos > 0 ? '#10b981' : 'rgba(148,163,184,0.3)') + ';border-radius:8px;padding:7px 9px;text-align:center;">';
+                    html += '<div style="font-size:12px;font-weight:bold;color:#e2e8f0;">' + L + '</div>';
+                    html += '<div style="font-size:17px;font-weight:bold;color:' + c2 + ';">' + pl.aciertos + ' / ' + pl.sorteos + '</div>';
+                    html += '<div style="font-size:10px;color:#94a3b8;">' + p2.toFixed(0) + '%</div>';
+                    html += '</div>';
                 });
                 html += '</div>';
             }
-            // detalle de aciertos (los más recientes primero, máx 40)
+            // aciertos como chips grandes
             if (r.detalles.length) {
-                html += '<div style="font-size:9px;font-weight:bold;color:#6ee7b7;margin-bottom:3px;">✅ Aciertos (el ganador estaba en la lista al momento del sorteo):</div>';
-                html += '<div style="display:flex;flex-wrap:wrap;gap:3px;">';
+                html += '<div style="font-size:12px;font-weight:bold;color:#6ee7b7;margin-bottom:5px;">✅ ACIERTOS — el ganador estaba en la lista del extracto de ese día:</div>';
+                html += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
                 r.detalles.slice().reverse().slice(0, 40).forEach(function(d) {
                     var hf = d.time; try { if (typeof convertTo12Hour === 'function') hf = convertTo12Hour(d.time); } catch (e) {}
-                    html += '<span style="background:rgba(16,185,129,0.15);border:1px solid #10b981;border-radius:4px;padding:1px 6px;font-size:9px;color:#d1fae5;"><strong>' + d.num + '</strong> · ' + d.lot + ' · ' + d.date.substring(5) + ' ' + hf + '</span>';
+                    html += '<div style="background:linear-gradient(135deg,#065f46,#10b981);border:1px solid #6ee7b7;border-radius:8px;padding:6px 12px;text-align:center;">';
+                    html += '<div style="font-family:monospace;font-size:20px;font-weight:bold;color:#fff;line-height:1;">' + d.num + '</div>';
+                    html += '<div style="font-size:10px;color:#d1fae5;margin-top:2px;">' + d.lot + '<br>' + d.date.substring(5) + ' · ' + hf + '</div>';
+                    html += '</div>';
                 });
                 html += '</div>';
+            } else if (r.total.sorteos > 0) {
+                html += '<div style="font-size:12px;color:#94a3b8;text-align:center;padding:8px;">Sin aciertos en este rango.</div>';
             } else {
-                html += '<div style="font-size:9px;color:#94a3b8;">Sin aciertos en este rango' + (r.total.sorteos === 0 ? ' (no hay sorteos evaluables: se necesita la foto del extracto de ese día)' : '') + '.</div>';
+                html += '<div style="font-size:12px;color:#94a3b8;text-align:center;padding:8px;">No hay sorteos evaluables en este rango (se necesita la foto del extracto de cada día).</div>';
             }
             if (r.sinSnapshot > 0) {
-                html += '<div style="font-size:9px;color:#fbbf24;margin-top:4px;">⚠️ ' + r.sinSnapshot + ' sorteo(s) del rango no se evaluaron: no había foto del extracto ese día (las fotos se guardan a diario desde v46.9.144 en adelante).</div>';
+                html += '<div style="font-size:11px;color:#fbbf24;margin-top:8px;">⚠️ ' + r.sinSnapshot + ' sorteo(s) no se evaluaron: no había foto del extracto ese día. Las fotos se guardan a diario desde esta versión — de ayer hacia atrás no es posible evaluar (por eso los aciertos que viste ayer en Tica, PAPA y Dominicana no aparecen acá).</div>';
             }
-            html += '<div style="font-size:8px;color:#64748b;margin-top:6px;">Mide la LISTA REAL del extracto: cada día el sistema guarda una foto de los números que "Filtrar por Lotería Con Mayores Señales" muestra por lotería (con todas sus señales), y compara los ganadores de cada sorteo contra la foto de ese día. Acumula desde que corre esta versión, en este dispositivo. Recordá que cada sorteo es independiente — esto mide qué tan bien organiza el análisis, no probabilidad.</div>';
+            html += '<div style="font-size:9px;color:#64748b;margin-top:8px;line-height:1.5;">Mide la LISTA REAL del extracto: cada día, el sistema guarda una foto de los números que "Filtrar por Lotería Con Mayores Señales" mostraba AL INICIO del día (el rezago se calcula sin los resultados de ese día, así la foto no cambia según la hora en que abras el sistema). Acumula desde que corre esta versión, en este dispositivo. Cada sorteo es independiente — esto mide qué tan bien organiza el análisis, no probabilidad.</div>';
             conts.forEach(function(x) { x.innerHTML = html; });
         }
         function _ngpExtractoTodas(chk) {
@@ -69543,7 +69585,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r78 · v46.9.144</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r79 · v46.9.145</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
