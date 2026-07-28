@@ -54519,7 +54519,9 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
             'analisis_grupo_activo','grupos_hoy_ayer','sugerencias_fecha',
             'corte_efectividad','donde_jugar_numero','panel_maestro',
             'estrategia_apuesta','comparador_dia','histograma_grupos',
-            'rachas_anguila','alertas_dia','despues_profundo'
+            'rachas_anguila','alertas_dia','despues_profundo',
+            'numeros_por_dia_mes','ddg_vs_pm','don_jorge','analisis_chances',
+            'comparador_efectividad','repeticiones_vueltas'
         ]);
         var TABS_INFO = [
             {g:'Captura y Datos',       tabs:['captura','respaldo','historial','historicos','busqueda','aciertos']},
@@ -54596,6 +54598,24 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                 });
                 html += '</div>';
             });
+            // V46.9.152 (pedido de Leo): cualquier pestaña del sistema que no esté en
+            // el catálogo aparece automáticamente en "Otras pestañas" — así las pestañas
+            // nuevas (Chances, DDG vs PM, Don Jorge, etc.) y las futuras siempre se
+            // pueden ocultar/mostrar.
+            var extras = [];
+            document.querySelectorAll('.tabs .tab').forEach(function(b) {
+                var m = (b.getAttribute('onclick') || '').match(/'([^']+)'/);
+                if (!m || seen.has(m[1])) return;
+                seen.add(m[1]);
+                extras.push({ id: m[1], nombre: (b.textContent || m[1]).trim(), visible: b.style.display !== 'none' });
+            });
+            if (extras.length) {
+                html += '<div class="tm-grp"><div class="tm-grp-t">Otras pestañas</div>';
+                extras.forEach(function(e) {
+                    html += '<div class="tm-item"><input type="checkbox" data-tab="' + e.id + '" ' + (e.visible ? 'checked' : '') + ' onchange="tmCount()"><label>' + e.nombre + '</label></div>';
+                });
+                html += '</div>';
+            }
             body.innerHTML = html;
             tmCount();
             document.getElementById('tabMgrOvl').classList.add('open');
@@ -54618,6 +54638,37 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         function tmNone()  { document.querySelectorAll('#tmBody input').forEach(function(c){if(c.dataset.tab!=='captura')c.checked=false;}); tmCount(); }
         function tmReset() { document.querySelectorAll('#tmBody input').forEach(function(c){c.checked=TABS_DEF.has(c.dataset.tab);}); tmCount(); }
 
+        // V46.9.151 (pedido de Leo): PERSISTIR la configuración de pestañas.
+        // Antes tmApply solo cambiaba la pantalla y al recargar se perdía todo.
+        var TM_STORE_KEY = 'tmTabsVisibles';
+        function _tmGuardar() {
+            try {
+                var vis = [];
+                document.querySelectorAll('.tabs .tab').forEach(function(b) {
+                    if (b.style.display !== 'none') {
+                        var m = (b.getAttribute('onclick') || '').match(/'([^']+)'/);
+                        if (m) vis.push(m[1]);
+                    }
+                });
+                localStorage.setItem(TM_STORE_KEY, JSON.stringify(vis));
+            } catch (e) {}
+        }
+        function _tmRestaurar() {
+            try {
+                var raw = localStorage.getItem(TM_STORE_KEY);
+                if (!raw) return;
+                var vis = JSON.parse(raw);
+                if (!Array.isArray(vis) || !vis.length) return;
+                if (vis.indexOf('captura') < 0) vis.push('captura'); // captura nunca se oculta
+                document.querySelectorAll('.tabs .tab').forEach(function(b) {
+                    var m = (b.getAttribute('onclick') || '').match(/'([^']+)'/);
+                    if (!m) return;
+                    b.style.display = (vis.indexOf(m[1]) >= 0) ? '' : 'none';
+                });
+                var activeBtn = document.querySelector('.tabs .tab.active');
+                if (activeBtn && activeBtn.style.display === 'none' && typeof changeTab === 'function') changeTab('captura');
+            } catch (e) {}
+        }
         function tmApply() {
             var allCbs = document.querySelectorAll('#tmBody input[type=checkbox]');
             allCbs.forEach(function(cb) {
@@ -54626,6 +54677,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                 if (!btn) return;
                 btn.style.display = cb.checked ? '' : 'none';
             });
+            _tmGuardar(); // V46.9.151: guardar la configuración
             // If currently active tab was hidden, switch to captura
             var activeBtn = document.querySelector('.tabs .tab.active');
             if (activeBtn && activeBtn.style.display === 'none') {
@@ -54640,9 +54692,11 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
             tabMgrClose();
         }
 
-        // Init counter on load
+        // Init on load: V46.9.151 — restaurar la configuración guardada y luego contar
         document.addEventListener('DOMContentLoaded', function() {
-            var vis = document.querySelectorAll('.tabs .tab:not([style*="display:none"])').length;
+            _tmRestaurar();
+            var vis = 0;
+            document.querySelectorAll('.tabs .tab').forEach(function(b) { if (b.style.display !== 'none') vis++; });
             var total = document.querySelectorAll('.tabs .tab').length;
             var cnt = document.getElementById('tabMgrCnt');
             if (cnt) cnt.textContent = vis + '/' + total;
@@ -69837,7 +69891,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r84 · v46.9.150</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r86 · v46.9.152</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {

@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.150</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.152</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6320,7 +6320,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.150</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.152</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -54858,7 +54858,9 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
             'analisis_grupo_activo','grupos_hoy_ayer','sugerencias_fecha',
             'corte_efectividad','donde_jugar_numero','panel_maestro',
             'estrategia_apuesta','comparador_dia','histograma_grupos',
-            'rachas_anguila','alertas_dia','despues_profundo'
+            'rachas_anguila','alertas_dia','despues_profundo',
+            'numeros_por_dia_mes','ddg_vs_pm','don_jorge','analisis_chances',
+            'comparador_efectividad','repeticiones_vueltas'
         ]);
         var TABS_INFO = [
             {g:'Captura y Datos',       tabs:['captura','respaldo','historial','historicos','busqueda','aciertos']},
@@ -54935,6 +54937,24 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                 });
                 html += '</div>';
             });
+            // V46.9.152 (pedido de Leo): cualquier pestaña del sistema que no esté en
+            // el catálogo aparece automáticamente en "Otras pestañas" — así las pestañas
+            // nuevas (Chances, DDG vs PM, Don Jorge, etc.) y las futuras siempre se
+            // pueden ocultar/mostrar.
+            var extras = [];
+            document.querySelectorAll('.tabs .tab').forEach(function(b) {
+                var m = (b.getAttribute('onclick') || '').match(/'([^']+)'/);
+                if (!m || seen.has(m[1])) return;
+                seen.add(m[1]);
+                extras.push({ id: m[1], nombre: (b.textContent || m[1]).trim(), visible: b.style.display !== 'none' });
+            });
+            if (extras.length) {
+                html += '<div class="tm-grp"><div class="tm-grp-t">Otras pestañas</div>';
+                extras.forEach(function(e) {
+                    html += '<div class="tm-item"><input type="checkbox" data-tab="' + e.id + '" ' + (e.visible ? 'checked' : '') + ' onchange="tmCount()"><label>' + e.nombre + '</label></div>';
+                });
+                html += '</div>';
+            }
             body.innerHTML = html;
             tmCount();
             document.getElementById('tabMgrOvl').classList.add('open');
@@ -54957,6 +54977,37 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         function tmNone()  { document.querySelectorAll('#tmBody input').forEach(function(c){if(c.dataset.tab!=='captura')c.checked=false;}); tmCount(); }
         function tmReset() { document.querySelectorAll('#tmBody input').forEach(function(c){c.checked=TABS_DEF.has(c.dataset.tab);}); tmCount(); }
 
+        // V46.9.151 (pedido de Leo): PERSISTIR la configuración de pestañas.
+        // Antes tmApply solo cambiaba la pantalla y al recargar se perdía todo.
+        var TM_STORE_KEY = 'tmTabsVisibles';
+        function _tmGuardar() {
+            try {
+                var vis = [];
+                document.querySelectorAll('.tabs .tab').forEach(function(b) {
+                    if (b.style.display !== 'none') {
+                        var m = (b.getAttribute('onclick') || '').match(/'([^']+)'/);
+                        if (m) vis.push(m[1]);
+                    }
+                });
+                localStorage.setItem(TM_STORE_KEY, JSON.stringify(vis));
+            } catch (e) {}
+        }
+        function _tmRestaurar() {
+            try {
+                var raw = localStorage.getItem(TM_STORE_KEY);
+                if (!raw) return;
+                var vis = JSON.parse(raw);
+                if (!Array.isArray(vis) || !vis.length) return;
+                if (vis.indexOf('captura') < 0) vis.push('captura'); // captura nunca se oculta
+                document.querySelectorAll('.tabs .tab').forEach(function(b) {
+                    var m = (b.getAttribute('onclick') || '').match(/'([^']+)'/);
+                    if (!m) return;
+                    b.style.display = (vis.indexOf(m[1]) >= 0) ? '' : 'none';
+                });
+                var activeBtn = document.querySelector('.tabs .tab.active');
+                if (activeBtn && activeBtn.style.display === 'none' && typeof changeTab === 'function') changeTab('captura');
+            } catch (e) {}
+        }
         function tmApply() {
             var allCbs = document.querySelectorAll('#tmBody input[type=checkbox]');
             allCbs.forEach(function(cb) {
@@ -54965,6 +55016,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                 if (!btn) return;
                 btn.style.display = cb.checked ? '' : 'none';
             });
+            _tmGuardar(); // V46.9.151: guardar la configuración
             // If currently active tab was hidden, switch to captura
             var activeBtn = document.querySelector('.tabs .tab.active');
             if (activeBtn && activeBtn.style.display === 'none') {
@@ -54979,9 +55031,11 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
             tabMgrClose();
         }
 
-        // Init counter on load
+        // Init on load: V46.9.151 — restaurar la configuración guardada y luego contar
         document.addEventListener('DOMContentLoaded', function() {
-            var vis = document.querySelectorAll('.tabs .tab:not([style*="display:none"])').length;
+            _tmRestaurar();
+            var vis = 0;
+            document.querySelectorAll('.tabs .tab').forEach(function(b) { if (b.style.display !== 'none') vis++; });
             var total = document.querySelectorAll('.tabs .tab').length;
             var cnt = document.getElementById('tabMgrCnt');
             if (cnt) cnt.textContent = vis + '/' + total;
