@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.149</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.150</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6320,7 +6320,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.149</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.150</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -28998,11 +28998,12 @@ function senalesDe(nn) {
                         var jalesL = _jaleDeAyer(L) || [];
                         var cands = candidatosDe(L, jalesL);
                         var top5 = cands.slice(0, 5);
-                        var fuerza = 0;
-                        top5.forEach(function(x) { fuerza += x.score; });
-                        fuerza += 3 * jalesL.length;
+                        var fuerza = 0, _t3 = 0, _t45 = 0;
+                        top5.forEach(function(x, xi) { fuerza += x.score; if (xi < 3) _t3 += x.score; else _t45 += x.score; });
+                        var _bJal = 3 * jalesL.length;
+                        fuerza += _bJal;
                         var tieneGrupoDia = top5.some(function(x) { return x.tipos.indexOf('grupo del día') >= 0; });
-                        ranking.push({ lot: L, fuerza: fuerza, top: cands.slice(0, 3), jales: jalesL, grupoDia: tieneGrupoDia });
+                        ranking.push({ lot: L, fuerza: fuerza, top: cands.slice(0, 3), jales: jalesL, grupoDia: tieneGrupoDia, det: { t3: _t3, t45: _t45, jal: _bJal } });
                         top5.forEach(function(x) { jugadas.push({ lot: L, num: x.num, score: x.score, tipos: x.tipos }); });
                     });
                     ranking.sort(function(a, b) { return b.fuerza - a.fuerza; });
@@ -29216,7 +29217,7 @@ function senalesDe(nn) {
                 // fila 1: número + score
                 html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">';
                 html += '<span style="font-family:monospace;font-size:17px;font-weight:bold;color:#fff;background:rgba(56,189,248,0.2);border-radius:5px;padding:1px 8px;">' + f.num + '</span>';
-                html += '<span style="font-size:9px;font-weight:bold;color:' + scoreCol + ';">' + f.score + ' señ.</span>';
+                html += '<span title="' + f.tipos.join(' · ').replace(/"/g, '') + '" style="font-size:9px;font-weight:bold;color:' + scoreCol + ';cursor:help;text-decoration:underline dotted;">' + f.score + ' señ.</span>';
                 if (f.esTopRez) html += '<span title="🏆 = está entre los más rezagados de ' + f.mejorLotRez + ' AHORA (puesto #' + f.mejorPos + '; #1 = el más vencido de todos)." style="background:rgba(220,38,38,0.6);color:#fff;border-radius:4px;padding:1px 5px;font-size:8px;font-weight:bold;">🏆 #' + f.mejorPos + ' rezag ' + f.mejorLotRez + '</span>';
                 html += '</div>';
                 // fila 2: última salida + sorteos sin salir
@@ -29292,7 +29293,7 @@ function senalesDe(nn) {
                 html += '<div style="background:' + (esOro ? 'linear-gradient(135deg,#713f12,#a16207)' : 'rgba(0,0,0,0.3)') + ';border:2px solid ' + (ix < 3 ? '#fbbf24' : '#a855f7') + ';border-radius:10px;padding:9px;">';
                 html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
                 html += '<span style="font-size:14px;font-weight:bold;color:#fff;">' + medalla + ' ' + rk.lot + '</span>';
-                html += '<span style="font-size:16px;font-weight:bold;color:#fde68a;">' + rk.fuerza + '</span>';
+                html += '<span title="Desglose: ' + rk.det.t3 + ' señ. de sus 3 números top + ' + rk.det.t45 + ' señ. del 4° y 5° + ' + rk.det.jal + ' de bonus por jales = ' + rk.fuerza + '" style="font-size:16px;font-weight:bold;color:#fde68a;cursor:help;text-decoration:underline dotted;">' + rk.fuerza + '</span>';
                 html += '</div>';
                 var etq = [];
                 if (rk.jales.length) etq.push('⏰ ' + rk.jales.length + ' jale' + (rk.jales.length > 1 ? 's' : ''));
@@ -29300,7 +29301,7 @@ function senalesDe(nn) {
                 if (etq.length) html += '<div style="font-size:9px;color:#fdba74;margin-top:2px;">' + etq.join(' · ') + '</div>';
                 html += '<div style="display:flex;gap:5px;margin-top:6px;">';
                 rk.top.forEach(function(x) {
-                    html += '<div style="background:rgba(220,38,38,0.2);border:1px solid #f87171;border-radius:6px;padding:4px 8px;text-align:center;flex:1;">';
+                    html += '<div title="' + x.tipos.join(' · ').replace(/"/g, '') + '" style="background:rgba(220,38,38,0.2);border:1px solid #f87171;border-radius:6px;padding:4px 8px;text-align:center;flex:1;cursor:help;">';
                     html += '<div style="font-family:monospace;font-size:19px;font-weight:bold;color:#fff;line-height:1;">' + x.num + '</div>';
                     html += '<div style="font-size:8px;color:#fca5a5;">' + x.score + ' señ.</div>';
                     html += '</div>';
@@ -29323,7 +29324,7 @@ function senalesDe(nn) {
             html += '</div>';
             html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">';
             jugadas.slice(0, 10).forEach(function(j, ix) {
-                html += '<div style="background:linear-gradient(135deg,#1e1b4b,#4c1d95);border:1px solid #a78bfa;border-radius:8px;padding:5px 10px;text-align:center;">';
+                html += '<div title="' + j.tipos.join(' · ').replace(/"/g, '') + '" style="background:linear-gradient(135deg,#1e1b4b,#4c1d95);border:1px solid #a78bfa;border-radius:8px;padding:5px 10px;text-align:center;cursor:help;">';
                 html += '<div style="font-size:8px;color:#c4b5fd;">' + (ix + 1) + '°</div>';
                 html += '<div style="font-family:monospace;font-size:20px;font-weight:bold;color:#fff;line-height:1;">' + j.num + '</div>';
                 html += '<div style="font-size:9px;color:#ddd6fe;">' + j.lot + ' · <strong>' + j.score + ' señ.</strong></div>';
@@ -29567,7 +29568,7 @@ function senalesDe(nn) {
                         htmlLots += '<div style="background:rgba(220,38,38,0.14);border:1px solid #f87171;border-radius:6px;padding:5px 7px;">';
                         htmlLots += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">';
                         htmlLots += '<span style="font-family:monospace;font-size:17px;font-weight:bold;color:#fff;">' + c.num + '</span>';
-                        htmlLots += '<span style="font-size:9px;font-weight:bold;color:' + scoreCol + ';">' + c.score + ' señ.</span>';
+                        htmlLots += '<span title="' + c.tipos.join(' · ').replace(/"/g, '') + '" style="font-size:9px;font-weight:bold;color:' + scoreCol + ';cursor:help;text-decoration:underline dotted;">' + c.score + ' señ.</span>';
                         htmlLots += '<span style="background:#dc2626;color:#fff;border-radius:4px;padding:1px 5px;font-size:8px;font-weight:bold;">🏆 #' + c.pos + ' rezag ' + L + '</span>';
                         htmlLots += '</div>';
                         htmlLots += '<div style="font-size:8px;color:#cbd5e1;margin-top:3px;">⏳ lleva ' + (dEnL !== null ? dEnL + ' días' : 'nunca salió') + ' sin salir en ' + L + (c.ultEnL ? ' (desde ' + fmtFecha(c.ultEnL) + ')' : '') + '</div>';
