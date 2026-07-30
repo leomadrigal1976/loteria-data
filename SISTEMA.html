@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.156</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.157</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -1833,6 +1833,25 @@
             <button class="btn btn-secondary" onclick="clearForm()">🔄 Limpiar</button>
             <button class="btn btn-warning" onclick="checkMissingLotteriesOfDay()">⚠️ Verificar Loterías Sin Captura Hoy</button>
             <button class="btn btn-success" onclick="toggleCustomDateCheck()">📅 Verificar Fecha Específica</button>
+                <button onclick="_capDelToggle()" style="background:linear-gradient(135deg,#7f1d1d,#dc2626);border:2px solid #f87171;color:#fff;padding:12px 20px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:bold;">🗑️ Buscar y Eliminar Captura</button>
+
+            <!-- V46.9.157 (pedido de Leo): buscador para eliminar una captura puntual -->
+            <div id="capDelDiv" style="display:none;margin-top:20px;padding:18px;background:#fff5f5;border-radius:10px;border:2px solid #dc2626;">
+                <h3 style="color:#dc2626;">🗑️ Buscar y Eliminar una Captura</h3>
+                <div style="font-size:12px;color:#7f1d1d;margin-bottom:10px;">Filtrá por lotería y fecha (la hora y el número son opcionales). El borrado es <strong>definitivo</strong>: se registra y se propaga a la nube para que no vuelva a aparecer al fusionar.</div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+                    <div><label style="font-size:11px;font-weight:bold;color:#7f1d1d;display:block;margin-bottom:3px;">Lotería:</label>
+                        <select id="capDelLot" style="padding:8px;border:1px solid #dc2626;border-radius:6px;font-size:13px;min-width:160px;"><option value="">(todas)</option></select></div>
+                    <div><label style="font-size:11px;font-weight:bold;color:#7f1d1d;display:block;margin-bottom:3px;">Fecha:</label>
+                        <input id="capDelFecha" type="date" style="padding:7px;border:1px solid #dc2626;border-radius:6px;font-size:13px;"></div>
+                    <div><label style="font-size:11px;font-weight:bold;color:#7f1d1d;display:block;margin-bottom:3px;">Hora (opcional):</label>
+                        <input id="capDelHora" type="text" placeholder="ej: 9:00 PM o 21:00" style="padding:7px;border:1px solid #dc2626;border-radius:6px;font-size:13px;width:130px;"></div>
+                    <div><label style="font-size:11px;font-weight:bold;color:#7f1d1d;display:block;margin-bottom:3px;">Número (opcional):</label>
+                        <input id="capDelNum" type="text" maxlength="3" placeholder="ej: 51" style="padding:7px;border:1px solid #dc2626;border-radius:6px;font-size:13px;width:80px;text-align:center;font-family:monospace;"></div>
+                    <button onclick="_capDelBuscar()" style="background:linear-gradient(135deg,#7f1d1d,#dc2626);border:none;color:#fff;padding:10px 22px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;">🔍 Buscar</button>
+                </div>
+                <div id="capDelResultado" style="margin-top:12px;"></div>
+            </div>
 
             <div id="customDateCheckDiv" style="display: none; margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px; border: 2px solid #667eea;">
                 <h3 style="color: #667eea;">📅 Verificar Loterías en Fecha Específica</h3>
@@ -6320,7 +6339,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.156</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.157</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -13307,12 +13326,17 @@
         function deleteResult(timestamp) {
             if (!_puedeEditarBorrar()) return;
             if (confirm('¿Está seguro de eliminar este resultado?')) {
+                // V46.9.157: registrar como borrado definitivo antes de quitar
+                try {
+                    capturedResults.forEach(function(r) { if (r.timestamp === timestamp) _ghBorradosAgregar(_ghClaveReg(r)); });
+                } catch (e) {}
                 capturedResults = capturedResults.filter(r => r.timestamp !== timestamp);
                 saveData();
                 updateHistorial();
                 updateRecentResults();
                 updateStats();
                 showMessage('Resultado eliminado', 'success');
+                try { _ghSubirData(true); } catch (e) {} // V46.9.157: propagar a la nube ya
             }
         }
 
@@ -13322,11 +13346,13 @@
             var r = capturedResults[index];
             if (confirm('¿Eliminar resultado?\n' + r.lottery + ' ' + r.date + ' ' + r.time + ' → ' + r.number)) {
                 capturedResults.splice(index, 1);
+                try { _ghBorradosAgregar(_ghClaveReg(r)); } catch (e) {} // V46.9.157: borrado definitivo
                 saveData();
                 updateHistorial();
                 updateRecentResults();
                 updateStats();
                 showMessage('Resultado eliminado', 'success');
+                try { _ghSubirData(true); } catch (e) {} // V46.9.157: propagar a la nube ya
             }
         }
 
@@ -14051,6 +14077,25 @@ ${groups.map((g,i)=>`
         function _ghClaveReg(r) {
             return (r.lottery || '') + '|' + (r.date || '') + '|' + (r.time || '') + '|' + (r.number || '');
         }
+        // ═══ V46.9.157 (pedido de Leo): BORRADOS DEFINITIVOS ═════════════════════
+        // Lista de claves eliminadas que viaja en la nube. Sin esto, la fusión
+        // "revivía" cualquier registro borrado (la fusión une, no borra).
+        function _ghBorradosLeer() {
+            try { var a = JSON.parse(localStorage.getItem('ghBorrados') || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+        }
+        function _ghBorradosGuardar(arr) {
+            try { localStorage.setItem('ghBorrados', JSON.stringify(arr.slice(-500))); } catch (e) {}
+        }
+        function _ghBorradosAgregar(clave) {
+            var a = _ghBorradosLeer();
+            if (a.indexOf(clave) < 0) { a.push(clave); _ghBorradosGuardar(a); }
+        }
+        function _ghBorradosUnir(remotos) {
+            if (!remotos || !remotos.length) return;
+            var a = _ghBorradosLeer(); var cambio = false;
+            remotos.forEach(function(k) { if (a.indexOf(k) < 0) { a.push(k); cambio = true; } });
+            if (cambio) _ghBorradosGuardar(a);
+        }
         function _ghFusionarConNube(cfg) {
             var repo = (cfg.repo && cfg.repo.indexOf('/') > 0) ? cfg.repo : 'leomadrigal1976/loteria-data';
             return fetch('https://raw.githubusercontent.com/' + repo + '/main/data.json?t=' + Date.now(), { cache: 'no-store' })
@@ -14061,10 +14106,15 @@ ${groups.map((g,i)=>`
                     var resumen = { antesLocal: localArr.length, nube: 0, nuevosDeNube: 0, total: 0, huboNube: false, seqFusion: 0 };
                     if (!nube || !nube.capturedResults) {
                         // no se pudo leer la nube (primera vez, o sin conexión): subir lo local tal cual
-                        resumen.total = localArr.length;
-                        return { merged: localArr, seq: (sequenceHistory || []), resumen: resumen };
+                        var _bs0 = {};
+                        _ghBorradosLeer().forEach(function(k) { _bs0[k] = true; });
+                        var _loc0 = localArr.filter(function(r) { return !_bs0[_ghClaveReg(r)]; });
+                        resumen.total = _loc0.length;
+                        return { merged: _loc0, seq: (sequenceHistory || []), resumen: resumen };
                     }
                     resumen.huboNube = true;
+                    // V46.9.157: traer los borrados definitivos de la nube
+                    _ghBorradosUnir(nube.borrados);
                     var nubeArr = nube.capturedResults;
                     resumen.nube = nubeArr.length;
                     // índice de lo local
@@ -14076,6 +14126,10 @@ ${groups.map((g,i)=>`
                         var k = _ghClaveReg(r);
                         if (!vistos[k]) { vistos[k] = true; merged.push(r); resumen.nuevosDeNube++; }
                     });
+                    // V46.9.157: excluir del conjunto los registros borrados definitivamente
+                    var _bset = {};
+                    _ghBorradosLeer().forEach(function(k) { _bset[k] = true; });
+                    merged = merged.filter(function(r) { return !_bset[_ghClaveReg(r)]; });
                     resumen.total = merged.length;
                     // fusionar sequenceHistory igual (por si la nube trae secuencias nuevas)
                     var seqLocal = (sequenceHistory || []);
@@ -14132,8 +14186,9 @@ ${groups.map((g,i)=>`
             var payload = {
                 capturedResults: fus.merged,
                 sequenceHistory: fus.seq,
+                borrados: _ghBorradosLeer(), // V46.9.157: los borrados viajan en la nube
                 lastUpdate: new Date().toISOString(),
-                version: 'v46.9.133'
+                version: 'v46.9.157'
             };
             var contenido = JSON.stringify(payload);
             // Codificar a base64 (UTF-8 seguro)
@@ -14254,6 +14309,79 @@ ${groups.map((g,i)=>`
             }
         }
         // Devuelve true si se puede borrar/modificar; si no, avisa y devuelve false.
+        // ═══ V46.9.157 (pedido de Leo): buscador para eliminar una captura puntual ═
+        function _capDelToggle() {
+            var d = document.getElementById('capDelDiv');
+            if (!d) return;
+            var abrir = (d.style.display === 'none' || !d.style.display);
+            d.style.display = abrir ? 'block' : 'none';
+            if (abrir) {
+                // poblar loterías y fecha por defecto (hoy)
+                var sel = document.getElementById('capDelLot');
+                if (sel && sel.options.length <= 1) {
+                    var lots = {};
+                    (capturedResults || []).forEach(function(r) { if (r && r.lottery) lots[r.lottery] = true; });
+                    Object.keys(lots).sort().forEach(function(L) {
+                        var o = document.createElement('option'); o.value = L; o.textContent = L; sel.appendChild(o);
+                    });
+                }
+                var f = document.getElementById('capDelFecha');
+                if (f && !f.value) {
+                    var d2 = new Date();
+                    f.value = d2.getFullYear() + '-' + String(d2.getMonth() + 1).padStart(2, '0') + '-' + String(d2.getDate()).padStart(2, '0');
+                }
+            }
+        }
+        function _capDelNormHora(t) {
+            // normaliza '9:00 PM', '21:00', '09:00pm' → '21:00' para comparar
+            if (!t) return '';
+            var s = ('' + t).trim().toUpperCase().replace(/\s+/g, ' ');
+            var m = s.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/);
+            if (!m) return s;
+            var hh = parseInt(m[1], 10), mm = m[2];
+            if (m[3] === 'PM' && hh < 12) hh += 12;
+            if (m[3] === 'AM' && hh === 12) hh = 0;
+            return String(hh).padStart(2, '0') + ':' + mm;
+        }
+        function _capDelBuscar() {
+            var out = document.getElementById('capDelResultado');
+            if (!out) return;
+            var lot = (document.getElementById('capDelLot') || {}).value || '';
+            var fecha = (document.getElementById('capDelFecha') || {}).value || '';
+            var hora = _capDelNormHora((document.getElementById('capDelHora') || {}).value || '');
+            var num = ((document.getElementById('capDelNum') || {}).value || '').trim();
+            var filas = [];
+            (capturedResults || []).forEach(function(r, idx) {
+                if (!r) return;
+                if (lot && r.lottery !== lot) return;
+                if (fecha && r.date !== fecha) return;
+                if (hora && _capDelNormHora(r.time) !== hora) return;
+                if (num && ('' + r.number) !== num && ('' + r.number).padStart(2, '0') !== num.padStart(2, '0')) return;
+                filas.push({ idx: idx, r: r });
+            });
+            if (!filas.length) { out.innerHTML = '<div style="font-size:12px;color:#7f1d1d;padding:8px;">No se encontraron capturas con esos filtros.</div>'; return; }
+            var html = '<div style="font-size:11px;color:#7f1d1d;margin-bottom:6px;">' + filas.length + ' captura(s) encontradas' + (filas.length > 30 ? ' (mostrando 30 — afiná el filtro)' : '') + ':</div>';
+            html += '<table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:8px;overflow:hidden;">';
+            html += '<tr style="background:#dc2626;color:#fff;"><th style="padding:6px 8px;text-align:left;">Lotería</th><th style="padding:6px 8px;">Fecha</th><th style="padding:6px 8px;">Hora</th><th style="padding:6px 8px;">Número</th><th style="padding:6px 8px;"></th></tr>';
+            filas.slice(0, 30).forEach(function(fl) {
+                var r = fl.r;
+                var hf = r.time; try { if (typeof convertTo12Hour === 'function') hf = convertTo12Hour(r.time); } catch (e) {}
+                html += '<tr style="border-bottom:1px solid #fecaca;">';
+                html += '<td style="padding:6px 8px;font-weight:bold;color:#111;">' + r.lottery + '</td>';
+                html += '<td style="padding:6px 8px;text-align:center;color:#333;">' + r.date + '</td>';
+                html += '<td style="padding:6px 8px;text-align:center;color:#333;">' + hf + '</td>';
+                html += '<td style="padding:6px 8px;text-align:center;font-family:monospace;font-size:16px;font-weight:bold;color:#dc2626;">' + r.number + '</td>';
+                html += '<td style="padding:6px 8px;text-align:center;"><button onclick="_capDelEjecutar(' + fl.idx + ')" style="background:#dc2626;border:none;color:#fff;padding:5px 14px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:bold;">🗑️ Eliminar</button></td>';
+                html += '</tr>';
+            });
+            html += '</table>';
+            out.innerHTML = html;
+        }
+        function _capDelEjecutar(idx) {
+            deleteResultByIndex(idx); // candado + confirmación + borrado definitivo + subida
+            _capDelBuscar(); // refrescar la lista (los índices cambian tras borrar)
+            try { if (typeof mostrarEstadoCapturas === 'function') mostrarEstadoCapturas(); } catch (e) {}
+        }
         function _puedeEditarBorrar() {
             if (_ghEsDispositivoPrincipal()) return true;
             var msg = '🔒 Este dispositivo NO puede borrar ni modificar registros.\n\n' +
