@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=1200, user-scalable=yes">
     <title>Análisis Predictivo</title>
     <!--
     CAMBIOS EN V44 (09-Abr-2026 - ALERTAS DÍA + CORTE EFECTIVIDAD + DÓNDE JUGAR + FIX SUGERENCIAS FECHA):
@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.152</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.154</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6320,7 +6320,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.152</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.154</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -28994,7 +28994,17 @@ function senalesDe(nn) {
                         return lista;
                     }
                     var ranking = [], jugadas = [];
-                    lotsActivas.forEach(function(L) {
+                    // V46.9.153 (pedido de Leo): TODAS las loterías de 2 dígitos del catálogo,
+                    // aunque tengan pocos datos — con etiqueta aclaratoria. Así ninguna falta.
+                    var lots2d = [];
+                    try {
+                        (typeof LOTTERIES !== 'undefined' ? LOTTERIES : []).forEach(function(l) {
+                            if (!l.digits || l.digits === 2) lots2d.push(l.name);
+                        });
+                    } catch (e) {}
+                    lotsActivas.forEach(function(L) { if (lots2d.indexOf(L) < 0) lots2d.push(L); });
+                    if (!lots2d.length) lots2d = lotsActivas.slice();
+                    lots2d.forEach(function(L) {
                         var jalesL = _jaleDeAyer(L) || [];
                         var cands = candidatosDe(L, jalesL);
                         var top5 = cands.slice(0, 5);
@@ -29003,7 +29013,7 @@ function senalesDe(nn) {
                         var _bJal = 3 * jalesL.length;
                         fuerza += _bJal;
                         var tieneGrupoDia = top5.some(function(x) { return x.tipos.indexOf('grupo del día') >= 0; });
-                        ranking.push({ lot: L, fuerza: fuerza, top: cands.slice(0, 3), jales: jalesL, grupoDia: tieneGrupoDia, det: { t3: _t3, t45: _t45, jal: _bJal } });
+                        ranking.push({ lot: L, fuerza: fuerza, top: cands.slice(0, 3), jales: jalesL, grupoDia: tieneGrupoDia, det: { t3: _t3, t45: _t45, jal: _bJal }, datos: (todasLots[L] || 0) });
                         top5.forEach(function(x) { jugadas.push({ lot: L, num: x.num, score: x.score, tipos: x.tipos }); });
                     });
                     ranking.sort(function(a, b) { return b.fuerza - a.fuerza; });
@@ -29298,8 +29308,12 @@ function senalesDe(nn) {
                 var etq = [];
                 if (rk.jales.length) etq.push('⏰ ' + rk.jales.length + ' jale' + (rk.jales.length > 1 ? 's' : ''));
                 if (rk.grupoDia) etq.push('📅 grupo del día');
+                // V46.9.153: aclarar cuando la lotería tiene pocos datos capturados
+                if (rk.datos === 0) etq.push('<span style="color:#94a3b8;">⚪ sin datos aún</span>');
+                else if (rk.datos < 30) etq.push('<span style="color:#94a3b8;">⚪ pocos datos (' + rk.datos + ' sorteos)</span>');
                 if (etq.length) html += '<div style="font-size:9px;color:#fdba74;margin-top:2px;">' + etq.join(' · ') + '</div>';
                 html += '<div style="display:flex;gap:5px;margin-top:6px;">';
+                if (!rk.top.length) html += '<div style="font-size:10px;color:#64748b;padding:4px;">Sin candidatos (necesita más capturas de esta lotería).</div>';
                 rk.top.forEach(function(x) {
                     html += '<div title="' + x.tipos.join(' · ').replace(/"/g, '') + '" style="background:rgba(220,38,38,0.2);border:1px solid #f87171;border-radius:6px;padding:4px 8px;text-align:center;flex:1;cursor:help;">';
                     html += '<div style="font-family:monospace;font-size:19px;font-weight:bold;color:#fff;line-height:1;">' + x.num + '</div>';

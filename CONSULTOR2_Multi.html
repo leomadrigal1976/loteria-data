@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=1200, user-scalable=yes">
     <title>Análisis Predictivo</title>
     <!--
     CAMBIOS EN V44 (09-Abr-2026 - ALERTAS DÍA + CORTE EFECTIVIDAD + DÓNDE JUGAR + FIX SUGERENCIAS FECHA):
@@ -28655,7 +28655,17 @@ function senalesDe(nn) {
                         return lista;
                     }
                     var ranking = [], jugadas = [];
-                    lotsActivas.forEach(function(L) {
+                    // V46.9.153 (pedido de Leo): TODAS las loterías de 2 dígitos del catálogo,
+                    // aunque tengan pocos datos — con etiqueta aclaratoria. Así ninguna falta.
+                    var lots2d = [];
+                    try {
+                        (typeof LOTTERIES !== 'undefined' ? LOTTERIES : []).forEach(function(l) {
+                            if (!l.digits || l.digits === 2) lots2d.push(l.name);
+                        });
+                    } catch (e) {}
+                    lotsActivas.forEach(function(L) { if (lots2d.indexOf(L) < 0) lots2d.push(L); });
+                    if (!lots2d.length) lots2d = lotsActivas.slice();
+                    lots2d.forEach(function(L) {
                         var jalesL = _jaleDeAyer(L) || [];
                         var cands = candidatosDe(L, jalesL);
                         var top5 = cands.slice(0, 5);
@@ -28664,7 +28674,7 @@ function senalesDe(nn) {
                         var _bJal = 3 * jalesL.length;
                         fuerza += _bJal;
                         var tieneGrupoDia = top5.some(function(x) { return x.tipos.indexOf('grupo del día') >= 0; });
-                        ranking.push({ lot: L, fuerza: fuerza, top: cands.slice(0, 3), jales: jalesL, grupoDia: tieneGrupoDia, det: { t3: _t3, t45: _t45, jal: _bJal } });
+                        ranking.push({ lot: L, fuerza: fuerza, top: cands.slice(0, 3), jales: jalesL, grupoDia: tieneGrupoDia, det: { t3: _t3, t45: _t45, jal: _bJal }, datos: (todasLots[L] || 0) });
                         top5.forEach(function(x) { jugadas.push({ lot: L, num: x.num, score: x.score, tipos: x.tipos }); });
                     });
                     ranking.sort(function(a, b) { return b.fuerza - a.fuerza; });
@@ -28959,8 +28969,12 @@ function senalesDe(nn) {
                 var etq = [];
                 if (rk.jales.length) etq.push('⏰ ' + rk.jales.length + ' jale' + (rk.jales.length > 1 ? 's' : ''));
                 if (rk.grupoDia) etq.push('📅 grupo del día');
+                // V46.9.153: aclarar cuando la lotería tiene pocos datos capturados
+                if (rk.datos === 0) etq.push('<span style="color:#94a3b8;">⚪ sin datos aún</span>');
+                else if (rk.datos < 30) etq.push('<span style="color:#94a3b8;">⚪ pocos datos (' + rk.datos + ' sorteos)</span>');
                 if (etq.length) html += '<div style="font-size:9px;color:#fdba74;margin-top:2px;">' + etq.join(' · ') + '</div>';
                 html += '<div style="display:flex;gap:5px;margin-top:6px;">';
+                if (!rk.top.length) html += '<div style="font-size:10px;color:#64748b;padding:4px;">Sin candidatos (necesita más capturas de esta lotería).</div>';
                 rk.top.forEach(function(x) {
                     html += '<div title="' + x.tipos.join(' · ').replace(/"/g, '') + '" style="background:rgba(220,38,38,0.2);border:1px solid #f87171;border-radius:6px;padding:4px 8px;text-align:center;flex:1;cursor:help;">';
                     html += '<div style="font-family:monospace;font-size:19px;font-weight:bold;color:#fff;line-height:1;">' + x.num + '</div>';
@@ -69891,7 +69905,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r86 · v46.9.152</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r88 · v46.9.154</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
