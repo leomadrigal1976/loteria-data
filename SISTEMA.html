@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.155</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.156</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6320,7 +6320,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.155</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.156</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -28614,6 +28614,13 @@ function senalesDe(nn) {
                 h += '</div>';
                 // V46.9.155 (pedido de Leo): panel "Buscar Número / Grupo"
                 h += '<div id="ngpBuscarPanel" style="display:none;background:rgba(8,51,68,0.45);border:1px solid #0891b2;border-radius:9px;padding:10px;margin-top:9px;">';
+                h += '<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px;">';
+                h += '<div style="flex:1;min-width:200px;"><label style="color:#a5f3fc;font-size:10px;font-weight:bold;display:block;margin-bottom:3px;">Números (2 dígitos) y/o grupos (g1..g10 o 1..10), separados por coma:</label>';
+                h += '<input id="ngpBuscarInput" type="text" placeholder="Ej: 24, 67, g5  ·  o solo: 9" onkeydown="if(event.key===\'Enter\'){_efvSync(this);_ngpBuscarRender();}" style="width:100%;padding:7px;background:#0c2a33;color:#fff;border:1px solid #22d3ee;border-radius:6px;font-size:14px;font-family:monospace;"></div>';
+                h += '<button onclick="_ngpBuscarGo()" style="background:linear-gradient(135deg,#0e7490,#22d3ee);border:1px solid #a5f3fc;color:#083344;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold;">🔍 Buscar</button>';
+                h += '</div>';
+                h += '<div id="ngpBuscarResultado" style="max-height:560px;overflow-y:auto;"><div style="font-size:11px;color:#94a3b8;padding:6px;">Escribí números (ej: 24, 67) o grupos (ej: g5, o solo 5) y presioná Buscar.</div></div>';
+                h += '</div>';
                 h += '<div style="font-size:10px;color:#bae6fd;margin-top:3px;">Rastrea números que dejaron de salir en <strong>todas</strong> las loterías por ' + DIAS_REZAGO + '+ días y volvieron a aparecer en los últimos ' + DIAS_RECIENTE + ' días. Para cada uno se muestra en qué otras loterías sigue pendiente.</div>';
 
                 // ── Veredicto honesto de la hipótesis ──
@@ -29359,12 +29366,25 @@ function senalesDe(nn) {
             _ngpCerrarOtros('ngpBuscarPanel');
             ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
         }
+        function _ngpBuscarGo() {
+            // V46.9.156 (bug reportado por Leo): el módulo vive en 2 vistas → 2 copias del
+            // input. Tomar la copia que TIENE contenido y sincronizarla a todas; antes se
+            // leía la primera (vacía) y se borraba lo escrito.
+            var val = '';
+            document.querySelectorAll('[id="ngpBuscarInput"]').forEach(function(inp) {
+                if (!val && inp.value && inp.value.trim()) val = inp.value;
+            });
+            document.querySelectorAll('[id="ngpBuscarInput"]').forEach(function(inp) { inp.value = val; });
+            _ngpBuscarRender();
+        }
         function _ngpBuscarRender() {
             var conts = document.querySelectorAll('[id="ngpBuscarResultado"]');
             if (!conts.length || !window._ngpFiltro || !window._ngpFiltro.candidatosDe) return;
             var F = window._ngpFiltro;
-            var inp = document.querySelector('[id="ngpBuscarInput"]');
-            var txt = (inp ? inp.value : '').trim();
+            var txt = '';
+            document.querySelectorAll('[id="ngpBuscarInput"]').forEach(function(inp) {
+                if (!txt && inp.value && inp.value.trim()) txt = inp.value.trim();
+            });
             if (!txt) { conts.forEach(function(x) { x.innerHTML = '<div style="font-size:11px;color:#94a3b8;padding:6px;">Escribí números (ej: 24, 67) o grupos (ej: g5, o solo 5).</div>'; }); return; }
             // parseo: tokens por coma/espacio. 2 dígitos = número; 1 dígito o gN/grupoN = grupo
             var nums = [], grupos = [];
@@ -29449,6 +29469,29 @@ function senalesDe(nn) {
                 } else {
                     h += '<div style="font-size:11px;color:#94a3b8;margin-top:5px;">Este grupo no registra salidas en el historial capturado.</div>';
                 }
+                // V46.9.156 (pedido de Leo): días sin salir del grupo EN CADA LOTERÍA
+                h += '<div style="font-size:10px;font-weight:bold;color:#fbbf24;margin-top:7px;">⏳ Por lotería — ¿hace cuánto no sale el grupo en cada una?</div>';
+                h += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;">';
+                var porLotG = [];
+                F.lotsActivas.forEach(function(L) {
+                    var ultL = null;
+                    for (var k2 = serieOrd.length - 1; k2 >= 0; k2--) {
+                        var e2 = serieOrd[k2];
+                        if (e2.lot === L && miembros.indexOf(e2.n) >= 0) { ultL = e2; break; }
+                    }
+                    porLotG.push({ lot: L, ult: ultL, dias: ultL ? F.difDias(ultL.date, F.hoyStr) : null });
+                });
+                porLotG.sort(function(a, b) { return (b.dias === null ? -1 : b.dias) - (a.dias === null ? -1 : a.dias); });
+                porLotG.forEach(function(p) {
+                    if (p.dias === null) {
+                        h += '<span style="background:rgba(148,163,184,0.08);border:1px solid rgba(148,163,184,0.3);border-radius:6px;padding:3px 8px;font-size:10px;color:#64748b;">' + p.lot + ': sin registro</span>';
+                        return;
+                    }
+                    var colD = p.dias >= 7 ? '#f87171' : p.dias >= 3 ? '#fbbf24' : '#34d399';
+                    var brd = p.dias >= 7 ? '#ef4444' : p.dias >= 3 ? '#f59e0b' : 'rgba(52,211,153,0.5)';
+                    h += '<span title="Último del grupo en ' + p.lot + ': ' + p.ult.n + ' el ' + p.ult.date + '" style="background:rgba(0,0,0,0.25);border:1px solid ' + brd + ';border-radius:6px;padding:3px 8px;font-size:10px;color:#e2e8f0;cursor:help;">' + p.lot + ': <strong style="color:' + colD + ';">' + p.dias + 'd</strong> <span style="color:#94a3b8;">(últ. ' + p.ult.n + ')</span></span>';
+                });
+                h += '</div>';
                 // sugerencias hoy por número del grupo
                 var conSug = 0, sumScore = 0;
                 h += '<div style="font-size:10px;font-weight:bold;color:#67e8f9;margin-top:7px;">Números del grupo como sugerencia HOY (mejor lotería):</div>';
