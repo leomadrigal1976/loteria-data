@@ -28218,6 +28218,8 @@ function senalesDe(nn) {
                 h += '<button onclick="_ngpResumenToggle()" style="background:linear-gradient(135deg,#581c87,#a855f7);border:1px solid #d8b4fe;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🏆 Resumen: Loterías Más Fuertes</button>';
                 h += '<button onclick="_ngpDespuesToggle()" style="background:linear-gradient(135deg,#7c2d12,#ea580c);border:1px solid #fdba74;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🔎 Buscar "Después de"</button>';
                 h += '<button onclick="_ngpBuscarToggle()" style="background:linear-gradient(135deg,#164e63,#0891b2);border:1px solid #67e8f9;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🔍 Buscar Número / Grupo</button>';
+                h += '<button onclick="_ngpAntesToggle()" style="background:linear-gradient(135deg,#3f3f46,#71717a);border:1px solid #d4d4d8;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">⏪ ¿Qué lo activó? (Antes de)</button>';
+                h += '<button onclick="_ngpDgToggle()" style="background:linear-gradient(135deg,#4a044e,#c026d3);border:1px solid #f0abfc;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🧩 Después de → por GRUPOS</button>';
                 h += '</div>';
                 // panel del filtro (oculto por defecto)
                 h += '<div id="ngpFiltroPanel" style="display:none;background:rgba(8,47,73,0.6);border:1px solid #22d3ee;border-radius:9px;padding:10px;margin-top:9px;">';
@@ -28281,6 +28283,14 @@ function senalesDe(nn) {
                 h += '<button onclick="_ngpBuscarGo()" style="background:linear-gradient(135deg,#0e7490,#22d3ee);border:1px solid #a5f3fc;color:#083344;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold;">🔍 Buscar</button>';
                 h += '</div>';
                 h += '<div id="ngpBuscarResultado" style="max-height:560px;overflow-y:auto;"><div style="font-size:11px;color:#94a3b8;padding:6px;">Escribí números (ej: 24, 67) o grupos (ej: g5, o solo 5) y presioná Buscar.</div></div>';
+                h += '</div>';
+                // V46.9.158 (pedido de Leo): panel "¿Qué lo activó?" (Antes de)
+                h += '<div id="ngpAntesPanel" style="display:none;background:rgba(39,39,42,0.55);border:1px solid #a1a1aa;border-radius:9px;padding:10px;margin-top:9px;">';
+                h += '<div id="ngpAntesResultado"><div style="font-size:11px;color:#94a3b8;padding:6px;">Cargando…</div></div>';
+                h += '</div>';
+                // V46.9.158 (pedido de Leo): panel "Después de → por GRUPOS"
+                h += '<div id="ngpDgPanel" style="display:none;background:rgba(74,4,78,0.35);border:1px solid #c026d3;border-radius:9px;padding:10px;margin-top:9px;">';
+                h += '<div id="ngpDgResultado"><div style="font-size:11px;color:#94a3b8;padding:6px;">Cargando…</div></div>';
                 h += '</div>';
                 h += '<div style="font-size:10px;color:#bae6fd;margin-top:3px;">Rastrea números que dejaron de salir en <strong>todas</strong> las loterías por ' + DIAS_REZAGO + '+ días y volvieron a aparecer en los últimos ' + DIAS_RECIENTE + ' días. Para cada uno se muestra en qué otras loterías sigue pendiente.</div>';
 
@@ -28937,7 +28947,7 @@ function senalesDe(nn) {
             cont.innerHTML = html;
         }
         // V46.9.155: cierre mutuo de los 5 paneles del módulo
-        var _NGP_PANELES = ['ngpFiltroPanel', 'ngpExtractoPanel', 'ngpResumenPanel', 'ngpDespuesPanel', 'ngpBuscarPanel'];
+        var _NGP_PANELES = ['ngpFiltroPanel', 'ngpExtractoPanel', 'ngpResumenPanel', 'ngpDespuesPanel', 'ngpBuscarPanel', 'ngpAntesPanel', 'ngpDgPanel'];
         function _ngpCerrarOtros(salvo) {
             _NGP_PANELES.forEach(function(id) {
                 if (id === salvo) return;
@@ -29026,6 +29036,220 @@ function senalesDe(nn) {
             var abrir = (ps[0].style.display === 'none');
             _ngpCerrarOtros('ngpBuscarPanel');
             ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
+        }
+        // ═══ V46.9.158 (pedido de Leo): helpers de pares consecutivos por lotería ═
+        function _ngpOrdKey(r) {
+            var t = ('' + (r.time || '')).trim();
+            var p = t.split(':');
+            if (p.length >= 2) { var hh = p[0].length < 2 ? '0' + p[0] : p[0]; t = hh + ':' + p[1].substring(0, 2); }
+            return r.date + ' ' + t;
+        }
+        function _ngpParesDe(L) {
+            window._ngpParesCache = window._ngpParesCache || {};
+            if (window._ngpParesCache[L]) return window._ngpParesCache[L];
+            var serie = [];
+            (capturedResults || []).forEach(function(r) {
+                if (!r || r.lottery !== L || !r.number) return;
+                var nn = ('' + r.number); if (nn.length > 2) return; // solo 2 dígitos
+                serie.push({ n: nn.length === 1 ? '0' + nn : nn, date: r.date, time: r.time, k: _ngpOrdKey(r) });
+            });
+            serie.sort(function(a, b) { return a.k < b.k ? -1 : a.k > b.k ? 1 : 0; });
+            var next = {}, prev = {}, ultApar = {}, apar = {};
+            for (var i = 0; i < serie.length; i++) {
+                var x = serie[i].n;
+                apar[x] = (apar[x] || 0) + 1;
+                ultApar[x] = { fecha: serie[i].date, hora: serie[i].time, prev: (i > 0 ? serie[i - 1] : null) };
+                if (i > 0) {
+                    var p2 = serie[i - 1].n;
+                    if (!next[p2]) next[p2] = {}; next[p2][x] = (next[p2][x] || 0) + 1;
+                    if (!prev[x]) prev[x] = {}; prev[x][p2] = (prev[x][p2] || 0) + 1;
+                }
+            }
+            var res = { serie: serie, next: next, prev: prev, ultApar: ultApar, apar: apar };
+            window._ngpParesCache[L] = res;
+            return res;
+        }
+        function _ngpGrupoDe(nn) {
+            var F = window._ngpFiltro; if (!F) return null;
+            var g = null;
+            Object.keys(F.NUMBER_GROUPS || {}).forEach(function(gk) { if ((F.NUMBER_GROUPS[gk] || []).indexOf(nn) >= 0) g = gk; });
+            return g;
+        }
+        function _ngpEstadoGrupo(gk) {
+            // días sin salir global del grupo + si "despertó" recién (dormía ≥5d y salió hace ≤1d)
+            var F = window._ngpFiltro; if (!F) return null;
+            var miembros = (F.NUMBER_GROUPS || {})[gk] || [];
+            var fechas = [];
+            (F.serie || []).forEach(function(e) { if (miembros.indexOf(e.n) >= 0) fechas.push(e.date); });
+            fechas.sort();
+            if (!fechas.length) return { dias: null, desperto: false };
+            var ult = fechas[fechas.length - 1];
+            var dias = F.difDias(ult, F.hoyStr);
+            // fecha distinta anterior a la última
+            var prevF = null;
+            for (var i = fechas.length - 1; i >= 0; i--) { if (fechas[i] !== ult) { prevF = fechas[i]; break; } }
+            var desperto = (dias <= 1 && prevF && F.difDias(prevF, ult) >= 5);
+            return { dias: dias, desperto: desperto, ultFecha: ult };
+        }
+        function _ngpLotsConDatos() {
+            var info = {};
+            (capturedResults || []).forEach(function(r) { if (r && r.lottery && ('' + r.number).length <= 2) info[r.lottery] = (info[r.lottery] || 0) + 1; });
+            return Object.keys(info).filter(function(L) { return info[L] >= 20; }).sort();
+        }
+        function _ngpUltNumDe(L) {
+            for (var i = (capturedResults || []).length - 1; i >= 0; i--) {
+                var r = capturedResults[i];
+                if (r && r.lottery === L && r.number && ('' + r.number).length <= 2) return ('' + r.number).padStart(2, '0');
+            }
+            return '';
+        }
+        // ═══ V46.9.158: "¿Qué lo activó?" (Antes de) ══════════════════════════════
+        function _ngpAntesToggle() {
+            var ps = document.querySelectorAll('[id="ngpAntesPanel"]');
+            if (!ps.length) return;
+            var abrir = (ps[0].style.display === 'none');
+            _ngpCerrarOtros('ngpAntesPanel');
+            ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
+            if (abrir) { window._ngpParesCache = {}; _ngpAntesRender(true); }
+        }
+        function _ngpAntesGo() {
+            var s = document.querySelector('[id="ngpAntesLot"]');
+            var n = document.querySelector('[id="ngpAntesNum"]');
+            try { if (s) _efvSync(s); if (n) _efvSync(n); } catch (e) {}
+            _ngpAntesRender(false);
+        }
+        function _ngpAntesRender(inicial) {
+            var conts = document.querySelectorAll('[id="ngpAntesResultado"]');
+            if (!conts.length) return;
+            var lots = _ngpLotsConDatos();
+            if (!lots.length) { conts.forEach(function(x) { x.innerHTML = '<div style="font-size:11px;color:#fca5a5;padding:8px;">No hay loterías con suficientes sorteos.</div>'; }); return; }
+            var selL = document.querySelector('[id="ngpAntesLot"]');
+            var inpN = document.querySelector('[id="ngpAntesNum"]');
+            var lot = (selL && selL.value) ? selL.value : (lots.indexOf('New York') >= 0 ? 'New York' : lots[0]);
+            var nb = '';
+            document.querySelectorAll('[id="ngpAntesNum"]').forEach(function(i2) { if (!nb && i2.value && i2.value.trim()) nb = i2.value.trim(); });
+            if (inicial && !nb) nb = _ngpUltNumDe(lot);
+            nb = nb ? nb.padStart(2, '0').slice(-2) : '';
+            var h = '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px;">';
+            h += '<div><label style="font-size:10px;font-weight:bold;color:#d4d4d8;display:block;margin-bottom:3px;">Lotería:</label><select id="ngpAntesLot" onchange="_efvSync(this);_ngpAntesGo()" style="background:#27272a;color:#fff;border:1px solid #a1a1aa;border-radius:6px;font-size:12px;padding:6px;">';
+            lots.forEach(function(L) { h += '<option value="' + L + '"' + (L === lot ? ' selected' : '') + '>' + L + '</option>'; });
+            h += '</select></div>';
+            h += '<div><label style="font-size:10px;font-weight:bold;color:#d4d4d8;display:block;margin-bottom:3px;">Número:</label><input id="ngpAntesNum" type="text" maxlength="2" value="' + nb + '" onkeydown="if(event.key===\'Enter\'){_efvSync(this);_ngpAntesGo();}" style="background:#27272a;color:#fff;border:1px solid #a1a1aa;border-radius:6px;font-size:15px;padding:6px;width:64px;text-align:center;font-family:monospace;"></div>';
+            h += '<button onclick="_ngpAntesGo()" style="background:linear-gradient(135deg,#52525b,#a1a1aa);border:1px solid #d4d4d8;color:#fff;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold;">⏪ Buscar</button>';
+            h += '</div>';
+            if (!nb || !/^\d{2}$/.test(nb)) {
+                h += '<div style="font-size:11px;color:#94a3b8;padding:6px;">Escribí un número de 2 dígitos.</div>';
+                conts.forEach(function(x) { x.innerHTML = h; }); return;
+            }
+            var P = _ngpParesDe(lot);
+            var gNb = _ngpGrupoDe(nb);
+            h += '<div style="font-size:13px;font-weight:bold;color:#fff;margin-bottom:6px;">⏪ ¿Qué números ACTIVAN al <span style="font-family:monospace;font-size:17px;color:#fde68a;">' + nb + '</span>' + (gNb ? ' <span style="font-size:10px;color:#a1a1aa;">(' + gNb + ')</span>' : '') + ' en ' + lot + '? <span style="font-size:9px;color:#94a3b8;font-weight:normal;">(el sorteo inmediatamente anterior en esa lotería, histórico)</span></div>';
+            var u = P.ultApar[nb];
+            if (u && u.prev) {
+                var gPrev = _ngpGrupoDe(u.prev.n);
+                h += '<div style="background:rgba(0,0,0,0.3);border:1px solid #fbbf24;border-radius:8px;padding:8px;margin-bottom:8px;font-size:12px;color:#e2e8f0;">🔥 <strong>Última vez</strong> (' + u.fecha + '): lo activó el <strong style="font-family:monospace;font-size:16px;color:#fde68a;">' + u.prev.n + '</strong>' + (gPrev ? ' (' + gPrev + ')' : '') + ' — salido el ' + u.prev.date + '.</div>';
+            } else if (u) {
+                h += '<div style="font-size:11px;color:#94a3b8;margin-bottom:8px;">El ' + nb + ' aparece pero sin sorteo previo registrado (es el primer registro de la serie).</div>';
+            } else {
+                h += '<div style="font-size:11px;color:#94a3b8;margin-bottom:8px;">El ' + nb + ' no registra salidas en ' + lot + '.</div>';
+            }
+            var prevs = P.prev[nb] || {};
+            var lista = Object.keys(prevs).map(function(x) { return { n: x, c: prevs[x] }; });
+            lista.sort(function(a, b) { return b.c - a.c; });
+            var totalAct = 0; lista.forEach(function(e) { totalAct += e.c; });
+            if (lista.length) {
+                h += '<div style="font-size:11px;font-weight:bold;color:#d4d4d8;margin-bottom:4px;">Top activadores históricos (' + totalAct + ' apariciones del ' + nb + ' con previo):</div>';
+                h += '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
+                lista.slice(0, 12).forEach(function(e) {
+                    var g2 = _ngpGrupoDe(e.n);
+                    var pct = totalAct ? (100 * e.c / totalAct).toFixed(0) : 0;
+                    h += '<span style="background:rgba(0,0,0,0.3);border:1px solid #71717a;border-radius:6px;padding:4px 9px;font-size:11px;color:#e2e8f0;"><strong style="font-family:monospace;font-size:15px;color:#fff;">' + e.n + '</strong> ×' + e.c + ' (' + pct + '%)' + (g2 ? ' <span style="color:#a1a1aa;">' + g2.replace('Grupo ', 'G') + '</span>' : '') + '</span>';
+                });
+                h += '</div>';
+            }
+            h += '<div style="font-size:8px;color:#64748b;margin-top:7px;">Frecuencias históricas de secuencia en esta lotería. Cada sorteo es independiente — esto organiza el análisis, no cambia probabilidades.</div>';
+            conts.forEach(function(x) { x.innerHTML = h; });
+        }
+        // ═══ V46.9.158: "Después de → por GRUPOS" ═════════════════════════════════
+        function _ngpDgToggle() {
+            var ps = document.querySelectorAll('[id="ngpDgPanel"]');
+            if (!ps.length) return;
+            var abrir = (ps[0].style.display === 'none');
+            _ngpCerrarOtros('ngpDgPanel');
+            ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
+            if (abrir) { window._ngpParesCache = {}; _ngpDgRender(true); }
+        }
+        function _ngpDgGo() {
+            var s = document.querySelector('[id="ngpDgLot"]');
+            var n = document.querySelector('[id="ngpDgNum"]');
+            try { if (s) _efvSync(s); if (n) _efvSync(n); } catch (e) {}
+            _ngpDgRender(false);
+        }
+        function _ngpDgRender(inicial) {
+            var conts = document.querySelectorAll('[id="ngpDgResultado"]');
+            if (!conts.length) return;
+            var lots = _ngpLotsConDatos();
+            if (!lots.length) { conts.forEach(function(x) { x.innerHTML = '<div style="font-size:11px;color:#fca5a5;padding:8px;">No hay loterías con suficientes sorteos.</div>'; }); return; }
+            var selL = document.querySelector('[id="ngpDgLot"]');
+            var lot = (selL && selL.value) ? selL.value : (lots.indexOf('New York') >= 0 ? 'New York' : lots[0]);
+            var nb = '';
+            document.querySelectorAll('[id="ngpDgNum"]').forEach(function(i2) { if (!nb && i2.value && i2.value.trim()) nb = i2.value.trim(); });
+            if (inicial && !nb) nb = _ngpUltNumDe(lot);
+            nb = nb ? nb.padStart(2, '0').slice(-2) : '';
+            var h = '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px;">';
+            h += '<div><label style="font-size:10px;font-weight:bold;color:#f0abfc;display:block;margin-bottom:3px;">Lotería:</label><select id="ngpDgLot" onchange="_efvSync(this);_ngpDgGo()" style="background:#2e1065;color:#fff;border:1px solid #c026d3;border-radius:6px;font-size:12px;padding:6px;">';
+            lots.forEach(function(L) { h += '<option value="' + L + '"' + (L === lot ? ' selected' : '') + '>' + L + '</option>'; });
+            h += '</select></div>';
+            h += '<div><label style="font-size:10px;font-weight:bold;color:#f0abfc;display:block;margin-bottom:3px;">Salió el número:</label><input id="ngpDgNum" type="text" maxlength="2" value="' + nb + '" onkeydown="if(event.key===\'Enter\'){_efvSync(this);_ngpDgGo();}" style="background:#2e1065;color:#fff;border:1px solid #c026d3;border-radius:6px;font-size:15px;padding:6px;width:64px;text-align:center;font-family:monospace;"></div>';
+            h += '<button onclick="_ngpDgGo()" style="background:linear-gradient(135deg,#86198f,#d946ef);border:1px solid #f0abfc;color:#fff;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold;">🧩 Analizar</button>';
+            h += '</div>';
+            if (!nb || !/^\d{2}$/.test(nb)) {
+                h += '<div style="font-size:11px;color:#94a3b8;padding:6px;">Escribí un número de 2 dígitos.</div>';
+                conts.forEach(function(x) { x.innerHTML = h; }); return;
+            }
+            var P = _ngpParesDe(lot);
+            var gNb = _ngpGrupoDe(nb);
+            var nexts = P.next[nb] || {};
+            var lista = Object.keys(nexts).map(function(x) { return { n: x, c: nexts[x], g: _ngpGrupoDe(x) }; });
+            lista.sort(function(a, b) { return b.c - a.c; });
+            var top10 = lista.slice(0, 10);
+            var totalSeg = 0; lista.forEach(function(e) { totalSeg += e.c; });
+            h += '<div style="font-size:13px;font-weight:bold;color:#fff;margin-bottom:6px;">🧩 Después del <span style="font-family:monospace;font-size:17px;color:#fde68a;">' + nb + '</span>' + (gNb ? ' <span style="font-size:10px;color:#f0abfc;">(' + gNb + ')</span>' : '') + ' en ' + lot + ' — TOP 10 de seguidores, con su GRUPO:</div>';
+            if (!top10.length) {
+                h += '<div style="font-size:11px;color:#94a3b8;padding:6px;">El ' + nb + ' no registra seguidores en ' + lot + '.</div>';
+                conts.forEach(function(x) { x.innerHTML = h; }); return;
+            }
+            h += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">';
+            top10.forEach(function(e, ix) {
+                var pct = totalSeg ? (100 * e.c / totalSeg).toFixed(0) : 0;
+                h += '<div style="background:rgba(0,0,0,0.3);border:1px solid #c026d3;border-radius:7px;padding:5px 10px;text-align:center;">';
+                h += '<div style="font-size:8px;color:#f0abfc;">' + (ix + 1) + '°</div>';
+                h += '<div style="font-family:monospace;font-size:18px;font-weight:bold;color:#fff;line-height:1;">' + e.n + '</div>';
+                h += '<div style="font-size:9px;color:#e9d5ff;">×' + e.c + ' (' + pct + '%)' + (e.g ? ' · <strong>' + e.g.replace('Grupo ', 'G') + '</strong>' : '') + '</div>';
+                h += '</div>';
+            });
+            h += '</div>';
+            // resumen por grupo del top-10 + alertas
+            var porG = {};
+            top10.forEach(function(e) { if (!e.g) return; if (!porG[e.g]) porG[e.g] = []; porG[e.g].push(e.n); });
+            var gks = Object.keys(porG).sort(function(a, b) { return porG[b].length - porG[a].length; });
+            h += '<div style="font-size:11px;font-weight:bold;color:#f0abfc;margin-bottom:4px;">Resumen del TOP 10 por grupo:</div>';
+            gks.forEach(function(gk) {
+                var pctG = (100 * porG[gk].length / top10.length).toFixed(0);
+                var est = _ngpEstadoGrupo(gk) || { dias: null, desperto: false };
+                var estTxt = '';
+                if (est.dias !== null) {
+                    var colD = est.dias >= 3 ? '#f87171' : '#34d399';
+                    estTxt = ' · <span style="color:' + colD + ';">' + est.dias + 'd sin salir (global)</span>' + (est.desperto ? ' · <span style="color:#4ade80;">⚡ despertó recién</span>' : '');
+                }
+                h += '<div style="font-size:11px;color:#e2e8f0;margin-bottom:3px;">📦 <strong>' + gk + '</strong>: ' + porG[gk].length + '/10 (' + pctG + '%) → <span style="font-family:monospace;color:#fde68a;">' + porG[gk].join(', ') + '</span>' + estTxt + '</div>';
+                // ALERTA: grupo concentrado (>=30%) Y (rezagado >=3d O despertó recién)
+                if (porG[gk].length >= 3 && est.dias !== null && (est.dias >= 3 || est.desperto)) {
+                    h += '<div class="ngp-parpadea" style="background:linear-gradient(135deg,#7f1d1d,#dc2626);border:2px solid #fca5a5;border-radius:7px;padding:6px 10px;margin:4px 0 8px;font-size:11px;font-weight:bold;color:#fff;">🚨 ALERTA: el ' + gk + ' concentra el ' + pctG + '% del top-10 después del ' + nb + (est.desperto ? ' y se ACTIVÓ recién (dormía y volvió)' : ' y lleva ' + est.dias + ' días sin salir') + ' — confluencia a vigilar.</div>';
+                }
+            });
+            h += '<div style="font-size:8px;color:#64748b;margin-top:7px;">Frecuencias históricas de secuencia + estado actual de los grupos. Cada sorteo es independiente — esto prioriza dónde mirar, no cambia probabilidades.</div>';
+            conts.forEach(function(x) { x.innerHTML = h; });
         }
         function _ngpBuscarGo() {
             // V46.9.156 (bug reportado por Leo): el módulo vive en 2 vistas → 2 copias del
@@ -70141,7 +70365,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r91 · v46.9.157</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r92 · v46.9.158</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
