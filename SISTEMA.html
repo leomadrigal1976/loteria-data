@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.159</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.160</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6339,7 +6339,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.159</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.160</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -7830,6 +7830,8 @@
             };
 
             capturedResults.push(result);
+            // V46.9.160: si esta clave estaba en borrados definitivos, la recaptura lo anula
+            try { _ghBorradosQuitar(_ghClaveReg(result)); } catch (e) {}
 
             // V46: Notificación toast si el número capturado es PROPENSO
             try { if (typeof _propNotificarCaptura === 'function') _propNotificarCaptura(lottery, number); } catch(e) {}
@@ -14080,20 +14082,53 @@ ${groups.map((g,i)=>`
         // ═══ V46.9.157 (pedido de Leo): BORRADOS DEFINITIVOS ═════════════════════
         // Lista de claves eliminadas que viaja en la nube. Sin esto, la fusión
         // "revivía" cualquier registro borrado (la fusión une, no borra).
+        // V46.9.160 (bug reportado por Leo): los borrados ahora llevan FECHA/HORA.
+        // Regla: un borrado solo mata registros capturados ANTES del borrado; una
+        // RECAPTURA posterior sobrevive (antes, recapturar algo eliminado lo hacía
+        // desaparecer en cada fusión).
         function _ghBorradosLeer() {
-            try { var a = JSON.parse(localStorage.getItem('ghBorrados') || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+            try {
+                var a = JSON.parse(localStorage.getItem('ghBorrados') || '[]');
+                if (!Array.isArray(a)) return [];
+                var migro = false;
+                var b = a.map(function(e) {
+                    if (typeof e === 'string') { migro = true; return { k: e, t: Date.now() }; }
+                    return (e && e.k) ? { k: e.k, t: e.t || 0 } : null;
+                }).filter(function(e) { return !!e; });
+                if (migro) _ghBorradosGuardar(b);
+                return b;
+            } catch (e) { return []; }
         }
         function _ghBorradosGuardar(arr) {
             try { localStorage.setItem('ghBorrados', JSON.stringify(arr.slice(-500))); } catch (e) {}
         }
         function _ghBorradosAgregar(clave) {
+            var a = _ghBorradosLeer().filter(function(e) { return e.k !== clave; });
+            a.push({ k: clave, t: Date.now() });
+            _ghBorradosGuardar(a);
+        }
+        function _ghBorradosQuitar(clave) {
+            // al recapturar una clave, su borrado deja de aplicar
             var a = _ghBorradosLeer();
-            if (a.indexOf(clave) < 0) { a.push(clave); _ghBorradosGuardar(a); }
+            var b = a.filter(function(e) { return e.k !== clave; });
+            if (b.length !== a.length) _ghBorradosGuardar(b);
         }
         function _ghBorradosUnir(remotos) {
             if (!remotos || !remotos.length) return;
+            // claves de registros VIVOS localmente: su borrado remoto es obsoleto
+            // (este dispositivo es el que captura/borra; si lo tiene vivo, va en serio)
+            var vivos = {};
+            try { (capturedResults || []).forEach(function(r) { vivos[_ghClaveReg(r)] = true; }); } catch (e) {}
             var a = _ghBorradosLeer(); var cambio = false;
-            remotos.forEach(function(k) { if (a.indexOf(k) < 0) { a.push(k); cambio = true; } });
+            remotos.forEach(function(e) {
+                var k = (typeof e === 'string') ? e : (e && e.k);
+                if (!k || vivos[k]) return;
+                var t = (typeof e === 'string') ? Date.now() : (e.t || 0);
+                var ex = null;
+                a.forEach(function(x) { if (x.k === k) ex = x; });
+                if (!ex) { a.push({ k: k, t: t }); cambio = true; }
+                else if (t > ex.t) { ex.t = t; cambio = true; }
+            });
             if (cambio) _ghBorradosGuardar(a);
         }
         function _ghFusionarConNube(cfg) {
@@ -14107,8 +14142,13 @@ ${groups.map((g,i)=>`
                     if (!nube || !nube.capturedResults) {
                         // no se pudo leer la nube (primera vez, o sin conexión): subir lo local tal cual
                         var _bs0 = {};
-                        _ghBorradosLeer().forEach(function(k) { _bs0[k] = true; });
-                        var _loc0 = localArr.filter(function(r) { return !_bs0[_ghClaveReg(r)]; });
+                        _ghBorradosLeer().forEach(function(e) { _bs0[e.k] = e.t; });
+                        var _loc0 = localArr.filter(function(r) {
+                            var bt0 = _bs0[_ghClaveReg(r)];
+                            if (bt0 === undefined) return true;
+                            var rt0 = r.timestamp ? (Date.parse(r.timestamp) || 0) : 0;
+                            return rt0 > bt0;
+                        });
                         resumen.total = _loc0.length;
                         return { merged: _loc0, seq: (sequenceHistory || []), resumen: resumen };
                     }
@@ -14126,10 +14166,16 @@ ${groups.map((g,i)=>`
                         var k = _ghClaveReg(r);
                         if (!vistos[k]) { vistos[k] = true; merged.push(r); resumen.nuevosDeNube++; }
                     });
-                    // V46.9.157: excluir del conjunto los registros borrados definitivamente
-                    var _bset = {};
-                    _ghBorradosLeer().forEach(function(k) { _bset[k] = true; });
-                    merged = merged.filter(function(r) { return !_bset[_ghClaveReg(r)]; });
+                    // V46.9.157/160: excluir registros borrados — solo si el borrado es
+                    // POSTERIOR a la captura (una recaptura posterior sobrevive)
+                    var _bmap = {};
+                    _ghBorradosLeer().forEach(function(e) { _bmap[e.k] = e.t; });
+                    merged = merged.filter(function(r) {
+                        var bt = _bmap[_ghClaveReg(r)];
+                        if (bt === undefined) return true;
+                        var rt = r.timestamp ? (Date.parse(r.timestamp) || 0) : 0;
+                        return rt > bt;
+                    });
                     resumen.total = merged.length;
                     // fusionar sequenceHistory igual (por si la nube trae secuencias nuevas)
                     var seqLocal = (sequenceHistory || []);
