@@ -27368,7 +27368,7 @@ ${groups.map((g,i)=>`
                         group.forEach(item => {
                             if (item.after === ultimoNumero) {
                                 item.numbers.forEach((n, idx) => {
-                                    const peso = Math.max(1, 3 - Math.floor(idx / 4));
+                                    const peso = 1 /* V46.9.164 (pedido de Leo): "después de" es conteo puro, sin peso por posición */;
                                     siguientes[n] = (siguientes[n] || 0) + peso;
                                     totalDatosDespues++;
                                 });
@@ -27551,7 +27551,7 @@ ${groups.map((g,i)=>`
                                     group.forEach(item => {
                                         if (item.after === num) {
                                             item.numbers.forEach((n, idx) => {
-                                                const peso = Math.max(1, 3 - Math.floor(idx / 4));
+                                                const peso = 1 /* V46.9.164 (pedido de Leo): "después de" es conteo puro, sin peso por posición */;
                                                 siguientes[n] = (siguientes[n] || 0) + peso;
                                                 totalDatos++;
                                             });
@@ -27586,7 +27586,7 @@ ${groups.map((g,i)=>`
                                         group.forEach(item => {
                                             if (item.after && item.after.length === 2 && item.after[1] === terminacion) {
                                                 item.numbers.forEach((n, idx) => {
-                                                    const peso = Math.max(1, 3 - Math.floor(idx / 4));
+                                                    const peso = 1 /* V46.9.164 (pedido de Leo): "después de" es conteo puro, sin peso por posición */;
                                                     siguientes[n] = (siguientes[n] || 0) + peso;
                                                     totalDatos++;
                                                 });
@@ -29095,7 +29095,107 @@ function senalesDe(nn) {
                 .replace(/djDespuesLot/g, 'ngpDespuesLot')
                 .replace(/djDespuesNum/g, 'ngpDespuesNum')
                 .replace(/_djDespuesRender\(\)/g, '_ngpDespuesSync()');
+            body += _ngpSecAyerHTML(lot); // V46.9.163: secuencia del día anterior (fijos de ayer)
             conts.forEach(function(x) { x.innerHTML = body; });
+        }
+        // ═══ V46.9.163 (pedido de Leo): SECUENCIA DEL DÍA ANTERIOR dentro del ═════
+        // buscador "Después de" — mismo cálculo que la pestaña Números y Grupos
+        // Pendientes (capturado + datos pre-cargados CON peso por posición +
+        // secuencias registradas), para que los números coincidan con esa vista.
+        function _ngpSecAyerHTML(lot) {
+            try {
+                var todosLot = [];
+                (capturedResults || []).forEach(function(r) {
+                    if (!r || r.lottery !== lot || !r.number) return;
+                    todosLot.push({ number: ('' + r.number), date: r.date, time: r.time || '', k: _ngpOrdKey(r) });
+                });
+                todosLot.sort(function(a, b) { return a.k < b.k ? -1 : a.k > b.k ? 1 : 0; });
+                if (todosLot.length < 2) return '';
+                var ay = new Date(); ay.setDate(ay.getDate() - 1);
+                var fechaAyer = _pmFechaLocalStr(ay);
+                var sorteosAyer = todosLot.filter(function(r) { return r.date === fechaAyer; });
+                if (!sorteosAyer.length) return '<div style="font-size:11px;color:#94a3b8;margin-top:10px;">📅 Sin sorteos capturados ayer (' + fechaAyer + ') en ' + lot + ' para la secuencia del día anterior.</div>';
+                var consolidado = {};
+                var h = '<div style="background:rgba(76,29,149,0.35);border:1px solid #8b5cf6;border-radius:9px;padding:10px;margin-top:12px;">';
+                h += '<div style="font-size:13px;font-weight:bold;color:#ede9fe;margin-bottom:8px;">📅 Secuencia del día anterior <span style="font-size:10px;color:#c4b5fd;font-weight:normal;">(' + fechaAyer + ' — ' + sorteosAyer.length + ' sorteos) · los "después de" FIJOS de ayer</span></div>';
+                sorteosAyer.forEach(function(sorteo) {
+                    var num = sorteo.number.substring(0, 2);
+                    var siguientes = {}, totalDatos = 0;
+                    for (var i2 = 0; i2 < todosLot.length - 1; i2++) {
+                        if (todosLot[i2].number.substring(0, 2) === num) {
+                            var sig = todosLot[i2 + 1].number.substring(0, 2);
+                            siguientes[sig] = (siguientes[sig] || 0) + 1;
+                            totalDatos++;
+                        }
+                    }
+                    try {
+                        var lk = lot.toLowerCase();
+                        if (typeof HISTORICAL_DATA !== 'undefined' && HISTORICAL_DATA[lk] && HISTORICAL_DATA[lk].groups) {
+                            Object.values(HISTORICAL_DATA[lk].groups).forEach(function(group) {
+                                group.forEach(function(item) {
+                                    if (item.after === num) {
+                                        item.numbers.forEach(function(n2, idx) {
+                                            var peso = 1 /* V46.9.164 (pedido de Leo): "después de" es conteo puro, sin peso por posición */;
+                                            siguientes[n2] = (siguientes[n2] || 0) + peso;
+                                            totalDatos++;
+                                        });
+                                    }
+                                });
+                            });
+                        }
+                    } catch (eH) {}
+                    try {
+                        (sequenceHistory || []).filter(function(s) { return s.lottery === lot && s.before === num; }).forEach(function(s) {
+                            siguientes[s.after] = (siguientes[s.after] || 0) + 1;
+                            totalDatos++;
+                        });
+                    } catch (eS) {}
+                    var top = Object.keys(siguientes).map(function(n2) {
+                        var lastIdx = -1;
+                        for (var si = todosLot.length - 1; si >= 0; si--) {
+                            if (todosLot[si].number.substring(0, 2) === n2) { lastIdx = si; break; }
+                        }
+                        return { numero: n2, frecuencia: siguientes[n2], sinSalir: lastIdx >= 0 ? (todosLot.length - 1 - lastIdx) : null, ultimaFecha: lastIdx >= 0 ? todosLot[lastIdx].date : null };
+                    }).sort(function(a, b) { return b.frecuencia - a.frecuencia; }).slice(0, 5);
+                    top.forEach(function(e, ix) {
+                        if (!consolidado[e.numero]) consolidado[e.numero] = { pts: 0, coincid: 0, despues: [] };
+                        consolidado[e.numero].pts += (5 - ix);
+                        consolidado[e.numero].coincid++;
+                        consolidado[e.numero].despues.push(num);
+                    });
+                    var hf = sorteo.time; try { if (typeof convertTo12Hour === 'function') hf = convertTo12Hour(sorteo.time); } catch (e) {}
+                    h += '<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:7px;margin-bottom:7px;">';
+                    h += '<div style="margin-bottom:5px;"><span style="background:#1e1b4b;border:2px solid #a78bfa;border-radius:50%;padding:4px 9px;font-family:monospace;font-size:15px;font-weight:bold;color:#fff;">' + num + '</span> <span style="font-size:11px;color:#c4b5fd;">' + hf + '</span> <span style="font-size:9px;color:#8b8fb8;">(' + totalDatos + ' datos)</span></div>';
+                    h += '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
+                    top.forEach(function(e, ix) {
+                        var med = ix === 0 ? '🥇' : ix === 1 ? '🥈' : ix === 2 ? '🥉' : '';
+                        var bg = ix === 0 ? 'linear-gradient(135deg,#b45309,#f59e0b)' : ix <= 2 ? 'linear-gradient(135deg,#991b1b,#dc2626)' : 'linear-gradient(135deg,#312e81,#4f46e5)';
+                        h += '<div style="background:' + bg + ';border-radius:7px;padding:5px 9px;text-align:center;min-width:64px;">';
+                        h += '<div style="font-family:monospace;font-size:16px;font-weight:bold;color:#fff;line-height:1;">' + med + ' ' + e.numero + '</div>';
+                        h += '<div style="font-size:8px;color:rgba(255,255,255,0.9);">' + e.frecuencia + 'x' + (e.sinSalir !== null ? ' | ' + e.sinSalir + 's sin salir' : '') + '</div>';
+                        if (e.ultimaFecha) h += '<div style="font-size:7px;color:rgba(255,255,255,0.7);">' + e.ultimaFecha + '</div>';
+                        h += '</div>';
+                    });
+                    h += '</div></div>';
+                });
+                var cons = Object.keys(consolidado).map(function(n2) { return { n: n2, pts: consolidado[n2].pts, coincid: consolidado[n2].coincid, despues: consolidado[n2].despues }; });
+                cons.sort(function(a, b) { return b.coincid !== a.coincid ? b.coincid - a.coincid : b.pts - a.pts; });
+                if (cons.length) {
+                    h += '<div style="font-size:11px;font-weight:bold;color:#fde68a;margin:6px 0 4px;">🏆 Consolidado: números que tienden a salir después de VARIOS de los de ayer</div>';
+                    h += '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
+                    cons.slice(0, 6).forEach(function(e2) {
+                        var dest = e2.coincid >= 2;
+                        h += '<div style="background:' + (dest ? 'linear-gradient(135deg,#b45309,#ea580c)' : 'linear-gradient(135deg,#7f1d1d,#b91c1c)') + ';border:' + (dest ? '2px solid #fde68a' : '1px solid #fca5a5') + ';border-radius:7px;padding:5px 10px;text-align:center;">';
+                        h += '<div style="font-family:monospace;font-size:17px;font-weight:bold;color:#fff;line-height:1;">' + e2.n + '</div>';
+                        h += '<div style="font-size:8px;color:rgba(255,255,255,0.9);">' + e2.pts + 'pts | ' + e2.coincid + ' coincid.</div>';
+                        h += '<div style="font-size:7px;color:rgba(255,255,255,0.75);">Después de: ' + e2.despues.join(', ') + '</div>';
+                        h += '</div>';
+                    });
+                    h += '</div>';
+                }
+                h += '</div>';
+                return h;
+            } catch (e) { return ''; }
         }
         function _ngpDespuesSync() {
             // sincronizar valores entre instancias y re-render
@@ -34614,7 +34714,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                     group.forEach(item => {
                         if (item.after === numero && item.numbers) {
                             item.numbers.forEach((num, idx) => {
-                                const peso = Math.max(1, 3 - Math.floor(idx / 4));
+                                const peso = 1 /* V46.9.164 (pedido de Leo): "después de" es conteo puro, sin peso por posición */;
                                 frequency[num] = (frequency[num] || 0) + peso;
                             });
                         }
@@ -43830,7 +43930,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                             group.forEach(item => {
                                 if (item.after === ultimoNum) {
                                     item.numbers.forEach((n, idx) => {
-                                        siguientes[n] = (siguientes[n] || 0) + Math.max(1, 3 - Math.floor(idx / 4));
+                                        siguientes[n] = (siguientes[n] || 0) + 1 /* V46.9.164 (pedido de Leo): "después de" es conteo puro, sin peso por posición */;
                                     });
                                 }
                             });
@@ -52297,7 +52397,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                             grp.forEach(function(item) {
                                 if (item.after === triggerNum && item.numbers) {
                                     item.numbers.forEach(function(n, ni) {
-                                        freqRetro[n] = (freqRetro[n] || 0) + Math.max(1, 3 - Math.floor(ni / 4));
+                                        freqRetro[n] = (freqRetro[n] || 0) + 1 /* V46.9.164 (pedido de Leo): conteo puro */;
                                     });
                                 }
                             });
@@ -52388,7 +52488,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                     grp.forEach(function(item) {
                         if (item.after === triggerNum && item.numbers) {
                             item.numbers.forEach(function(n, ni) {
-                                freq[n] = (freq[n] || 0) + Math.max(1, 3 - Math.floor(ni / 4));
+                                freq[n] = (freq[n] || 0) + 1 /* V46.9.164 (pedido de Leo): conteo puro */;
                             });
                         }
                     });
@@ -57950,7 +58050,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                     group.forEach(function(item) {
                         if (item.after === numero) {
                             item.numbers.forEach(function(n, idx) {
-                                var peso = Math.max(1, 3 - Math.floor(idx / 4));
+                                var peso = 1 /* V46.9.164 (pedido de Leo): "después de" es conteo puro, sin peso por posición */;
                                 siguientes[n] = (siguientes[n] || 0) + peso;
                             });
                         }
@@ -70577,7 +70677,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r96 · v46.9.162</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r98 · v46.9.164</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
