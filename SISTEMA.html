@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.161</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.162</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6339,7 +6339,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.161</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.162</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -28571,13 +28571,16 @@ ${groups.map((g,i)=>`
                         if (!snapsT[hoyR2]) {
                             try {
                                 var rc = _resumenCalc();
-                                snapsT[hoyR2] = rc.jugadas.slice(0, 10).map(function(j) { return { n: j.num, l: j.lot }; });
+                                // V46.9.162: guardar también la HORA de la foto (transparencia)
+                                var _hF = new Date();
+                                var _hStr = String(_hF.getHours()).padStart(2, '0') + ':' + String(_hF.getMinutes()).padStart(2, '0');
+                                snapsT[hoyR2] = { h: _hStr, j: rc.jugadas.slice(0, 10).map(function(j) { return { n: j.num, l: j.lot }; }) };
                                 var fT = Object.keys(snapsT).sort();
                                 while (fT.length > 60) { delete snapsT[fT[0]]; fT.shift(); }
                                 localStorage.setItem(_EFV_T10_KEY, JSON.stringify(snapsT));
                                 var snaps3 = _efvT3Leer();
                                 if (!snaps3[hoyR2]) {
-                                    snaps3[hoyR2] = rc.ranking.map(function(rk) { return { l: rk.lot, nums: rk.top.map(function(x) { return x.num; }) }; }).filter(function(e) { return e.nums.length; });
+                                    snaps3[hoyR2] = { h: _hStr, e: rc.ranking.map(function(rk) { return { l: rk.lot, nums: rk.top.map(function(x) { return x.num; }) }; }).filter(function(e) { return e.nums.length; }) };
                                     var f3 = Object.keys(snaps3).sort();
                                     while (f3.length > 60) { delete snaps3[f3[0]]; f3.shift(); }
                                     localStorage.setItem(_EFV_T3_KEY, JSON.stringify(snaps3));
@@ -29245,10 +29248,19 @@ function senalesDe(nn) {
                 var _EFV_T10_KEY = 'efvTop10Snaps';
                 var _EFV_T3_KEY = 'efvT3Snaps'; // V46.9.161: top-3 de cada tarjeta
                 function _efvT10Leer() {
-                    try { return JSON.parse(localStorage.getItem(_EFV_T10_KEY) || '{}'); } catch (e) { return {}; }
+                    // V46.9.162: normaliza formato viejo (array) y nuevo ({h, j})
+                    try {
+                        var s = JSON.parse(localStorage.getItem(_EFV_T10_KEY) || '{}');
+                        Object.keys(s).forEach(function(f) { if (Array.isArray(s[f])) s[f] = { h: null, j: s[f] }; });
+                        return s;
+                    } catch (e) { return {}; }
                 }
                 function _efvT3Leer() {
-                    try { return JSON.parse(localStorage.getItem(_EFV_T3_KEY) || '{}'); } catch (e) { return {}; }
+                    try {
+                        var s = JSON.parse(localStorage.getItem(_EFV_T3_KEY) || '{}');
+                        Object.keys(s).forEach(function(f) { if (Array.isArray(s[f])) s[f] = { h: null, e: s[f] }; });
+                        return s;
+                    } catch (e) { return {}; }
                 }
                 // V46.9.161 (pedido de Leo): efectividad de los TOP-3 de cada tarjeta —
                 // ¿cuántas loterías acertaron ese día con alguno de sus 3 recomendados?
@@ -29267,9 +29279,10 @@ function senalesDe(nn) {
                     for (var dd = 0; dd <= (diasAtras || 0); dd++) {
                         var dx = new Date(); dx.setDate(dx.getDate() - dd);
                         var fx = _pmFechaLocalStr(dx);
-                        var foto = snaps[fx];
+                        var snap = snaps[fx];
+                        var foto = snap ? snap.e : null;
                         if (!foto || !foto.length) { res.sinFoto++; continue; }
-                        var dia = { fecha: fx, hits: [], aciertos: 0, total: foto.length };
+                        var dia = { fecha: fx, hits: [], aciertos: 0, total: foto.length, hFoto: snap.h };
                         foto.forEach(function(e) {
                             var lst = gan[fx + '|' + e.l] || [];
                             var hit = null;
@@ -29302,9 +29315,10 @@ function senalesDe(nn) {
                     for (var dd = 0; dd <= (diasAtras || 0); dd++) {
                         var dx = new Date(); dx.setDate(dx.getDate() - dd);
                         var fx = _pmFechaLocalStr(dx);
-                        var foto = snaps[fx];
+                        var snap = snaps[fx];
+                        var foto = snap ? snap.j : null;
                         if (!foto || !foto.length) { if (fx !== hoyReal || (diasAtras || 0) > 0) res.sinFoto++; continue; }
-                        var dia = { fecha: fx, aciertos: 0, total: foto.length, hits: [], foto: foto }; // V46.9.161: exponer la foto
+                        var dia = { fecha: fx, aciertos: 0, total: foto.length, hits: [], foto: foto, hFoto: snap.h }; // V46.9.161/162: foto + hora
                         foto.forEach(function(j) {
                             var lst = gan[fx + '|' + j.l] || [];
                             for (var q = 0; q < lst.length; q++) {
@@ -30157,9 +30171,13 @@ function senalesDe(nn) {
             r.porDia.forEach(function(d) {
                 html += '<div style="margin-bottom:6px;">';
                 html += '<div style="font-size:11px;font-weight:bold;color:#a7f3d0;">' + d.fecha + ' → <span style="color:' + (d.aciertos > 0 ? '#34d399' : '#94a3b8') + ';">' + d.aciertos + ' / ' + d.total + '</span></div>';
-                // V46.9.161: mostrar LA FOTO del día — contra qué se midió
+                // V46.9.161/162: mostrar LA FOTO del día — contra qué se midió, y a qué hora
                 if (d.foto && d.foto.length) {
-                    html += '<div style="font-size:9px;color:#6ee7b7;margin-top:2px;">Foto guardada ese día:</div>';
+                    var _hTxt = d.hFoto ? (' a las ' + d.hFoto) : '';
+                    html += '<div style="font-size:9px;color:#6ee7b7;margin-top:2px;">Foto guardada ese día' + _hTxt + ':</div>';
+                    if (d.hFoto && d.hFoto >= '11:00') {
+                        html += '<div style="font-size:9px;color:#fbbf24;background:rgba(120,53,15,0.35);border:1px solid #f59e0b;border-radius:5px;padding:3px 8px;margin-top:2px;">⚠️ Foto tomada TARDE (' + d.hFoto + '): los números que ya habían salido ese día quedan excluidos de las sugerencias, así que los sorteos previos a esa hora casi no pueden contar como acierto. Abrí el sistema temprano (antes de los primeros sorteos) para una medición limpia.</div>';
+                    }
                     html += '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:2px;">';
                     d.foto.forEach(function(j) {
                         var pego = d.hits.some(function(hh) { return hh.n === j.n && hh.l === j.l; });
@@ -30189,7 +30207,7 @@ function senalesDe(nn) {
                 html += '<div style="font-size:11px;color:#d1fae5;">' + r3.total.lotsAcertadas + ' de ' + r3.total.lotsEvaluadas + ' tarjetas de lotería acertaron con alguno de sus 3 números ese día</div>';
                 html += '</div>';
                 r3.porDia.forEach(function(d3) {
-                    html += '<div style="font-size:11px;font-weight:bold;color:#a7f3d0;">' + d3.fecha + ' → <span style="color:' + (d3.aciertos > 0 ? '#34d399' : '#94a3b8') + ';">' + d3.aciertos + ' / ' + d3.total + ' loterías</span></div>';
+                    html += '<div style="font-size:11px;font-weight:bold;color:#a7f3d0;">' + d3.fecha + (d3.hFoto ? ' <span style="font-size:9px;color:#6ee7b7;font-weight:normal;">(foto ' + d3.hFoto + ')</span>' : '') + ' → <span style="color:' + (d3.aciertos > 0 ? '#34d399' : '#94a3b8') + ';">' + d3.aciertos + ' / ' + d3.total + ' loterías</span></div>';
                     if (d3.hits.length) {
                         html += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin:3px 0 6px;">';
                         d3.hits.forEach(function(hh) {
