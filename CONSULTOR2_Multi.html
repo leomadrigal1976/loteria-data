@@ -7326,6 +7326,30 @@
         let predictions = [];
         let accuracyLog = [];
         let sequenceHistory = []; // Nueva estructura para almacenar secuencias "después de"
+        // ═══ V46.9.165 (bug reportado por Leo): DEDUPLICACIÓN de secuencias ═══════
+        // Al capturar, el sistema registra automáticamente la secuencia "antes→después"
+        // en sequenceHistory, pero ese MISMO par ya se deriva de los registros
+        // consecutivos de capturedResults → se contaba DOBLE (2x pasaba a 4x en vez
+        // de 3x). Esta función devuelve las secuencias EXCLUYENDO las que duplican
+        // un registro capturado (misma lotería, fecha, hora y número resultante).
+        // Las secuencias antiguas cuyos registros ya no existen sí se conservan.
+        function _seqFiltrada() {
+            try {
+                var nCap = (capturedResults || []).length, nSeq = (sequenceHistory || []).length;
+                var cache = window._seqFiltCache;
+                if (cache && cache.k === nCap + '|' + nSeq) return cache.v;
+                var capSet = {};
+                (capturedResults || []).forEach(function(r) {
+                    if (r && r.lottery) capSet[r.lottery + '|' + r.date + '|' + (r.time || '') + '|' + r.number] = true;
+                });
+                var v = _seqFiltrada().filter(function(s) {
+                    if (!s || !s.lottery) return false;
+                    return !capSet[s.lottery + '|' + s.date + '|' + (s.time || '') + '|' + s.after];
+                });
+                window._seqFiltCache = { k: nCap + '|' + nSeq, v: v };
+                return v;
+            } catch (e) { return sequenceHistory || []; }
+        }
         let aiPredictions = []; // NUEVO: Almacenar predicciones IA
         let activeSuggestions = []; // NUEVO: Almacenar sugerencias del análisis activo
         let equalitySuggestions = []; // NUEVO: Almacenar sugerencias de igualdades
@@ -11259,7 +11283,7 @@
             }
 
             // Obtener datos desde sequenceHistory (nuevo)
-            const sequenceNumbers = sequenceHistory
+            const sequenceNumbers = _seqFiltrada()
                 .filter(s => s.lottery === lottery && s.before === number)
                 .map(s => s.after);
 
@@ -11274,7 +11298,7 @@
             });
 
             // Obtener última vez que ocurrió cada secuencia
-            sequenceHistory
+            _seqFiltrada()
                 .filter(s => s.lottery === lottery && s.before === number)
                 .forEach(s => {
                     const dateTime = new Date(s.date + ' ' + s.time);
@@ -11293,7 +11317,7 @@
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
             
             const recentCount = {};
-            sequenceHistory
+            _seqFiltrada()
                 .filter(s => s.lottery === lottery && s.before === number && new Date(s.date) >= thirtyDaysAgo)
                 .forEach(s => {
                     recentCount[s.after] = (recentCount[s.after] || 0) + 1;
@@ -11319,7 +11343,7 @@
                 .slice(0, 3);
 
             // Calcular confianza (porcentaje de veces que se repite)
-            const totalSequences = sequenceHistory.filter(s => s.lottery === lottery && s.before === number).length;
+            const totalSequences = _seqFiltrada().filter(s => s.lottery === lottery && s.before === number).length;
 
             // Identificar números huérfanos (que nunca han salido después de este número)
             const allPossibleNumbers = Array.from({length: 100}, (_, i) => String(i).padStart(2, '0'));
@@ -11347,7 +11371,7 @@
 
             // Análisis de tiempo entre secuencias
             let timeAnalysis = '';
-            const sequenceDates = sequenceHistory
+            const sequenceDates = _seqFiltrada()
                 .filter(s => s.lottery === lottery && s.before === number)
                 .map(s => new Date(s.date + ' ' + s.time))
                 .sort((a, b) => a - b);
@@ -11600,7 +11624,7 @@
                     
                     sorted.forEach(([seq, count], index) => {
                         const [before, after] = seq.split('→');
-                        const confidence = ((count / sequenceHistory.filter(s => s.lottery === lottery && s.before === before).length) * 100).toFixed(0);
+                        const confidence = ((count / _seqFiltrada().filter(s => s.lottery === lottery && s.before === before).length) * 100).toFixed(0);
                         html += `
                             <div class="number-box ${index < 3 ? 'hot' : 'warm'}" title="Aparece ${count} veces">
                                 ${before}→${after}
@@ -11630,7 +11654,7 @@
             let allNext = [];
             
             // Desde sequenceHistory
-            sequenceHistory
+            _seqFiltrada()
                 .filter(s => s.lottery === lottery && s.before === lastNumber)
                 .forEach(s => allNext.push(s.after));
             
@@ -14103,7 +14127,7 @@ ${groups.map((g,i)=>`
                 }
                 // También limpiar sequenceHistory
                 if (sequenceHistory && sequenceHistory.length > 0) {
-                    sequenceHistory = sequenceHistory.filter(s => !loteriasEliminar.includes(s.lottery));
+                    sequenceHistory = _seqFiltrada().filter(s => !loteriasEliminar.includes(s.lottery));
                 }
                 
                 const before = capturedResults.length;
@@ -14209,7 +14233,7 @@ ${groups.map((g,i)=>`
                     capturedResults = capturedResults.filter(r => !loteriasEliminar.includes(r.lottery));
                     reChanged += (beforeElim - capturedResults.length);
                     if (sequenceHistory && sequenceHistory.length > 0) {
-                        sequenceHistory = sequenceHistory.filter(s => !loteriasEliminar.includes(s.lottery));
+                        sequenceHistory = _seqFiltrada().filter(s => !loteriasEliminar.includes(s.lottery));
                     }
                     // Dedup contra duplicados
                     const seenSync = new Set();
@@ -27378,7 +27402,7 @@ ${groups.map((g,i)=>`
                 }
                 
                 // También buscar en sequenceHistory
-                sequenceHistory
+                _seqFiltrada()
                     .filter(s => s.lottery === loteria && s.before === ultimoNumero)
                     .forEach(s => {
                         siguientes[s.after] = (siguientes[s.after] || 0) + 1;
@@ -27459,7 +27483,7 @@ ${groups.map((g,i)=>`
                     }
                     
                     // sequenceHistory por terminación
-                    sequenceHistory
+                    _seqFiltrada()
                         .filter(s => s.lottery === loteria && s.before && s.before[1] === terminacion)
                         .forEach(s => {
                             siguientesTerm[s.after] = (siguientesTerm[s.after] || 0) + 1;
@@ -27561,7 +27585,7 @@ ${groups.map((g,i)=>`
                             }
                             
                             // También sequenceHistory
-                            sequenceHistory
+                            _seqFiltrada()
                                 .filter(s => s.lottery === loteria && s.before === num)
                                 .forEach(s => {
                                     siguientes[s.after] = (siguientes[s.after] || 0) + 1;
@@ -28681,10 +28705,11 @@ function senalesDe(nn) {
                                 var sn0 = senalesDe(nn);
                                 var tieneSenalesL = false;
                                 (sn0.porLoteria || []).forEach(function(cf) { if (cf.lot === L && cf.score >= 2) tieneSenalesL = true; });
-                                // V46.9.159: top-5 "después de" del último salido en L
+                                // V46.9.159/166: top-5 (+5) y top-10 (+3) "después de" del último salido en L
                                 var s5 = (typeof _ngpSigueTop5 === 'function') ? _ngpSigueTop5(L) : null;
                                 var esSigue5 = !!(s5 && s5.set[nn] && pos !== null && !salioReciente);
-                                if (!esRezagoL && !(tieneSenalesL && pos !== null && !salioReciente) && !esSigue5) return;
+                                var esSigue10 = !!(s5 && s5.set10 && s5.set10[nn] && pos !== null && !salioReciente);
+                                if (!esRezagoL && !(tieneSenalesL && pos !== null && !salioReciente) && !esSigue10) return;
                                 var scoreL = 0, tiposL = [];
                                 (sn0.porLoteria || []).forEach(function(cf) {
                                     if (cf.lot === L) { scoreL += cf.score; cf.tipos.forEach(function(t) { tiposL.push(t); }); }
@@ -28694,6 +28719,7 @@ function senalesDe(nn) {
                                     if (jalesL[_ji].nums[nn]) { scoreL += 4; tiposL.push('⏰ jale ' + jalesL[_ji].horaFmt); break; }
                                 }
                                 if (esSigue5) { scoreL += 5; tiposL.push('🎯 sigue al ' + s5.ult + ' (top-5 después-de)'); }
+                                else if (esSigue10) { scoreL += 3; tiposL.push('🎯 sigue al ' + s5.ult + ' (top-10 después-de)'); }
                                 if (dth2.decTop.indexOf(nn[0]) >= 0) { scoreL += 1; tiposL.push('dec HOY'); }
                                 if (dth2.termTop.indexOf(nn[1]) >= 0) { scoreL += 1; tiposL.push('term HOY'); }
                                 lista.push({ num: nn, score: scoreL, tipos: tiposL, pos: pos });
@@ -28878,7 +28904,8 @@ function senalesDe(nn) {
                     if (typeof _ngpSigueTop5 === 'function') {
                         sel.forEach(function(Ls) {
                             var s5f = _ngpSigueTop5(Ls);
-                            if (s5f && s5f.set[nn]) { scoreSel += 5; tiposSel.push('🎯 sigue al ' + s5f.ult + ' en ' + Ls); }
+                            if (s5f && s5f.set[nn]) { scoreSel += 5; tiposSel.push('🎯 sigue al ' + s5f.ult + ' en ' + Ls + ' (top-5)'); }
+                            else if (s5f && s5f.set10 && s5f.set10[nn]) { scoreSel += 3; tiposSel.push('🎯 sigue al ' + s5f.ult + ' en ' + Ls + ' (top-10)'); }
                         });
                     }
                     if (dthF.decTop.indexOf(nn[0]) >= 0) { scoreSel += 1; tiposSel.push('dec ' + nn[0] + 'x HOY'); }
@@ -29083,13 +29110,20 @@ function senalesDe(nn) {
             if (!lots.length) { conts.forEach(function(x) { x.innerHTML = '<div style="font-size:11px;color:#fca5a5;padding:8px;">No hay loterías con suficientes sorteos capturados.</div>'; }); return; }
             var selL = document.querySelector('[id="ngpDespuesLot"]');
             var inpN = document.querySelector('[id="ngpDespuesNum"]');
-            var lot = selL ? selL.value : (lots.indexOf('New York') >= 0 ? 'New York' : lots[0]);
+            // V46.9.165 (pedido de Leo): SIN valores por defecto — arranca en blanco
+            var lot = (selL && selL.value) ? selL.value : '';
             var nb = inpN ? inpN.value : '';
-            if (inicial && !nb) {
-                for (var i = (capturedResults || []).length - 1; i >= 0; i--) {
-                    var r = capturedResults[i];
-                    if (r && r.lottery === lot && r.number) { nb = String(r.number).substring(0, 2); break; }
-                }
+            if (!lot) {
+                var h0 = '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px;">';
+                h0 += '<div><label style="font-size:10px;font-weight:bold;color:#fdba74;display:block;margin-bottom:3px;">Lotería:</label><select id="ngpDespuesLot" onchange="_ngpDespuesSync()" style="background:#431407;color:#fff;border:1px solid #ea580c;border-radius:6px;font-size:12px;padding:6px;">';
+                h0 += '<option value="" selected>(elegí lotería)</option>';
+                lots.forEach(function(L) { h0 += '<option value="' + L + '">' + L + '</option>'; });
+                h0 += '</select></div>';
+                h0 += '<div><label style="font-size:10px;font-weight:bold;color:#fdba74;display:block;margin-bottom:3px;">Número:</label><input id="ngpDespuesNum" type="text" maxlength="2" onkeydown="if(event.key===\'Enter\'){_ngpDespuesSync();}" style="background:#431407;color:#fff;border:1px solid #ea580c;border-radius:6px;font-size:15px;padding:6px;width:64px;text-align:center;font-family:monospace;"></div>';
+                h0 += '</div>';
+                h0 += '<div style="font-size:11px;color:#94a3b8;padding:6px;">Elegí la lotería y escribí el número de 2 dígitos para ver qué sale después.</div>';
+                conts.forEach(function(x) { x.innerHTML = h0; });
+                return;
             }
             var body = _djDespuesBody(lot, nb)
                 .replace(/djDespuesLot/g, 'ngpDespuesLot')
@@ -29145,7 +29179,7 @@ function senalesDe(nn) {
                         }
                     } catch (eH) {}
                     try {
-                        (sequenceHistory || []).filter(function(s) { return s.lottery === lot && s.before === num; }).forEach(function(s) {
+                        _seqFiltrada().filter(function(s) { return s.lottery === lot && s.before === num; }).forEach(function(s) {
                             siguientes[s.after] = (siguientes[s.after] || 0) + 1;
                             totalDatos++;
                         });
@@ -29286,13 +29320,17 @@ function senalesDe(nn) {
             window._ngpSigueCache = window._ngpSigueCache || {};
             if (window._ngpSigueCache[L]) return window._ngpSigueCache[L];
             var ult = _ngpUltNumDe(L);
-            var res = { ult: ult, set: {} };
+            // V46.9.166 (pedido de Leo): dos niveles — top-5 (fuerte) y top-10 (medio) —
+            // más la lista con conteos para mostrarla en el resumen.
+            var res = { ult: ult, set: {}, set10: {}, lista5: [] };
             if (ult) {
                 var P = _ngpParesDe(L);
                 var nx = P.next[ult] || {};
                 var lista = Object.keys(nx).map(function(x) { return { n: x, c: nx[x] }; });
                 lista.sort(function(a, b) { return b.c - a.c; });
                 lista.slice(0, 5).forEach(function(e) { res.set[e.n] = e.c; });
+                lista.slice(0, 10).forEach(function(e) { res.set10[e.n] = e.c; });
+                res.lista5 = lista.slice(0, 5);
             }
             window._ngpSigueCache[L] = res;
             return res;
@@ -29319,20 +29357,21 @@ function senalesDe(nn) {
             if (!lots.length) { conts.forEach(function(x) { x.innerHTML = '<div style="font-size:11px;color:#fca5a5;padding:8px;">No hay loterías con suficientes sorteos.</div>'; }); return; }
             var selL = document.querySelector('[id="ngpAntesLot"]');
             var inpN = document.querySelector('[id="ngpAntesNum"]');
-            var lot = (selL && selL.value) ? selL.value : (lots.indexOf('New York') >= 0 ? 'New York' : lots[0]);
+            // V46.9.165 (pedido de Leo): sin valores por defecto
+            var lot = (selL && selL.value) ? selL.value : '';
             var nb = '';
             document.querySelectorAll('[id="ngpAntesNum"]').forEach(function(i2) { if (!nb && i2.value && i2.value.trim()) nb = i2.value.trim(); });
-            if (inicial && !nb) nb = _ngpUltNumDe(lot);
             nb = nb ? nb.padStart(2, '0').slice(-2) : '';
             var h = '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px;">';
             h += '<div><label style="font-size:10px;font-weight:bold;color:#d4d4d8;display:block;margin-bottom:3px;">Lotería:</label><select id="ngpAntesLot" onchange="_efvSync(this);_ngpAntesGo()" style="background:#27272a;color:#fff;border:1px solid #a1a1aa;border-radius:6px;font-size:12px;padding:6px;">';
+            h += '<option value=""' + (!lot ? ' selected' : '') + '>(elegí lotería)</option>';
             lots.forEach(function(L) { h += '<option value="' + L + '"' + (L === lot ? ' selected' : '') + '>' + L + '</option>'; });
             h += '</select></div>';
             h += '<div><label style="font-size:10px;font-weight:bold;color:#d4d4d8;display:block;margin-bottom:3px;">Número:</label><input id="ngpAntesNum" type="text" maxlength="2" value="' + nb + '" onkeydown="if(event.key===\'Enter\'){_efvSync(this);_ngpAntesGo();}" style="background:#27272a;color:#fff;border:1px solid #a1a1aa;border-radius:6px;font-size:15px;padding:6px;width:64px;text-align:center;font-family:monospace;"></div>';
             h += '<button onclick="_ngpAntesGo()" style="background:linear-gradient(135deg,#52525b,#a1a1aa);border:1px solid #d4d4d8;color:#fff;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold;">⏪ Buscar</button>';
             h += '</div>';
-            if (!nb || !/^\d{2}$/.test(nb)) {
-                h += '<div style="font-size:11px;color:#94a3b8;padding:6px;">Escribí un número de 2 dígitos.</div>';
+            if (!lot || !nb || !/^\d{2}$/.test(nb)) {
+                h += '<div style="font-size:11px;color:#94a3b8;padding:6px;">Elegí la lotería y escribí un número de 2 dígitos.</div>';
                 conts.forEach(function(x) { x.innerHTML = h; }); return;
             }
             var P = _ngpParesDe(lot);
@@ -29385,20 +29424,21 @@ function senalesDe(nn) {
             var lots = _ngpLotsConDatos();
             if (!lots.length) { conts.forEach(function(x) { x.innerHTML = '<div style="font-size:11px;color:#fca5a5;padding:8px;">No hay loterías con suficientes sorteos.</div>'; }); return; }
             var selL = document.querySelector('[id="ngpDgLot"]');
-            var lot = (selL && selL.value) ? selL.value : (lots.indexOf('New York') >= 0 ? 'New York' : lots[0]);
+            // V46.9.165 (pedido de Leo): sin valores por defecto
+            var lot = (selL && selL.value) ? selL.value : '';
             var nb = '';
             document.querySelectorAll('[id="ngpDgNum"]').forEach(function(i2) { if (!nb && i2.value && i2.value.trim()) nb = i2.value.trim(); });
-            if (inicial && !nb) nb = _ngpUltNumDe(lot);
             nb = nb ? nb.padStart(2, '0').slice(-2) : '';
             var h = '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px;">';
             h += '<div><label style="font-size:10px;font-weight:bold;color:#f0abfc;display:block;margin-bottom:3px;">Lotería:</label><select id="ngpDgLot" onchange="_efvSync(this);_ngpDgGo()" style="background:#2e1065;color:#fff;border:1px solid #c026d3;border-radius:6px;font-size:12px;padding:6px;">';
+            h += '<option value=""' + (!lot ? ' selected' : '') + '>(elegí lotería)</option>';
             lots.forEach(function(L) { h += '<option value="' + L + '"' + (L === lot ? ' selected' : '') + '>' + L + '</option>'; });
             h += '</select></div>';
             h += '<div><label style="font-size:10px;font-weight:bold;color:#f0abfc;display:block;margin-bottom:3px;">Salió el número:</label><input id="ngpDgNum" type="text" maxlength="2" value="' + nb + '" onkeydown="if(event.key===\'Enter\'){_efvSync(this);_ngpDgGo();}" style="background:#2e1065;color:#fff;border:1px solid #c026d3;border-radius:6px;font-size:15px;padding:6px;width:64px;text-align:center;font-family:monospace;"></div>';
             h += '<button onclick="_ngpDgGo()" style="background:linear-gradient(135deg,#86198f,#d946ef);border:1px solid #f0abfc;color:#fff;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold;">🧩 Analizar</button>';
             h += '</div>';
-            if (!nb || !/^\d{2}$/.test(nb)) {
-                h += '<div style="font-size:11px;color:#94a3b8;padding:6px;">Escribí un número de 2 dígitos.</div>';
+            if (!lot || !nb || !/^\d{2}$/.test(nb)) {
+                h += '<div style="font-size:11px;color:#94a3b8;padding:6px;">Elegí la lotería y escribí un número de 2 dígitos.</div>';
                 conts.forEach(function(x) { x.innerHTML = h; }); return;
             }
             var P = _ngpParesDe(lot);
@@ -29701,13 +29741,31 @@ function senalesDe(nn) {
                 if (etq.length) html += '<div style="font-size:9px;color:#fdba74;margin-top:2px;">' + etq.join(' · ') + '</div>';
                 html += '<div style="display:flex;gap:5px;margin-top:6px;">';
                 if (!rk.top.length) html += '<div style="font-size:10px;color:#64748b;padding:4px;">Sin candidatos (necesita más capturas de esta lotería).</div>';
+                var _hayT5 = false;
                 rk.top.forEach(function(x) {
-                    html += '<div title="' + x.tipos.join(' · ').replace(/"/g, '') + '" style="background:rgba(220,38,38,0.2);border:1px solid #f87171;border-radius:6px;padding:4px 8px;text-align:center;flex:1;cursor:help;">';
-                    html += '<div style="font-family:monospace;font-size:19px;font-weight:bold;color:#fff;line-height:1;">' + x.num + '</div>';
-                    html += '<div style="font-size:8px;color:#fca5a5;">' + x.score + ' señ.</div>';
+                    // V46.9.166 (pedido de Leo): distintivo claro si coincide con el top-5 "después de"
+                    var _t5 = x.tipos.some(function(t) { return t.indexOf('(top-5 después-de)') > 0; });
+                    if (_t5) _hayT5 = true;
+                    html += '<div title="' + x.tipos.join(' · ').replace(/"/g, '') + '" style="background:' + (_t5 ? 'rgba(219,39,119,0.3)' : 'rgba(220,38,38,0.2)') + ';border:' + (_t5 ? '2px solid #ec4899;box-shadow:0 0 7px rgba(236,72,153,0.6)' : '1px solid #f87171') + ';border-radius:6px;padding:4px 8px;text-align:center;flex:1;cursor:help;">';
+                    html += '<div style="font-family:monospace;font-size:19px;font-weight:bold;color:#fff;line-height:1;">' + (_t5 ? '🎯' : '') + x.num + '</div>';
+                    html += '<div style="font-size:8px;color:' + (_t5 ? '#f9a8d4' : '#fca5a5') + ';">' + x.score + ' señ.' + (_t5 ? ' · top-5 desp.' : '') + '</div>';
                     html += '</div>';
                 });
-                html += '</div></div>';
+                html += '</div>';
+                // V46.9.166 (pedido de Leo): si NINGUNO de los 3 coincide con el "después de",
+                // mostrar el top-5 de después-de de esta lotería (mismos datos del sistema).
+                if (!_hayT5 && typeof _ngpSigueTop5 === 'function') {
+                    var _sg = _ngpSigueTop5(rk.lot);
+                    if (_sg && _sg.ult && _sg.lista5 && _sg.lista5.length) {
+                        html += '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:5px;padding-top:4px;border-top:1px dashed rgba(236,72,153,0.35);">';
+                        html += '<span style="font-size:8px;font-weight:bold;color:#f9a8d4;white-space:nowrap;">🎯 Desp. del ' + _sg.ult + ':</span>';
+                        _sg.lista5.forEach(function(e5) {
+                            html += '<span title="siguió ' + e5.c + ' vez/veces al ' + _sg.ult + ' en ' + rk.lot + '" style="background:rgba(219,39,119,0.15);border:1px solid rgba(236,72,153,0.5);border-radius:4px;padding:1px 6px;font-size:10px;font-family:monospace;font-weight:bold;color:#fbcfe8;cursor:help;">' + e5.n + '<sup style="font-size:7px;color:#f472b6;">' + e5.c + 'x</sup></span>';
+                        });
+                        html += '</div>';
+                    }
+                }
+                html += '</div>';
             });
             html += '</div>';
             // ─── TOP 10 JUGADAS GLOBALES + botón de efectividad
@@ -29947,10 +30005,11 @@ function senalesDe(nn) {
                         var sn0 = F.senalesDe(nn);
                         var tieneSenalesL = false;
                         (sn0.porLoteria || []).forEach(function(cf) { if (cf.lot === L && cf.score >= 2) tieneSenalesL = true; });
-                        // V46.9.159: entra también si es top-5 "después de" del último salido en L
+                        // V46.9.159/166: entra también si es top-5/top-10 "después de" del último salido en L
                         var s5x = (typeof _ngpSigueTop5 === 'function') ? _ngpSigueTop5(L) : null;
                         var esSigue5x = !!(s5x && s5x.set[nn] && pos !== null && !salioReciente);
-                        if (!esRezagoL && !(tieneSenalesL && pos !== null && !salioReciente) && !esSigue5x) return;
+                        var esSigue10x = !!(s5x && s5x.set10 && s5x.set10[nn] && pos !== null && !salioReciente);
+                        if (!esRezagoL && !(tieneSenalesL && pos !== null && !salioReciente) && !esSigue10x) return;
                         var sn = sn0;
                         // score específico para L (confluencia en L) + señales globales fuertes
                         var scoreL = 0, tiposL = [];
@@ -29963,8 +30022,9 @@ function senalesDe(nn) {
                         for (var _ji = 0; _ji < jales.length; _ji++) {
                             if (jales[_ji].nums[nn]) { scoreL += 4; tiposL.push('⏰ jale de ayer ' + jales[_ji].horaFmt); break; }
                         }
-                        // V46.9.159 (pedido de Leo): top-5 después-de del último salido — peso MUY FUERTE (+5)
+                        // V46.9.159/166 (pedido de Leo): top-5 después-de (+5) / top-10 (+3)
                         if (esSigue5x) { scoreL += 5; tiposL.push('🎯 sigue al ' + s5x.ult + ' (top-5 después-de)'); }
+                        else if (esSigue10x) { scoreL += 3; tiposL.push('🎯 sigue al ' + s5x.ult + ' (top-10 después-de)'); }
                         // V46.9.142: decenas/terminaciones predominantes HOY (global)
                         if (dth.decTop.indexOf(nn[0]) >= 0) { scoreL += 1; tiposL.push('dec ' + nn[0] + 'x HOY'); }
                         if (dth.termTop.indexOf(nn[1]) >= 0) { scoreL += 1; tiposL.push('term x' + nn[1] + ' HOY'); }
@@ -30011,7 +30071,10 @@ function senalesDe(nn) {
                     bg.nums.forEach(function(c) {
                         var scoreCol = c.score >= 6 ? '#6ee7b7' : c.score >= 3 ? '#fde68a' : '#cbd5e1';
                         var dEnL = c.ultEnL ? F.difDias(c.ultEnL, F.hoyStr) : null;
-                        htmlLots += '<div style="background:rgba(220,38,38,0.14);border:1px solid #f87171;border-radius:6px;padding:5px 7px;">';
+                        // V46.9.166 (pedido de Leo): distintivo FUERTE si es top-5 "después de"
+                        var _esT5 = c.tipos.some(function(t) { return t.indexOf('(top-5 después-de)') > 0; });
+                        htmlLots += '<div style="background:' + (_esT5 ? 'rgba(219,39,119,0.22)' : 'rgba(220,38,38,0.14)') + ';border:' + (_esT5 ? '2px solid #ec4899;box-shadow:0 0 8px rgba(236,72,153,0.55)' : '1px solid #f87171') + ';border-radius:6px;padding:5px 7px;">';
+                        if (_esT5) htmlLots += '<div style="font-size:8px;font-weight:bold;color:#f9a8d4;letter-spacing:0.5px;">🎯 TOP-5 DESPUÉS-DE — muy efectivo en salidas</div>';
                         htmlLots += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">';
                         htmlLots += '<span style="font-family:monospace;font-size:17px;font-weight:bold;color:#fff;">' + c.num + '</span>';
                         htmlLots += '<span title="' + c.tipos.join(' · ').replace(/"/g, '') + '" style="font-size:9px;font-weight:bold;color:' + scoreCol + ';cursor:help;text-decoration:underline dotted;">' + c.score + ' señ.</span>';
@@ -34724,7 +34787,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
             
             // 3. Obtener datos desde sequenceHistory (datos capturados dinámicamente)
             if (typeof sequenceHistory !== 'undefined') {
-                sequenceHistory
+                _seqFiltrada()
                     .filter(s => s.lottery === loteria && s.before === numero)
                     .forEach(s => {
                         frequency[s.after] = (frequency[s.after] || 0) + 2; // Mayor peso a datos recientes
@@ -42208,7 +42271,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
             }
             // También sumar sequenceHistory de Anguila
             if (typeof sequenceHistory !== 'undefined') {
-                sequenceHistory.filter(s => s.lottery === 'Anguila').forEach(s => {
+                _seqFiltrada().filter(s => s.lottery === 'Anguila').forEach(s => {
                     if (!despuesDeCross[s.before]) despuesDeCross[s.before] = {};
                     despuesDeCross[s.before][s.after] = (despuesDeCross[s.before][s.after] || 0) + 2;
                 });
@@ -43484,7 +43547,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                         // Factor 9: Después De (historial) (+2 puntos)
                         const ultimoNum = resultados.slice(-1)[0]?.number;
                         if (ultimoNum) {
-                            const secuencias = sequenceHistory.filter(s => s.lottery === lot && s.before === ultimoNum);
+                            const secuencias = _seqFiltrada().filter(s => s.lottery === lot && s.before === ultimoNum);
                             const frecuenciaDespues = {};
                             secuencias.forEach(s => frecuenciaDespues[s.after] = (frecuenciaDespues[s.after] || 0) + 1);
                             if (frecuenciaDespues[num] >= 2) {
@@ -52405,7 +52468,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                     }
                     // Source 3: sequenceHistory (con filtro temporal timestamp)
                     if (typeof sequenceHistory !== 'undefined') {
-                        sequenceHistory
+                        _seqFiltrada()
                             .filter(function(s) {
                                 if (s.lottery !== lot || s.before !== triggerNum) return false;
                                 if (s.timestamp) {
@@ -52498,7 +52561,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
             // Source 3: sequenceHistory registrado hasta la fecha (peso +1, igual al panel oficial)
             if (typeof sequenceHistory !== 'undefined') {
                 var limiteDate = usarTSEstricto ? null : new Date(fechaLimite + 'T23:59:59');
-                sequenceHistory.filter(function(s) {
+                _seqFiltrada().filter(function(s) {
                     if (s.lottery !== lot || s.before !== triggerNum) return false;
                     if (usarTSEstricto) {
                         // Filtro estricto por timestamp completo (fecha + hora)
@@ -53009,7 +53072,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                                 });
                             }
                             if (typeof sequenceHistory !== 'undefined')
-                                sequenceHistory.filter(function(s){ return s.lottery===lot&&s.before===trig&&(!s.date||s.date<fecha); })
+                                _seqFiltrada().filter(function(s){ return s.lottery===lot&&s.before===trig&&(!s.date||s.date<fecha); })
                                     .forEach(function(s){ freq[s.after]=(freq[s.after]||0)+2; });
                             return Object.entries(freq).sort(function(a,b){return b[1]-a[1];}).slice(0,Math.max(8, ceTopN)).map(function(e){return e[0];});
                         }
@@ -58058,7 +58121,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                 });
             }
             if (typeof sequenceHistory !== 'undefined') {
-                sequenceHistory.filter(function(s) { return s.lottery === loteria && s.before === numero; })
+                _seqFiltrada().filter(function(s) { return s.lottery === loteria && s.before === numero; })
                     .forEach(function(s) { siguientes[s.after] = (siguientes[s.after] || 0) + 1; });
             }
             return Object.keys(siguientes).map(function(k) { return { num: k, c: siguientes[k] }; })
@@ -58454,7 +58517,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                 });
             }
             if (typeof sequenceHistory !== 'undefined')
-                sequenceHistory.filter(function(s){ return s.lottery===lot&&s.before===trig&&(!s.date||s.date<fecha); })
+                _seqFiltrada().filter(function(s){ return s.lottery===lot&&s.before===trig&&(!s.date||s.date<fecha); })
                     .forEach(function(s){ freq[s.after]=(freq[s.after]||0)+2; });
             return Object.entries(freq).sort(function(a,b){return b[1]-a[1];}).slice(0, Math.max(8, topN)).map(function(e){return e[0];});
         }
@@ -64646,7 +64709,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                 } catch (eH) {}
                 try {
                     if (typeof sequenceHistory !== 'undefined' && sequenceHistory) {
-                        sequenceHistory.filter(function(s) { return s.lottery === lot && s.before === nb; })
+                        _seqFiltrada().filter(function(s) { return s.lottery === lot && s.before === nb; })
                             .forEach(function(s) { siguientes[s.after] = (siguientes[s.after] || 0) + 1; totalDatos++; });
                     }
                 } catch (eS) {}
@@ -70677,7 +70740,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r98 · v46.9.164</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r100 · v46.9.166</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {

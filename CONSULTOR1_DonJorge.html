@@ -7255,6 +7255,30 @@
         let predictions = [];
         let accuracyLog = [];
         let sequenceHistory = []; // Nueva estructura para almacenar secuencias "después de"
+        // ═══ V46.9.165 (bug reportado por Leo): DEDUPLICACIÓN de secuencias ═══════
+        // Al capturar, el sistema registra automáticamente la secuencia "antes→después"
+        // en sequenceHistory, pero ese MISMO par ya se deriva de los registros
+        // consecutivos de capturedResults → se contaba DOBLE (2x pasaba a 4x en vez
+        // de 3x). Esta función devuelve las secuencias EXCLUYENDO las que duplican
+        // un registro capturado (misma lotería, fecha, hora y número resultante).
+        // Las secuencias antiguas cuyos registros ya no existen sí se conservan.
+        function _seqFiltrada() {
+            try {
+                var nCap = (capturedResults || []).length, nSeq = (sequenceHistory || []).length;
+                var cache = window._seqFiltCache;
+                if (cache && cache.k === nCap + '|' + nSeq) return cache.v;
+                var capSet = {};
+                (capturedResults || []).forEach(function(r) {
+                    if (r && r.lottery) capSet[r.lottery + '|' + r.date + '|' + (r.time || '') + '|' + r.number] = true;
+                });
+                var v = _seqFiltrada().filter(function(s) {
+                    if (!s || !s.lottery) return false;
+                    return !capSet[s.lottery + '|' + s.date + '|' + (s.time || '') + '|' + s.after];
+                });
+                window._seqFiltCache = { k: nCap + '|' + nSeq, v: v };
+                return v;
+            } catch (e) { return sequenceHistory || []; }
+        }
         let aiPredictions = []; // NUEVO: Almacenar predicciones IA
         let activeSuggestions = []; // NUEVO: Almacenar sugerencias del análisis activo
         let equalitySuggestions = []; // NUEVO: Almacenar sugerencias de igualdades
@@ -11188,7 +11212,7 @@
             }
 
             // Obtener datos desde sequenceHistory (nuevo)
-            const sequenceNumbers = sequenceHistory
+            const sequenceNumbers = _seqFiltrada()
                 .filter(s => s.lottery === lottery && s.before === number)
                 .map(s => s.after);
 
@@ -11203,7 +11227,7 @@
             });
 
             // Obtener última vez que ocurrió cada secuencia
-            sequenceHistory
+            _seqFiltrada()
                 .filter(s => s.lottery === lottery && s.before === number)
                 .forEach(s => {
                     const dateTime = new Date(s.date + ' ' + s.time);
@@ -11222,7 +11246,7 @@
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
             
             const recentCount = {};
-            sequenceHistory
+            _seqFiltrada()
                 .filter(s => s.lottery === lottery && s.before === number && new Date(s.date) >= thirtyDaysAgo)
                 .forEach(s => {
                     recentCount[s.after] = (recentCount[s.after] || 0) + 1;
@@ -11248,7 +11272,7 @@
                 .slice(0, 3);
 
             // Calcular confianza (porcentaje de veces que se repite)
-            const totalSequences = sequenceHistory.filter(s => s.lottery === lottery && s.before === number).length;
+            const totalSequences = _seqFiltrada().filter(s => s.lottery === lottery && s.before === number).length;
 
             // Identificar números huérfanos (que nunca han salido después de este número)
             const allPossibleNumbers = Array.from({length: 100}, (_, i) => String(i).padStart(2, '0'));
@@ -11276,7 +11300,7 @@
 
             // Análisis de tiempo entre secuencias
             let timeAnalysis = '';
-            const sequenceDates = sequenceHistory
+            const sequenceDates = _seqFiltrada()
                 .filter(s => s.lottery === lottery && s.before === number)
                 .map(s => new Date(s.date + ' ' + s.time))
                 .sort((a, b) => a - b);
@@ -11529,7 +11553,7 @@
                     
                     sorted.forEach(([seq, count], index) => {
                         const [before, after] = seq.split('→');
-                        const confidence = ((count / sequenceHistory.filter(s => s.lottery === lottery && s.before === before).length) * 100).toFixed(0);
+                        const confidence = ((count / _seqFiltrada().filter(s => s.lottery === lottery && s.before === before).length) * 100).toFixed(0);
                         html += `
                             <div class="number-box ${index < 3 ? 'hot' : 'warm'}" title="Aparece ${count} veces">
                                 ${before}→${after}
@@ -11559,7 +11583,7 @@
             let allNext = [];
             
             // Desde sequenceHistory
-            sequenceHistory
+            _seqFiltrada()
                 .filter(s => s.lottery === lottery && s.before === lastNumber)
                 .forEach(s => allNext.push(s.after));
             
@@ -14032,7 +14056,7 @@ ${groups.map((g,i)=>`
                 }
                 // También limpiar sequenceHistory
                 if (sequenceHistory && sequenceHistory.length > 0) {
-                    sequenceHistory = sequenceHistory.filter(s => !loteriasEliminar.includes(s.lottery));
+                    sequenceHistory = _seqFiltrada().filter(s => !loteriasEliminar.includes(s.lottery));
                 }
                 
                 const before = capturedResults.length;
@@ -14138,7 +14162,7 @@ ${groups.map((g,i)=>`
                     capturedResults = capturedResults.filter(r => !loteriasEliminar.includes(r.lottery));
                     reChanged += (beforeElim - capturedResults.length);
                     if (sequenceHistory && sequenceHistory.length > 0) {
-                        sequenceHistory = sequenceHistory.filter(s => !loteriasEliminar.includes(s.lottery));
+                        sequenceHistory = _seqFiltrada().filter(s => !loteriasEliminar.includes(s.lottery));
                     }
                     // Dedup contra duplicados
                     const seenSync = new Set();
@@ -27307,7 +27331,7 @@ ${groups.map((g,i)=>`
                 }
                 
                 // También buscar en sequenceHistory
-                sequenceHistory
+                _seqFiltrada()
                     .filter(s => s.lottery === loteria && s.before === ultimoNumero)
                     .forEach(s => {
                         siguientes[s.after] = (siguientes[s.after] || 0) + 1;
@@ -27388,7 +27412,7 @@ ${groups.map((g,i)=>`
                     }
                     
                     // sequenceHistory por terminación
-                    sequenceHistory
+                    _seqFiltrada()
                         .filter(s => s.lottery === loteria && s.before && s.before[1] === terminacion)
                         .forEach(s => {
                             siguientesTerm[s.after] = (siguientesTerm[s.after] || 0) + 1;
@@ -27490,7 +27514,7 @@ ${groups.map((g,i)=>`
                             }
                             
                             // También sequenceHistory
-                            sequenceHistory
+                            _seqFiltrada()
                                 .filter(s => s.lottery === loteria && s.before === num)
                                 .forEach(s => {
                                     siguientes[s.after] = (siguientes[s.after] || 0) + 1;
@@ -32283,7 +32307,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
             
             // 3. Obtener datos desde sequenceHistory (datos capturados dinámicamente)
             if (typeof sequenceHistory !== 'undefined') {
-                sequenceHistory
+                _seqFiltrada()
                     .filter(s => s.lottery === loteria && s.before === numero)
                     .forEach(s => {
                         frequency[s.after] = (frequency[s.after] || 0) + 2; // Mayor peso a datos recientes
@@ -39767,7 +39791,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
             }
             // También sumar sequenceHistory de Anguila
             if (typeof sequenceHistory !== 'undefined') {
-                sequenceHistory.filter(s => s.lottery === 'Anguila').forEach(s => {
+                _seqFiltrada().filter(s => s.lottery === 'Anguila').forEach(s => {
                     if (!despuesDeCross[s.before]) despuesDeCross[s.before] = {};
                     despuesDeCross[s.before][s.after] = (despuesDeCross[s.before][s.after] || 0) + 2;
                 });
@@ -41043,7 +41067,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                         // Factor 9: Después De (historial) (+2 puntos)
                         const ultimoNum = resultados.slice(-1)[0]?.number;
                         if (ultimoNum) {
-                            const secuencias = sequenceHistory.filter(s => s.lottery === lot && s.before === ultimoNum);
+                            const secuencias = _seqFiltrada().filter(s => s.lottery === lot && s.before === ultimoNum);
                             const frecuenciaDespues = {};
                             secuencias.forEach(s => frecuenciaDespues[s.after] = (frecuenciaDespues[s.after] || 0) + 1);
                             if (frecuenciaDespues[num] >= 2) {
@@ -49964,7 +49988,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                     }
                     // Source 3: sequenceHistory (con filtro temporal timestamp)
                     if (typeof sequenceHistory !== 'undefined') {
-                        sequenceHistory
+                        _seqFiltrada()
                             .filter(function(s) {
                                 if (s.lottery !== lot || s.before !== triggerNum) return false;
                                 if (s.timestamp) {
@@ -50057,7 +50081,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
             // Source 3: sequenceHistory registrado hasta la fecha (peso +1, igual al panel oficial)
             if (typeof sequenceHistory !== 'undefined') {
                 var limiteDate = usarTSEstricto ? null : new Date(fechaLimite + 'T23:59:59');
-                sequenceHistory.filter(function(s) {
+                _seqFiltrada().filter(function(s) {
                     if (s.lottery !== lot || s.before !== triggerNum) return false;
                     if (usarTSEstricto) {
                         // Filtro estricto por timestamp completo (fecha + hora)
@@ -50568,7 +50592,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                                 });
                             }
                             if (typeof sequenceHistory !== 'undefined')
-                                sequenceHistory.filter(function(s){ return s.lottery===lot&&s.before===trig&&(!s.date||s.date<fecha); })
+                                _seqFiltrada().filter(function(s){ return s.lottery===lot&&s.before===trig&&(!s.date||s.date<fecha); })
                                     .forEach(function(s){ freq[s.after]=(freq[s.after]||0)+2; });
                             return Object.entries(freq).sort(function(a,b){return b[1]-a[1];}).slice(0,Math.max(8, ceTopN)).map(function(e){return e[0];});
                         }
@@ -55617,7 +55641,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                 });
             }
             if (typeof sequenceHistory !== 'undefined') {
-                sequenceHistory.filter(function(s) { return s.lottery === loteria && s.before === numero; })
+                _seqFiltrada().filter(function(s) { return s.lottery === loteria && s.before === numero; })
                     .forEach(function(s) { siguientes[s.after] = (siguientes[s.after] || 0) + 1; });
             }
             return Object.keys(siguientes).map(function(k) { return { num: k, c: siguientes[k] }; })
@@ -56012,7 +56036,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                 });
             }
             if (typeof sequenceHistory !== 'undefined')
-                sequenceHistory.filter(function(s){ return s.lottery===lot&&s.before===trig&&(!s.date||s.date<fecha); })
+                _seqFiltrada().filter(function(s){ return s.lottery===lot&&s.before===trig&&(!s.date||s.date<fecha); })
                     .forEach(function(s){ freq[s.after]=(freq[s.after]||0)+2; });
             return Object.entries(freq).sort(function(a,b){return b[1]-a[1];}).slice(0, Math.max(8, topN)).map(function(e){return e[0];});
         }
@@ -62204,7 +62228,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                 } catch (eH) {}
                 try {
                     if (typeof sequenceHistory !== 'undefined' && sequenceHistory) {
-                        sequenceHistory.filter(function(s) { return s.lottery === lot && s.before === nb; })
+                        _seqFiltrada().filter(function(s) { return s.lottery === lot && s.before === nb; })
                             .forEach(function(s) { siguientes[s.after] = (siguientes[s.after] || 0) + 1; totalDatos++; });
                     }
                 } catch (eS) {}
@@ -67819,7 +67843,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#065f46,#0d9488);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83c\udfa9 An\u00e1lisis Predictivo \u2014 Consulta Don Jorge <span style="font-size:10px;opacity:0.75;">r92 · v46.9.164</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#a7f3d0;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83c\udfa9 An\u00e1lisis Predictivo \u2014 Consulta Don Jorge <span style="font-size:10px;opacity:0.75;">r94 · v46.9.166</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#a7f3d0;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
