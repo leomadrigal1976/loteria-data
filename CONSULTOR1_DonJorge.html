@@ -62171,10 +62171,11 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                 // cabecera con selectores (siempre visible)
                 function cabecera(cuerpo) {
                     var h = '<div style="background:rgba(40,26,4,0.96);border:2px solid #fbbf24;border-radius:10px;padding:13px;">';
-                    h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">';
-                    h += '<div style="flex:1;min-width:230px;"><div style="font-size:16px;font-weight:bold;color:#fde68a;text-shadow:0 0 8px rgba(253,230,138,0.35);">🔎 BUSCADOR — ¿qué sale DESPUÉS de un número?</div>';
-                    h += '<div style="font-size:10px;color:#fef3c7;margin-top:2px;">Elegí la lotería y escribí cualquier número de 2 dígitos. Usa todo el historial capturado más los datos pre-cargados.</div></div>';
-                    h += '<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:flex-end;">';
+                    // V46.9.168 (pedido de Leo): controles SIEMPRE a la IZQUIERDA — antes
+                    // el botón saltaba a la derecha al elegir la lotería.
+                    h += '<div style="font-size:16px;font-weight:bold;color:#fde68a;text-shadow:0 0 8px rgba(253,230,138,0.35);">🔎 BUSCADOR — ¿qué sale DESPUÉS de un número?</div>';
+                    h += '<div style="font-size:10px;color:#fef3c7;margin-top:2px;margin-bottom:8px;">Elegí la lotería y escribí cualquier número de 2 dígitos. Usa todo el historial capturado más los datos pre-cargados.</div>';
+                    h += '<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:flex-end;justify-content:flex-start;">';
                     h += '<div><label style="color:#fde68a;font-size:10px;font-weight:bold;display:block;margin-bottom:3px;">Lotería:</label>';
                     h += '<select id="djDespuesLot" onchange="_djDespuesRender()" style="padding:6px;background:#1e1e2e;color:white;border:1px solid #fbbf24;border-radius:6px;font-size:12px;">';
                     lots.forEach(function(L) { h += '<option value="' + L + '"' + (L === lot ? ' selected' : '') + '>' + L + '</option>'; });
@@ -62182,7 +62183,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                     h += '<div><label style="color:#fde68a;font-size:10px;font-weight:bold;display:block;margin-bottom:3px;">Número:</label>';
                     h += '<input id="djDespuesNum" type="text" inputmode="numeric" maxlength="2" value="' + nb + '" onkeydown="if(event.key===\'Enter\')_djDespuesRender()" style="width:62px;padding:6px;background:#1e1e2e;color:#fff;border:1px solid #fbbf24;border-radius:6px;font-size:15px;font-weight:bold;text-align:center;font-family:monospace;"></div>';
                     h += '<button onclick="_djDespuesRender()" style="background:linear-gradient(135deg,#b45309,#f59e0b);border:1px solid #fbbf24;color:#fff;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold;">🔎 Buscar</button>';
-                    h += '</div></div>';
+                    h += '</div>';
                     h += cuerpo;
                     h += '</div>';
                     return h;
@@ -66674,6 +66675,187 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
             }
         }
 
+        // ═══ V46.9.168 (pedido de Leo): "DESPUÉS DE" SIEMPRE VISIBLE en DDG vs PM ═══
+        // 1) "Después del ÚLTIMO número" con el MISMO formato de la pestaña
+        //    Repeticiones y Secuencias (historial COMPLETO + pre-cargados + secuencias).
+        // 2) Abajo: los "después de" de los sorteos del DÍA ANTERIOR a la fecha de
+        //    consulta, en orden cronológico — quedan FIJOS durante el día de consulta.
+        function _ddgPmT10Toggle(id) {
+            var d = document.getElementById(id);
+            if (!d) return;
+            var abrir = (d.style.display === 'none');
+            d.style.display = abrir ? 'block' : 'none';
+            var a = document.getElementById(id + '_arrow');
+            if (a) a.innerHTML = abrir ? '▲' : '▼';
+            var b = document.getElementById(id + '_btn');
+            if (b) b.innerHTML = abrir ? '▲ Ocultar Top 10' : '▼ Top 10';
+        }
+        function _ddgPmDespuesDeCalc(lot, nb) {
+            // Cálculo del "después de NB" con historial COMPLETO: capturados +
+            // datos pre-cargados + secuencias registradas (conteo puro, V46.9.164).
+            var serie = (capturedResults || [])
+                .filter(function(r) { return r && r.lottery === lot && r.number && r.date; })
+                .slice()
+                .sort(function(a, b) {
+                    var ka = a.date + ' ' + (a.time || ''), kb = b.date + ' ' + (b.time || '');
+                    return ka < kb ? -1 : ka > kb ? 1 : 0;
+                });
+            var siguientes = {}, totalDatos = 0;
+            for (var i = 0; i < serie.length - 1; i++) {
+                if (String(serie[i].number).substring(0, 2) === nb) {
+                    var sig = String(serie[i + 1].number).substring(0, 2);
+                    siguientes[sig] = (siguientes[sig] || 0) + 1;
+                    totalDatos++;
+                }
+            }
+            try {
+                if (typeof HISTORICAL_DATA !== 'undefined' && HISTORICAL_DATA) {
+                    var lk = lot.toLowerCase();
+                    if (HISTORICAL_DATA[lk] && HISTORICAL_DATA[lk].groups) {
+                        Object.keys(HISTORICAL_DATA[lk].groups).forEach(function(g) {
+                            (HISTORICAL_DATA[lk].groups[g] || []).forEach(function(item) {
+                                if (item && item.after === nb && item.numbers) {
+                                    item.numbers.forEach(function(n) {
+                                        var nn = String(n).substring(0, 2);
+                                        siguientes[nn] = (siguientes[nn] || 0) + 1;
+                                        totalDatos++;
+                                    });
+                                }
+                            });
+                        });
+                    }
+                }
+            } catch (eH) {}
+            try {
+                if (typeof sequenceHistory !== 'undefined' && sequenceHistory) {
+                    _seqFiltrada().filter(function(s) { return s.lottery === lot && s.before === nb; })
+                        .forEach(function(s) { siguientes[s.after] = (siguientes[s.after] || 0) + 1; totalDatos++; });
+                }
+            } catch (eS) {}
+            var lista = Object.keys(siguientes).map(function(num) {
+                var lastIdx = -1;
+                for (var si = serie.length - 1; si >= 0; si--) {
+                    if (String(serie[si].number).substring(0, 2) === num) { lastIdx = si; break; }
+                }
+                var lastApp = lastIdx >= 0 ? serie[lastIdx] : null;
+                var sinSalir = lastIdx >= 0 ? (serie.length - 1 - lastIdx) : null;
+                var todasAp = [];
+                for (var sj = 0; sj < serie.length; sj++) if (String(serie[sj].number).substring(0, 2) === num) todasAp.push(sj);
+                var ciclo = null;
+                if (todasAp.length >= 2) {
+                    var suma = 0;
+                    for (var gi = 1; gi < todasAp.length; gi++) suma += (todasAp[gi] - todasAp[gi - 1]);
+                    ciclo = Math.round(suma / (todasAp.length - 1));
+                } else if (todasAp.length === 1 && serie.length > 0) {
+                    ciclo = Math.round(serie.length / 100);
+                }
+                return {
+                    numero: num, frecuencia: siguientes[num],
+                    lastDate: lastApp ? lastApp.date : null, lastTime: lastApp ? lastApp.time : null,
+                    sorteosSinSalir: sinSalir, cicloPromedio: ciclo,
+                    cicloExcedido: (ciclo !== null && sinSalir !== null && sinSalir >= ciclo)
+                };
+            }).sort(function(a, b) { return b.frecuencia - a.frecuencia; }).slice(0, 10);
+            return { lista: lista, totalDatos: totalDatos };
+        }
+        function _ddgPmDespuesCardsHTML(lista) {
+            // Cards con el MISMO formato visual del "Después del ÚLTIMO número" de la
+            // pestaña Repeticiones y Secuencias (imagen de referencia de Leo).
+            var h = '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+            lista.forEach(function(d, i) {
+                var bgCol = i === 0 ? '#1f2937' : i < 3 ? '#991b1b' : i < 5 ? '#1e40af' : '#374151';
+                var size = i < 3 ? '22px' : '16px';
+                var medal = i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : '';
+                h += '<div style="background:' + bgCol + ';padding:8px 14px;border-radius:10px;text-align:center;min-width:65px;' + (i === 0 ? 'border:2px solid gold;box-shadow:0 0 12px rgba(251,191,36,0.5);' : '') + '">';
+                h += '<div style="font-size:' + size + ';font-weight:bold;color:white;">' + medal + d.numero + '</div>';
+                h += '<div style="font-size:10px;color:rgba(255,255,255,0.7);">' + d.frecuencia + 'x hist.</div>';
+                if (d.cicloPromedio !== null && d.cicloPromedio > 0) {
+                    var cicloColor = d.cicloExcedido ? '#fca5a5' : 'rgba(255,255,255,0.5)';
+                    var cicloIcon = d.cicloExcedido ? '🔴' : '🟢';
+                    h += '<div style="font-size:9px;color:' + cicloColor + ';margin-top:2px;background:rgba(0,0,0,0.25);padding:1px 5px;border-radius:5px;">' + cicloIcon + ' ciclo ~' + d.cicloPromedio + 's' + (d.cicloExcedido ? ' ⚡EXCEDIDO' : '') + '</div>';
+                }
+                if (d.sorteosSinSalir !== null && d.sorteosSinSalir !== undefined) {
+                    var sinSalirColor = d.cicloExcedido ? '#fca5a5' : d.sorteosSinSalir > 20 ? '#fbbf24' : 'rgba(255,255,255,0.6)';
+                    var sinSalirIcon = d.cicloExcedido ? '🔥 ' : d.sorteosSinSalir > 10 ? '⏰ ' : '📊 ';
+                    var sinSalirBg = d.cicloExcedido ? 'rgba(239,68,68,0.35)' : d.sorteosSinSalir > 10 ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.1)';
+                    h += '<div style="font-size:10px;color:' + sinSalirColor + ';margin-top:3px;background:' + sinSalirBg + ';padding:1px 6px;border-radius:6px;">' + sinSalirIcon + (d.sorteosSinSalir === 0 ? '✅ Salió último' : 'Van ' + d.sorteosSinSalir + ' sin salir') + '</div>';
+                }
+                if (d.lastDate) {
+                    var ldParts = d.lastDate.split('-');
+                    var ld = ldParts[2] + '-' + ldParts[1] + '-' + ldParts[0];
+                    var lt = '';
+                    try { lt = d.lastTime ? ' ' + convertTo12Hour(d.lastTime) : ''; } catch (eC) {}
+                    h += '<div style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:1px;">Últ: ' + ld + lt + '</div>';
+                }
+                h += '</div>';
+            });
+            h += '</div>';
+            return h;
+        }
+        function _ddgPmDespuesUltimoHTML(r, fecha) {
+            var trigger = r.trigger ? String(r.trigger).padStart(2, '0') : null;
+            if (!trigger) return '';
+            var calc = _ddgPmDespuesDeCalc(r.lot, trigger);
+            var hUlt = '';
+            try { hUlt = r.ultimoTime ? ' ' + convertTo12Hour(r.ultimoTime) : ''; } catch (eC) {}
+            var h = '<div style="margin-top:12px;padding-top:10px;border-top:2px dashed rgba(251,191,36,0.4);">';
+            h += '<div style="background:linear-gradient(135deg,#fbbf24 0%,#f59e0b 100%);padding:16px;border-radius:12px;margin-bottom:12px;">';
+            h += '<h5 style="color:#1f2937;margin:0 0 8px 0;font-size:15px;">🎯 Después del ÚLTIMO número: <span style="background:#1f2937;color:#fbbf24;padding:4px 14px;border-radius:20px;font-size:20px;">' + trigger + '</span>';
+            h += ' <small style="color:#92400e;">(' + (r.ultimoFecha || '') + hUlt + ')</small>';
+            h += ' <span style="background:#059669;color:white;padding:2px 8px;border-radius:10px;font-size:10px;">📊 HISTORIAL COMPLETO</span>';
+            h += '</h5>';
+            if (calc.lista.length > 0) {
+                h += '<p style="color:#78350f;font-size:12px;margin:0 0 10px 0;">Basado en TODO el historial capturado + datos pre-cargados (' + calc.totalDatos + ' datos encontrados):</p>';
+                h += _ddgPmDespuesCardsHTML(calc.lista);
+            } else {
+                h += '<p style="color:#78350f;font-size:12px;margin:0;">El número ' + trigger + ' no tiene suficiente historial en esta lotería. A medida que se capturen más sorteos, aparecerán las tendencias.</p>';
+            }
+            h += '</div>';
+            h += _ddgPmSecAyerHTML(r.lot, fecha);
+            h += '</div>';
+            return h;
+        }
+        function _ddgPmSecAyerHTML(lot, fechaRef) {
+            // Los "después de" de los sorteos del DÍA ANTERIOR a la fecha de consulta,
+            // en el orden en que salieron. Como ese día ya cerró, estos tops quedan
+            // FIJOS durante todo el día de consulta.
+            try {
+                var ay = new Date((fechaRef || '') + 'T12:00:00');
+                if (isNaN(ay.getTime())) ay = new Date();
+                ay.setDate(ay.getDate() - 1);
+                var fechaAyer = ay.getFullYear() + '-' + String(ay.getMonth() + 1).padStart(2, '0') + '-' + String(ay.getDate()).padStart(2, '0');
+                var sorteosAyer = (capturedResults || [])
+                    .filter(function(r2) { return r2 && r2.lottery === lot && r2.number && r2.date === fechaAyer; })
+                    .slice()
+                    .sort(function(a, b) {
+                        var ka = a.date + ' ' + (a.time || ''), kb = b.date + ' ' + (b.time || '');
+                        return ka < kb ? -1 : ka > kb ? 1 : 0;
+                    });
+                var h = '<div style="background:linear-gradient(135deg,#4c1d95,#312e81);border:2px solid #8b5cf6;border-radius:12px;padding:14px;">';
+                h += '<div style="font-size:14px;font-weight:bold;color:#ede9fe;margin-bottom:4px;">📅 "Después de" del DÍA ANTERIOR — ' + lot + ' <span style="font-size:10px;color:#c4b5fd;font-weight:normal;">(' + fechaAyer + ') · FIJOS durante el día de consulta</span></div>';
+                if (!sorteosAyer.length) {
+                    h += '<div style="font-size:11px;color:#c4b5fd;">Sin sorteos capturados el día anterior (' + fechaAyer + ') en ' + lot + '.</div></div>';
+                    return h;
+                }
+                h += '<div style="font-size:10px;color:#a5b4fc;margin-bottom:10px;">En el orden en que salieron. Cada número muestra su top-5 "después de" con historial COMPLETO:</div>';
+                sorteosAyer.forEach(function(sorteo) {
+                    var num = String(sorteo.number).substring(0, 2);
+                    var calc2 = _ddgPmDespuesDeCalc(lot, num);
+                    var hf = sorteo.time || '';
+                    try { if (hf && typeof convertTo12Hour === 'function') hf = convertTo12Hour(sorteo.time); } catch (e2) {}
+                    h += '<div style="background:rgba(0,0,0,0.25);border-radius:9px;padding:9px;margin-bottom:8px;">';
+                    h += '<div style="margin-bottom:6px;"><span style="background:#1e1b4b;border:2px solid #a78bfa;border-radius:50%;padding:4px 9px;font-family:monospace;font-size:15px;font-weight:bold;color:#fff;">' + num + '</span> <span style="font-size:11px;color:#c4b5fd;">' + hf + '</span> <span style="font-size:9px;color:#8b8fb8;">(' + calc2.totalDatos + ' datos)</span></div>';
+                    if (calc2.lista.length > 0) {
+                        h += _ddgPmDespuesCardsHTML(calc2.lista.slice(0, 5));
+                    } else {
+                        h += '<div style="font-size:10px;color:#94a3b8;">Sin historial de secuencias para el ' + num + ' todavía.</div>';
+                    }
+                    h += '</div>';
+                });
+                h += '</div>';
+                return h;
+            } catch (e) { console.error('[SEC-AYER-DDGPM]', e); return ''; }
+        }
         function ejecutarDdgVsPm() {
             var contChecks = document.getElementById('ddgPmLotChecks');
             var inFecha = document.getElementById('ddgPmFecha');
@@ -66870,7 +67052,8 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                         html += '</div>';
                         html += '<div style="display:flex;gap:6px;align-items:center;">';
                         html += '<span style="background:' + statusLabelBg + ';color:' + statusLabelColor + ';border:1px solid ' + statusBorder + ';padding:5px 12px;border-radius:6px;font-size:12px;font-weight:bold;">' + statusLabel + '</span>';
-                        html += '<button onclick="(function(b){var d=document.getElementById(\'' + cardId + '\');if(d.style.display===\'none\'){d.style.display=\'block\';b.innerHTML=\'\u25B2 Ocultar\';}else{d.style.display=\'none\';b.innerHTML=\'\u25BC Detalle\';}})(this)" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#cbd5e1;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px;">▲ Ocultar</button>';
+                        // V46.9.168 (pedido de Leo): el Top 10 DDG/PM arranca MINIMIZADO — el botón y la franja lo despliegan
+                        html += '<button id="' + cardId + '_btn" onclick="_ddgPmT10Toggle(\'' + cardId + '\')" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#cbd5e1;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px;">▼ Top 10</button>';
                         html += '</div>';
                         html += '</div>';
 
@@ -67040,7 +67223,14 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                         }
 
                         // Detalle colapsable: tablas DDG + PM lado a lado
-                        html += '<div id="' + cardId + '" style="display:block;margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.15);">';
+                        // V46.9.168 (pedido de Leo): franja tocable — el Top 10 DDG/PM va MINIMIZADO
+                        // por defecto y se despliega/oculta al tocar. Lo que sigue (Después de,
+                        // Grupos Pendientes) NUNCA se oculta.
+                        html += '<div id="' + cardId + '_strip" onclick="_ddgPmT10Toggle(\'' + cardId + '\')" style="cursor:pointer;margin-top:10px;background:linear-gradient(90deg,rgba(162,155,254,0.12),rgba(255,210,0,0.12));border:1px dashed rgba(255,210,0,0.5);border-radius:8px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;">';
+                        html += '<span style="font-size:12px;font-weight:bold;color:#ffd200;">🎯 Top 10 DDG · 🏆 Top 10 Panel Maestro <span style="color:#94a3b8;font-weight:normal;font-size:10px;">(tocá para desplegar/ocultar)</span></span>';
+                        html += '<span id="' + cardId + '_arrow" style="color:#ffd200;font-size:13px;">▼</span>';
+                        html += '</div>';
+                        html += '<div id="' + cardId + '" style="display:none;margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.15);">';
                         // V46.9.24: la franja vertical ahora envuelve TODA la card (arriba),
                         // así que aquí solo va el grid de las dos columnas.
                         html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
@@ -67346,6 +67536,12 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
 
                         html += '</div>'; // grid 2 cols
                         html += '</div>'; // detalle colapsable
+
+                        // V46.9.168 (pedido de Leo): "DESPUÉS DE" SIEMPRE VISIBLE (formato de la
+                        // pestaña Repeticiones y Secuencias) + secuencia del día anterior FIJA,
+                        // antes de GRUPOS PENDIENTES. No se colapsa nunca. Los insights no se
+                        // repiten acá porque ya están en el apartado previo de la card.
+                        try { html += _ddgPmDespuesUltimoHTML(r, fecha); } catch (eDU) { console.error('[DESP-ULT-DDGPM]', eDU); }
 
                         // V46.9.26 — ANÁLISIS DE GRUPOS PENDIENTES (mes en curso + ventana móvil)
                         try {
@@ -67843,7 +68039,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#065f46,#0d9488);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83c\udfa9 An\u00e1lisis Predictivo \u2014 Consulta Don Jorge <span style="font-size:10px;opacity:0.75;">r95 · v46.9.167</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#a7f3d0;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83c\udfa9 An\u00e1lisis Predictivo \u2014 Consulta Don Jorge <span style="font-size:10px;opacity:0.75;">r96 · v46.9.168</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#a7f3d0;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
