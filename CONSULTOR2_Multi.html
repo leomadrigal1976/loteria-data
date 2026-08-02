@@ -28261,6 +28261,7 @@ function senalesDe(nn) {
                 // panel del filtro (oculto por defecto)
                 h += '<div id="ngpFiltroPanel" style="display:none;background:rgba(8,47,73,0.6);border:1px solid #22d3ee;border-radius:9px;padding:10px;margin-top:9px;">';
                 h += '<div style="font-size:11px;font-weight:bold;color:#a5f3fc;margin-bottom:6px;">Elegí una o varias loterías — se muestran sus números con más señales, en el orden de grupos más acertado:</div>';
+                h += (typeof _ngpGrpDiasCtlHTML === 'function' ? _ngpGrpDiasCtlHTML() : ''); // V46.9.169 (pedido de Leo)
                 h += '<div style="display:flex;gap:8px;margin-bottom:7px;">';
                 h += '<button onclick="_ngpFiltroTodas(true)" style="background:rgba(34,211,238,0.15);border:1px solid #22d3ee;color:#a5f3fc;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">✓ Todas</button>';
                 h += '<button onclick="_ngpFiltroTodas(false)" style="background:rgba(148,163,184,0.12);border:1px solid #64748b;color:#cbd5e1;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">✕ Ninguna (limpiar)</button>';
@@ -28276,6 +28277,7 @@ function senalesDe(nn) {
                 // más señales + rezago en ese grupo, respetando el orden de importancia.
                 h += '<div id="ngpExtractoPanel" style="display:none;background:rgba(69,26,3,0.5);border:1px solid #f59e0b;border-radius:9px;padding:10px;margin-top:9px;">';
                 h += '<div style="font-size:11px;font-weight:bold;color:#fcd34d;margin-bottom:6px;">Elegí lotería(s) — se extraen SOLO los números con más señales que coinciden con su rezago en cada grupo, en orden de importancia de los grupos:</div>';
+                h += (typeof _ngpGrpDiasCtlHTML === 'function' ? _ngpGrpDiasCtlHTML() : ''); // V46.9.169 (pedido de Leo)
                 h += '<div style="display:flex;flex-wrap:wrap;gap:5px 12px;margin-bottom:8px;">';
                 h += '<div style="display:flex;gap:8px;margin-bottom:7px;">';
                 h += '<button onclick="_ngpExtractoTodasBtn(true)" style="background:rgba(245,158,11,0.15);border:1px solid #f59e0b;color:#fcd34d;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">✓ Todas</button>';
@@ -28306,6 +28308,7 @@ function senalesDe(nn) {
                 // V46.9.148 (pedido de Leo): panel RESUMEN — todas las loterías ordenadas por
                 // fuerza de señales (suma del top-5 + bonus por jale), podio + top de jugadas.
                 h += '<div id="ngpResumenPanel" style="display:none;background:rgba(46,16,101,0.4);border:1px solid #a855f7;border-radius:9px;padding:10px;margin-top:9px;">';
+                h += (typeof _ngpGrpDiasCtlHTML === 'function' ? _ngpGrpDiasCtlHTML() : ''); // V46.9.169 (pedido de Leo)
                 h += '<div id="ngpResumenResultado" style="max-height:600px;overflow-y:auto;"><div style="font-size:11px;color:#94a3b8;padding:6px;">Calculando…</div></div>';
                 h += '</div>';
                 // V46.9.155 (pedido de Leo): panel "Buscar Después de" (mismo buscador de Don Jorge)
@@ -28722,6 +28725,20 @@ function senalesDe(nn) {
                                 else if (esSigue10) { scoreL += 3; tiposL.push('🎯 sigue al ' + s5.ult + ' (top-10 después-de)'); }
                                 if (dth2.decTop.indexOf(nn[0]) >= 0) { scoreL += 1; tiposL.push('dec HOY'); }
                                 if (dth2.termTop.indexOf(nn[1]) >= 0) { scoreL += 1; tiposL.push('term HOY'); }
+                                // V46.9.169 (pedido de Leo): 📁 grupo pendiente ≥N días (+1) y
+                                // 🕐 horario salidor (+2 si AÚN FALTA hoy; si ya pasó, solo comenta).
+                                try {
+                                    var gpC = (typeof _ngpGruposPendientesDias === 'function') ? _ngpGruposPendientesDias(L) : {};
+                                    var _tuvoGrpC = false, _tuvoHorC = false;
+                                    if (gpC[g]) { scoreL += 1; _tuvoGrpC = true; tiposL.push('📁 ' + g + ' pend. ' + gpC[g].dias + 'd'); }
+                                    var hsC = (typeof _ngpHorarioSalidor === 'function') ? _ngpHorarioSalidor(L, nn) : null;
+                                    if (hsC && hsC.faltaHoy) { scoreL += 2; _tuvoHorC = true; tiposL.push('🕐 más salidor ' + hsC.horaFmt + ' (x' + hsC.veces + ') — FALTA HOY'); }
+                                    else if (hsC) { tiposL.push('🕐 más salidor ' + hsC.horaFmt + ' (x' + hsC.veces + ')'); }
+                                    // V46.9.170 (pedido de Leo): GRUPO más salidor del PRÓXIMO sorteo (+2)
+                                    var gsC = (typeof _ngpGrupoSalidorHorario === 'function') ? _ngpGrupoSalidorHorario(L) : null;
+                                    if (gsC && gsC.grupo === g) { scoreL += 2; _tuvoHorC = true; tiposL.push('🕐📁 ' + g + ' MÁS salidor del próx. sorteo ' + gsC.horaFmt + ' (x' + gsC.veces + ')'); }
+                                    if (_tuvoGrpC && _tuvoHorC) tiposL.push('🔥 CRUCE: grupo pendiente + horario salidor');
+                                } catch (eGH3) {}
                                 lista.push({ num: nn, score: scoreL, tipos: tiposL, pos: pos });
                             });
                         });
@@ -28869,6 +28886,7 @@ function senalesDe(nn) {
 
         // Render del filtro por lotería: números con más señales para lo elegido
         function _ngpFiltroRender() {
+            window._ngpGrpPendCache = {}; window._ngpHorCache = {}; window._ngpGrpHorCache = {}; // V46.9.169/170: señales con datos frescos
             // V46.9.140: escribir en TODAS las instancias (IDs duplicados entre vistas)
             var conts = document.querySelectorAll('[id="ngpFiltroResultado"]');
             if (!conts.length || !window._ngpFiltro) return;
@@ -28910,6 +28928,22 @@ function senalesDe(nn) {
                     }
                     if (dthF.decTop.indexOf(nn[0]) >= 0) { scoreSel += 1; tiposSel.push('dec ' + nn[0] + 'x HOY'); }
                     if (dthF.termTop.indexOf(nn[1]) >= 0) { scoreSel += 1; tiposSel.push('term x' + nn[1] + ' HOY'); }
+                    // V46.9.169 (pedido de Leo): 📁 grupo pendiente ≥N días (+1) y
+                    // 🕐 horario salidor (+2 si AÚN FALTA hoy; si ya pasó, solo comenta).
+                    var _tuvoGrpF = false, _tuvoHorF = false;
+                    sel.forEach(function(Lgh) {
+                        try {
+                            var gpF = _ngpGruposPendientesDias(Lgh);
+                            if (gpF[g]) { scoreSel += 1; _tuvoGrpF = true; tiposSel.push('📁 ' + g + ' pend. ' + gpF[g].dias + 'd en ' + Lgh); }
+                            var hsF = _ngpHorarioSalidor(Lgh, nn);
+                            if (hsF && hsF.faltaHoy) { scoreSel += 2; _tuvoHorF = true; tiposSel.push('🕐 más salidor ' + hsF.horaFmt + ' en ' + Lgh + ' (x' + hsF.veces + ') — FALTA HOY'); }
+                            else if (hsF) { tiposSel.push('🕐 más salidor ' + hsF.horaFmt + ' en ' + Lgh + ' (x' + hsF.veces + ')'); }
+                            // V46.9.170 (pedido de Leo): GRUPO más salidor del PRÓXIMO sorteo (+2)
+                            var gsF = _ngpGrupoSalidorHorario(Lgh);
+                            if (gsF && gsF.grupo === g) { scoreSel += 2; _tuvoHorF = true; tiposSel.push('🕐📁 ' + g + ' MÁS salidor del próx. sorteo ' + gsF.horaFmt + ' en ' + Lgh + ' (x' + gsF.veces + ')'); }
+                        } catch (eGH) {}
+                    });
+                    if (_tuvoGrpF && _tuvoHorF) { tiposSel.push('🔥 CRUCE: grupo pendiente + horario salidor'); }
                     // rezago del número en las loterías elegidas
                     var rezSel = [];
                     sel.forEach(function(L) {
@@ -29035,10 +29069,15 @@ function senalesDe(nn) {
                 // fila 3: badges de señales
                 if (f.tipos.length) {
                     html += '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">';
-                    f.tipos.slice(0, 6).forEach(function(t) {
+                    f.tipos.slice(0, 9).forEach(function(t) {
                         var esJaleT = (t.indexOf('⏰') === 0);
                         var esSigT = (t.indexOf('🎯') === 0); // V46.9.159
-                        html += '<span style="background:' + (esSigT ? '#db2777' : esJaleT ? '#ea580c' : 'rgba(251,191,36,0.12)') + ';border:1px solid rgba(253,230,138,0.4);border-radius:4px;padding:1px 4px;font-size:8px;color:' + ((esJaleT || esSigT) ? '#fff' : '#fef3c7') + ';font-weight:' + ((esJaleT || esSigT) ? 'bold' : 'normal') + ';">' + t + '</span>';
+                        var esGrpT = (t.indexOf('📁') === 0); // V46.9.169
+                        var esHorT = (t.indexOf('🕐') === 0); // V46.9.169
+                        var esCruT = (t.indexOf('🔥 CRUCE') === 0); // V46.9.169
+                        var bgT = esCruT ? 'linear-gradient(90deg,#b91c1c,#f59e0b)' : esHorT ? '#0f766e' : esGrpT ? '#1d4ed8' : esSigT ? '#db2777' : esJaleT ? '#ea580c' : 'rgba(251,191,36,0.12)';
+                        var fuerteT = (esJaleT || esSigT || esGrpT || esHorT || esCruT);
+                        html += '<span style="background:' + bgT + ';border:1px solid rgba(253,230,138,0.4);border-radius:4px;padding:1px 4px;font-size:8px;color:' + (fuerteT ? '#fff' : '#fef3c7') + ';font-weight:' + (fuerteT ? 'bold' : 'normal') + ';">' + t + '</span>';
                     });
                     html += '</div>';
                 }
@@ -29332,6 +29371,181 @@ function senalesDe(nn) {
         // ═══ V46.9.159 (pedido de Leo): top-5 "después de" del ÚLTIMO salido en L ═
         // Señal fuerte: si un número está en el top-5 histórico de seguidores del
         // último número capturado en la lotería, pesa +5 en las señales.
+        // ═══ V46.9.169 (pedido de Leo): GRUPO PENDIENTE ≥N DÍAS + HORARIO SALIDOR ═══
+        // 1) 📁 Grupo pendiente: NINGÚN número del grupo ha salido en esa lotería en
+        //    N días o más (N parametrizable, 15 por defecto) → +1 al score.
+        // 2) 🕐 Horario salidor: horario donde el número históricamente MÁS sale en esa
+        //    lotería. Si ese horario AÚN FALTA por jugarse hoy → +2 (un poquito más de
+        //    peso que la señal de grupo, como pidió Leo). Si ya se jugó, queda como
+        //    comentario informativo sin puntos.
+        // 3) 🔥 CRUCE: si un número junta ambas señales, se marca la confluencia.
+        // Aplica en: Filtrar por lotería, Filtrar por Lotería Con Mayores Señales,
+        // Resumen: Loterías Más Fuertes y el Top 10 de jugadas que sale del resumen.
+        function _ngpGrpDiasUmbral() {
+            try {
+                var v = parseInt(localStorage.getItem('ngpGrpPendDias') || '15', 10);
+                return (v && v >= 3 && v <= 365) ? v : 15;
+            } catch (e) { return 15; }
+        }
+        function _ngpGrpDiasSet(inp) {
+            var v = parseInt(inp && inp.value, 10);
+            if (!v || v < 3 || v > 365) v = 15;
+            try { localStorage.setItem('ngpGrpPendDias', String(v)); } catch (e) {}
+            try { document.querySelectorAll('[id="ngpGrpDiasInp"]').forEach(function(x) { x.value = v; }); } catch (e) {}
+            window._ngpGrpPendCache = {}; window._ngpHorCache = {}; window._ngpGrpHorCache = {};
+            try { if (typeof _ngpFiltroRender === 'function') _ngpFiltroRender(); } catch (e) {}
+            try { if (typeof _ngpExtractoRender === 'function') _ngpExtractoRender(); } catch (e) {}
+            try { if (typeof _ngpResumenRender === 'function') _ngpResumenRender(); } catch (e) {}
+        }
+        function _ngpGrpDiasCtlHTML() {
+            return '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:7px;background:rgba(29,78,216,0.15);border:1px dashed #60a5fa;border-radius:6px;padding:5px 8px;">' +
+                '<span style="font-size:10px;font-weight:bold;color:#93c5fd;">📁 Señal: grupo COMPLETO pendiente ≥</span>' +
+                '<input id="ngpGrpDiasInp" type="number" min="3" max="365" value="' + _ngpGrpDiasUmbral() + '" onchange="_ngpGrpDiasSet(this)" style="width:54px;background:#0c1a3a;color:#fff;border:1px solid #60a5fa;border-radius:5px;font-size:11px;padding:3px 5px;text-align:center;">' +
+                '<span style="font-size:10px;color:#93c5fd;">días (+1) · <strong style="color:#5eead4;">🕐 número más salidor en horario que AÚN FALTA hoy (+2)</strong> · <strong style="color:#5eead4;">🕐📁 grupo MÁS salidor del PRÓXIMO sorteo (+2)</strong> · 🔥 cruce = pendiente + horario</span>' +
+                '</div>';
+        }
+        function _ngpFechaHoyLocal() {
+            var d = new Date();
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        }
+        function _ngpGruposPendientesDias(lot) {
+            // Grupos donde NINGÚN número ha salido en 'lot' en ≥ umbral días.
+            // Devuelve { 'Grupo X': { dias, ultima }, ... } solo con los que superan el umbral.
+            var umbral = _ngpGrpDiasUmbral();
+            var hoyS = _ngpFechaHoyLocal();
+            window._ngpGrpPendCache = window._ngpGrpPendCache || {};
+            var ck = lot + '|' + umbral + '|' + hoyS;
+            if (window._ngpGrpPendCache[ck]) return window._ngpGrpPendCache[ck];
+            var res = {};
+            try {
+                var ultPorNum = {};
+                (capturedResults || []).forEach(function(r) {
+                    if (!r || r.lottery !== lot || !r.number || !r.date) return;
+                    var nn = String(r.number).substring(0, 2);
+                    if (!ultPorNum[nn] || r.date > ultPorNum[nn]) ultPorNum[nn] = r.date;
+                });
+                if (Object.keys(ultPorNum).length) {
+                    var hoyD = new Date(hoyS + 'T12:00:00');
+                    Object.keys(NUMBER_GROUPS || {}).forEach(function(g) {
+                        var ultG = null;
+                        (NUMBER_GROUPS[g] || []).forEach(function(nn2) {
+                            var u = ultPorNum[nn2];
+                            if (u && (!ultG || u > ultG)) ultG = u;
+                        });
+                        if (!ultG) return; // grupo sin registro en esta lotería: no alertar sin datos
+                        var dias = Math.round((hoyD - new Date(ultG + 'T12:00:00')) / 86400000);
+                        if (dias >= umbral) res[g] = { dias: dias, ultima: ultG };
+                    });
+                }
+            } catch (e) {}
+            window._ngpGrpPendCache[ck] = res;
+            return res;
+        }
+        function _ngpHoraNorm2(t) {
+            var s = ('' + (t || '')).trim();
+            var p = s.split(':');
+            if (p.length < 2) return null;
+            var hh = p[0].length < 2 ? '0' + p[0] : p[0];
+            return hh + ':' + p[1].substring(0, 2);
+        }
+        function _ngpHorarioSalidor(lot, num) {
+            // Horario donde 'num' históricamente MÁS ha salido en 'lot', y si ese
+            // horario aún falta por jugarse HOY (no capturado hoy y la hora no pasó
+            // hace más de 45 min — margen por capturas tardías).
+            var hoyS = _ngpFechaHoyLocal();
+            window._ngpHorCache = window._ngpHorCache || {};
+            var ck = lot + '|' + hoyS;
+            var C = window._ngpHorCache[ck];
+            if (!C) {
+                C = { porNum: {}, salidosHoy: {} };
+                try {
+                    (capturedResults || []).forEach(function(r) {
+                        if (!r || r.lottery !== lot || !r.number || !r.time) return;
+                        var t = _ngpHoraNorm2(r.time);
+                        if (!t) return;
+                        var nn = String(r.number).substring(0, 2);
+                        if (!C.porNum[nn]) C.porNum[nn] = {};
+                        C.porNum[nn][t] = (C.porNum[nn][t] || 0) + 1;
+                        if (r.date === hoyS) C.salidosHoy[t] = true;
+                    });
+                } catch (e) {}
+                window._ngpHorCache[ck] = C;
+            }
+            var cnt = C.porNum[num];
+            if (!cnt) return null;
+            var mejor = null, veces = 0, total = 0;
+            Object.keys(cnt).forEach(function(t2) { total += cnt[t2]; if (cnt[t2] > veces) { veces = cnt[t2]; mejor = t2; } });
+            if (!mejor || veces < 2) return null; // muestra muy chica: no opinar
+            var faltaHoy = false;
+            try {
+                if (!C.salidosHoy[mejor]) {
+                    var ahora = new Date();
+                    var nowMin = ahora.getHours() * 60 + ahora.getMinutes();
+                    var pm = mejor.split(':');
+                    var horMin = parseInt(pm[0], 10) * 60 + parseInt(pm[1], 10);
+                    faltaHoy = (horMin >= nowMin - 45);
+                }
+            } catch (e) {}
+            var fmt = mejor;
+            try { if (typeof convertTo12Hour === 'function') fmt = convertTo12Hour(mejor); } catch (e) {}
+            return { hora: mejor, horaFmt: fmt, veces: veces, total: total, faltaHoy: faltaHoy };
+        }
+        function _ngpGrupoSalidorHorario(lot) {
+            // V46.9.170 (pedido de Leo): para el PRÓXIMO sorteo pendiente de HOY en
+            // 'lot', ¿qué GRUPO es históricamente el MÁS salidor en ese horario?
+            // Sus números sugeridos suman +2 (mismo peso que el número salidor).
+            var hoyS = _ngpFechaHoyLocal();
+            window._ngpGrpHorCache = window._ngpGrpHorCache || {};
+            var ck = lot + '|' + hoyS;
+            if (ck in window._ngpGrpHorCache) return window._ngpGrpHorCache[ck];
+            var out = null;
+            try {
+                var horTot = {}, salidosHoy = {}, porHoraGrupo = {};
+                var num2grp = {};
+                Object.keys(NUMBER_GROUPS || {}).forEach(function(g) {
+                    (NUMBER_GROUPS[g] || []).forEach(function(nn) { if (!(nn in num2grp)) num2grp[nn] = g; });
+                });
+                (capturedResults || []).forEach(function(r) {
+                    if (!r || r.lottery !== lot || !r.number || !r.time) return;
+                    var t = _ngpHoraNorm2(r.time);
+                    if (!t) return;
+                    horTot[t] = (horTot[t] || 0) + 1;
+                    if (r.date === hoyS) salidosHoy[t] = true;
+                    var g2 = num2grp[String(r.number).substring(0, 2)];
+                    if (g2) {
+                        if (!porHoraGrupo[t]) porHoraGrupo[t] = {};
+                        porHoraGrupo[t][g2] = (porHoraGrupo[t][g2] || 0) + 1;
+                    }
+                });
+                // Próximo horario de HOY: horario habitual (≥5 registros históricos)
+                // sin capturar hoy y cuya hora no pasó hace más de 45 min — el más cercano.
+                var ahora = new Date();
+                var nowMin = ahora.getHours() * 60 + ahora.getMinutes();
+                var prox = null, proxMin = null;
+                Object.keys(horTot).forEach(function(t2) {
+                    if (horTot[t2] < 5) return; // horario no habitual (captura suelta o error)
+                    if (salidosHoy[t2]) return; // ya se jugó hoy
+                    var p2 = t2.split(':');
+                    var hm = parseInt(p2[0], 10) * 60 + parseInt(p2[1], 10);
+                    if (hm < nowMin - 45) return; // ya pasó
+                    if (proxMin === null || hm < proxMin) { proxMin = hm; prox = t2; }
+                });
+                if (prox && porHoraGrupo[prox]) {
+                    var mejorG = null, vecesG = 0, totalG = 0;
+                    Object.keys(porHoraGrupo[prox]).forEach(function(g3) {
+                        totalG += porHoraGrupo[prox][g3];
+                        if (porHoraGrupo[prox][g3] > vecesG) { vecesG = porHoraGrupo[prox][g3]; mejorG = g3; }
+                    });
+                    if (mejorG && vecesG >= 3) { // muestra mínima para opinar
+                        var fmt = prox;
+                        try { if (typeof convertTo12Hour === 'function') fmt = convertTo12Hour(prox); } catch (e) {}
+                        out = { hora: prox, horaFmt: fmt, grupo: mejorG, veces: vecesG, total: totalG };
+                    }
+                }
+            } catch (e) {}
+            window._ngpGrpHorCache[ck] = out;
+            return out;
+        }
         function _ngpSigueTop5(L) {
             window._ngpSigueCache = window._ngpSigueCache || {};
             if (window._ngpSigueCache[L]) return window._ngpSigueCache[L];
@@ -29732,6 +29946,7 @@ function senalesDe(nn) {
             conts.forEach(function(x) { x.innerHTML = html; });
         }
         function _ngpResumenRender() {
+            window._ngpGrpPendCache = {}; window._ngpHorCache = {}; window._ngpGrpHorCache = {}; // V46.9.169/170: señales con datos frescos
             var conts = document.querySelectorAll('[id="ngpResumenResultado"]');
             if (!conts.length || !window._ngpFiltro || !window._ngpFiltro.resumenCalc) return;
             var F = window._ngpFiltro;
@@ -29751,6 +29966,20 @@ function senalesDe(nn) {
                 var etq = [];
                 if (rk.jales.length) etq.push('⏰ ' + rk.jales.length + ' jale' + (rk.jales.length > 1 ? 's' : ''));
                 if (rk.grupoDia) etq.push('📅 grupo del día');
+                // V46.9.169 (pedido de Leo): comentario de grupos COMPLETOS pendientes ≥N días
+                try {
+                    var gpR = (typeof _ngpGruposPendientesDias === 'function') ? _ngpGruposPendientesDias(rk.lot) : {};
+                    var gksR = Object.keys(gpR);
+                    if (gksR.length) {
+                        var _txtGp = gksR.slice(0, 3).map(function(gg) { return gg.replace('Grupo ', 'G') + ' (' + gpR[gg].dias + 'd)'; }).join(', ') + (gksR.length > 3 ? ' +' + (gksR.length - 3) : '');
+                        etq.push('<span style="color:#93c5fd;font-weight:bold;">📁 grupo pend. ≥' + _ngpGrpDiasUmbral() + 'd: ' + _txtGp + '</span>');
+                    }
+                } catch (eGpR) {}
+                // V46.9.170 (pedido de Leo): grupo MÁS salidor del próximo sorteo de hoy
+                try {
+                    var gsR = (typeof _ngpGrupoSalidorHorario === 'function') ? _ngpGrupoSalidorHorario(rk.lot) : null;
+                    if (gsR) etq.push('<span style="color:#5eead4;font-weight:bold;">🕐 próx. ' + gsR.horaFmt + ' → ' + gsR.grupo.replace('Grupo ', 'G') + ' más salidor (x' + gsR.veces + ')</span>');
+                } catch (eGsR) {}
                 // V46.9.153: aclarar cuando la lotería tiene pocos datos capturados
                 if (rk.datos === 0) etq.push('<span style="color:#94a3b8;">⚪ sin datos aún</span>');
                 else if (rk.datos < 30) etq.push('<span style="color:#94a3b8;">⚪ pocos datos (' + rk.datos + ' sorteos)</span>');
@@ -29761,10 +29990,11 @@ function senalesDe(nn) {
                 rk.top.forEach(function(x) {
                     // V46.9.166 (pedido de Leo): distintivo claro si coincide con el top-5 "después de"
                     var _t5 = x.tipos.some(function(t) { return t.indexOf('(top-5 después-de)') > 0; });
+                    var _horR = x.tipos.some(function(t) { return t.indexOf('FALTA HOY') > 0; }); // V46.9.169
                     if (_t5) _hayT5 = true;
                     html += '<div title="' + x.tipos.join(' · ').replace(/"/g, '') + '" style="background:' + (_t5 ? 'rgba(219,39,119,0.3)' : 'rgba(220,38,38,0.2)') + ';border:' + (_t5 ? '2px solid #ec4899;box-shadow:0 0 7px rgba(236,72,153,0.6)' : '1px solid #f87171') + ';border-radius:6px;padding:4px 8px;text-align:center;flex:1;cursor:help;">';
                     html += '<div style="font-family:monospace;font-size:19px;font-weight:bold;color:#fff;line-height:1;">' + (_t5 ? '🎯' : '') + x.num + '</div>';
-                    html += '<div style="font-size:8px;color:' + (_t5 ? '#f9a8d4' : '#fca5a5') + ';">' + x.score + ' señ.' + (_t5 ? ' · top-5 desp.' : '') + '</div>';
+                    html += '<div style="font-size:8px;color:' + (_t5 ? '#f9a8d4' : '#fca5a5') + ';">' + x.score + ' señ.' + (_t5 ? ' · top-5 desp.' : '') + (_horR ? ' · <span style="color:#5eead4;font-weight:bold;">🕐 hor. salidor</span>' : '') + '</div>';
                     html += '</div>';
                 });
                 html += '</div>';
@@ -29977,6 +30207,7 @@ function senalesDe(nn) {
             _ngpExtractoRender();
         }
         function _ngpExtractoRender() {
+            window._ngpGrpPendCache = {}; window._ngpHorCache = {}; window._ngpGrpHorCache = {}; // V46.9.169/170: señales con datos frescos
             // V46.9.140: escribir en TODAS las instancias (IDs duplicados entre vistas)
             var conts = document.querySelectorAll('[id="ngpExtractoResultado"]');
             if (!conts.length || !window._ngpFiltro) return;
@@ -30044,6 +30275,20 @@ function senalesDe(nn) {
                         // V46.9.142: decenas/terminaciones predominantes HOY (global)
                         if (dth.decTop.indexOf(nn[0]) >= 0) { scoreL += 1; tiposL.push('dec ' + nn[0] + 'x HOY'); }
                         if (dth.termTop.indexOf(nn[1]) >= 0) { scoreL += 1; tiposL.push('term x' + nn[1] + ' HOY'); }
+                        // V46.9.169 (pedido de Leo): 📁 grupo pendiente ≥N días (+1) y
+                        // 🕐 horario salidor (+2 si AÚN FALTA hoy; si ya pasó, solo comenta).
+                        try {
+                            var gpX = _ngpGruposPendientesDias(L);
+                            var _tuvoGrpX = false, _tuvoHorX = false;
+                            if (gpX[g]) { scoreL += 1; _tuvoGrpX = true; tiposL.push('📁 ' + g + ' pend. ' + gpX[g].dias + 'd'); }
+                            var hsX = _ngpHorarioSalidor(L, nn);
+                            if (hsX && hsX.faltaHoy) { scoreL += 2; _tuvoHorX = true; tiposL.push('🕐 más salidor ' + hsX.horaFmt + ' (x' + hsX.veces + ') — FALTA HOY'); }
+                            else if (hsX) { tiposL.push('🕐 más salidor ' + hsX.horaFmt + ' (x' + hsX.veces + ')'); }
+                            // V46.9.170 (pedido de Leo): GRUPO más salidor del PRÓXIMO sorteo (+2)
+                            var gsX = _ngpGrupoSalidorHorario(L);
+                            if (gsX && gsX.grupo === g) { scoreL += 2; _tuvoHorX = true; tiposL.push('🕐📁 ' + g + ' MÁS salidor del próx. sorteo ' + gsX.horaFmt + ' (x' + gsX.veces + ')'); }
+                            if (_tuvoGrpX && _tuvoHorX) tiposL.push('🔥 CRUCE: grupo pendiente + horario salidor');
+                        } catch (eGH2) {}
                         candidatos.push({ num: nn, pos: pos, score: scoreL, tipos: tiposL, sn: sn, ultEnL: ultEnL });
                     });
                     if (!candidatos.length) return;
@@ -30099,12 +30344,15 @@ function senalesDe(nn) {
                         htmlLots += '<div style="font-size:8px;color:#cbd5e1;margin-top:3px;">⏳ lleva ' + (dEnL !== null ? dEnL + ' días' : 'nunca salió') + ' sin salir en ' + L + (c.ultEnL ? ' (desde ' + fmtFecha(c.ultEnL) + ')' : '') + '</div>';
                         if (c.tipos.length) {
                             htmlLots += '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">';
-                            c.tipos.slice(0, 6).forEach(function(t) {
+                            c.tipos.slice(0, 9).forEach(function(t) {
                                 var esJale = (t.indexOf('⏰') === 0);
                                 var esSig = (t.indexOf('🎯') === 0); // V46.9.159
-                                var bg2 = esSig ? '#db2777' : (t === 'grupo del día') ? '#7c3aed' : esJale ? '#ea580c' : 'rgba(251,191,36,0.12)';
-                                var col2 = (t === 'grupo del día' || esJale || esSig) ? '#fff' : '#fef3c7';
-                                htmlLots += '<span style="background:' + bg2 + ';border:1px solid rgba(253,230,138,0.4);border-radius:4px;padding:1px 4px;font-size:8px;color:' + col2 + ';">' + t + '</span>';
+                                var esGrp = (t.indexOf('📁') === 0); // V46.9.169
+                                var esHor = (t.indexOf('🕐') === 0); // V46.9.169
+                                var esCru = (t.indexOf('🔥 CRUCE') === 0); // V46.9.169
+                                var bg2 = esCru ? 'linear-gradient(90deg,#b91c1c,#f59e0b)' : esHor ? '#0f766e' : esGrp ? '#1d4ed8' : esSig ? '#db2777' : (t === 'grupo del día') ? '#7c3aed' : esJale ? '#ea580c' : 'rgba(251,191,36,0.12)';
+                                var col2 = (t === 'grupo del día' || esJale || esSig || esGrp || esHor || esCru) ? '#fff' : '#fef3c7';
+                                htmlLots += '<span style="background:' + bg2 + ';border:1px solid rgba(253,230,138,0.4);border-radius:4px;padding:1px 4px;font-size:8px;color:' + col2 + ';font-weight:' + ((esGrp || esHor || esCru) ? 'bold' : 'normal') + ';">' + t + '</span>';
                             });
                             htmlLots += '</div>';
                         }
@@ -70952,7 +71200,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r102 · v46.9.168</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r104 · v46.9.170</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
