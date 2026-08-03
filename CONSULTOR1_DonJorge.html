@@ -66815,6 +66815,23 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
             h += '</div>';
             return h;
         }
+        function _horaNorm24(t) {
+            // V46.9.171: normaliza cualquier formato de hora a "HH:MM" 24h para poder
+            // compararlas entre sí ("7:30 PM", "19:30", "19:30:00" → "19:30").
+            var s = ('' + (t || '')).trim().toUpperCase();
+            var esPM = s.indexOf('PM') >= 0, esAM = s.indexOf('AM') >= 0;
+            s = s.replace(/[^0-9:]/g, '');
+            var p = s.split(':');
+            var hh = parseInt(p[0], 10);
+            if (isNaN(hh)) return ('' + (t || '')).trim();
+            var mm = (p[1] || '00').replace(/[^0-9]/g, '');
+            if (!mm.length) mm = '00';
+            if (mm.length === 1) mm = '0' + mm;
+            mm = mm.substring(0, 2);
+            if (esPM && hh < 12) hh += 12;
+            if (esAM && hh === 12) hh = 0;
+            return String(hh).padStart(2, '0') + ':' + mm;
+        }
         function _ddgPmSecAyerHTML(lot, fechaRef) {
             // Los "después de" de los sorteos del DÍA ANTERIOR a la fecha de consulta,
             // en el orden en que salieron. Como ese día ya cerró, estos tops quedan
@@ -66831,11 +66848,40 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                         var ka = a.date + ' ' + (a.time || ''), kb = b.date + ' ' + (b.time || '');
                         return ka < kb ? -1 : ka > kb ? 1 : 0;
                     });
+                // V46.9.171 (bug reportado por Leo): Florida mostraba 3 "sorteos de ayer"
+                // cuando solo tiene 2. Causa: registros duplicados o en conflicto en los
+                // datos capturados (misma hora con DOS números, u hora en formato
+                // distinto). Acá: (a) se colapsan los duplicados exactos (misma hora
+                // normalizada + mismo número) y (b) si una misma hora tiene dos números
+                // distintos, se muestran ambos con ALERTA para borrar el incorrecto.
+                var _vistosSA = {}, _porHoraSA = {}, _limpiosSA = [];
+                sorteosAyer.forEach(function(r3) {
+                    var hN = _horaNorm24(r3.time);
+                    var n3 = String(r3.number).substring(0, 2);
+                    var kD = hN + '|' + n3;
+                    if (_vistosSA[kD]) return; // duplicado exacto: una sola vez
+                    _vistosSA[kD] = true;
+                    if (!_porHoraSA[hN]) _porHoraSA[hN] = [];
+                    _porHoraSA[hN].push(n3);
+                    _limpiosSA.push({ number: r3.number, time: r3.time, date: r3.date, hN: hN });
+                });
+                sorteosAyer = _limpiosSA;
+                var _confSA = Object.keys(_porHoraSA).filter(function(hx) { return _porHoraSA[hx].length > 1; });
                 var h = '<div style="background:linear-gradient(135deg,#4c1d95,#312e81);border:2px solid #8b5cf6;border-radius:12px;padding:14px;">';
                 h += '<div style="font-size:14px;font-weight:bold;color:#ede9fe;margin-bottom:4px;">📅 "Después de" del DÍA ANTERIOR — ' + lot + ' <span style="font-size:10px;color:#c4b5fd;font-weight:normal;">(' + fechaAyer + ') · FIJOS durante el día de consulta</span></div>';
                 if (!sorteosAyer.length) {
                     h += '<div style="font-size:11px;color:#c4b5fd;">Sin sorteos capturados el día anterior (' + fechaAyer + ') en ' + lot + '.</div></div>';
                     return h;
+                }
+                // V46.9.171: alerta visible cuando una misma hora tiene dos números
+                if (_confSA.length) {
+                    h += '<div style="background:linear-gradient(135deg,#7f1d1d,#b91c1c);border:2px solid #fca5a5;border-radius:8px;padding:8px 10px;margin-bottom:8px;">';
+                    h += '<div style="font-size:11px;font-weight:bold;color:#fff;">⚠️ REVISAR CAPTURAS DE AYER en ' + lot + ' — hay más de un número registrado para la misma hora</div>';
+                    _confSA.forEach(function(hx) {
+                        var hxF = hx; try { if (typeof convertTo12Hour === 'function') hxF = convertTo12Hour(hx); } catch (e3) {}
+                        h += '<div style="font-size:10px;color:#fecaca;margin-top:2px;">A las <strong>' + hxF + '</strong> están registrados: <strong>' + _porHoraSA[hx].join(' y ') + '</strong>. Uno es un registro erróneo — borralo en la pestaña Captura con 🗑️ "Buscar y Eliminar una Captura" para que el análisis quede limpio.</div>';
+                    });
+                    h += '</div>';
                 }
                 h += '<div style="font-size:10px;color:#a5b4fc;margin-bottom:10px;">En el orden en que salieron. Cada número muestra su top-5 "después de" con historial COMPLETO:</div>';
                 sorteosAyer.forEach(function(sorteo) {
@@ -66844,7 +66890,8 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                     var hf = sorteo.time || '';
                     try { if (hf && typeof convertTo12Hour === 'function') hf = convertTo12Hour(sorteo.time); } catch (e2) {}
                     h += '<div style="background:rgba(0,0,0,0.25);border-radius:9px;padding:9px;margin-bottom:8px;">';
-                    h += '<div style="margin-bottom:6px;"><span style="background:#1e1b4b;border:2px solid #a78bfa;border-radius:50%;padding:4px 9px;font-family:monospace;font-size:15px;font-weight:bold;color:#fff;">' + num + '</span> <span style="font-size:11px;color:#c4b5fd;">' + hf + '</span> <span style="font-size:9px;color:#8b8fb8;">(' + calc2.totalDatos + ' datos)</span></div>';
+                    var _chipConf = (sorteo.hN && _porHoraSA[sorteo.hN] && _porHoraSA[sorteo.hN].length > 1) ? ' <span style="background:#b91c1c;color:#fff;border-radius:4px;padding:1px 6px;font-size:9px;font-weight:bold;">⚠️ misma hora con 2 números — revisar</span>' : ''; // V46.9.171
+                    h += '<div style="margin-bottom:6px;"><span style="background:#1e1b4b;border:2px solid #a78bfa;border-radius:50%;padding:4px 9px;font-family:monospace;font-size:15px;font-weight:bold;color:#fff;">' + num + '</span> <span style="font-size:11px;color:#c4b5fd;">' + hf + '</span> <span style="font-size:9px;color:#8b8fb8;">(' + calc2.totalDatos + ' datos)</span>' + _chipConf + '</div>';
                     if (calc2.lista.length > 0) {
                         h += _ddgPmDespuesCardsHTML(calc2.lista.slice(0, 5));
                     } else {
@@ -68039,7 +68086,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#065f46,#0d9488);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83c\udfa9 An\u00e1lisis Predictivo \u2014 Consulta Don Jorge <span style="font-size:10px;opacity:0.75;">r98 · v46.9.170</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#a7f3d0;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83c\udfa9 An\u00e1lisis Predictivo \u2014 Consulta Don Jorge <span style="font-size:10px;opacity:0.75;">r99 · v46.9.171</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#a7f3d0;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
