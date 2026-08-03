@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.172</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.174</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6339,7 +6339,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.172</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.174</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -28604,7 +28604,7 @@ ${groups.map((g,i)=>`
                                 localStorage.setItem(_EFV_T10_KEY, JSON.stringify(snapsT));
                                 var snaps3 = _efvT3Leer();
                                 if (!snaps3[hoyR2]) {
-                                    snaps3[hoyR2] = { h: _hStr, e: rc.ranking.map(function(rk) { return { l: rk.lot, nums: rk.top.map(function(x) { return x.num; }) }; }).filter(function(e) { return e.nums.length; }) };
+                                    snaps3[hoyR2] = { h: _hStr, e: rc.ranking.map(function(rk) { return { l: rk.lot, nums: rk.top.slice(0, 3).map(function(x) { return x.num; }) /* V46.9.173: la foto de efectividad sigue midiendo el TOP-3 histórico aunque la tarjeta muestre 5 */ }; }).filter(function(e) { return e.nums.length; }) };
                                     var f3 = Object.keys(snaps3).sort();
                                     while (f3.length > 60) { delete snaps3[f3[0]]; f3.shift(); }
                                     localStorage.setItem(_EFV_T3_KEY, JSON.stringify(snaps3));
@@ -29252,7 +29252,7 @@ function senalesDe(nn) {
                                     if (gsC && gsC.grupo === g) { scoreL += 2; _tuvoHorC = true; tiposL.push('🕐📁 ' + g + ' MÁS salidor del próx. sorteo ' + gsC.horaFmt + ' (x' + gsC.veces + ')'); }
                                     if (_tuvoGrpC && _tuvoHorC) tiposL.push('🔥 CRUCE: grupo pendiente + horario salidor');
                                 } catch (eGH3) {}
-                                lista.push({ num: nn, score: scoreL, tipos: tiposL, pos: pos });
+                                lista.push({ num: nn, score: scoreL, tipos: tiposL, pos: pos, grupo: g }); // V46.9.173: guarda el grupo del candidato
                             });
                         });
                         lista.sort(function(a, b) { return b.score !== a.score ? b.score - a.score : a.pos - b.pos; });
@@ -29281,7 +29281,22 @@ function senalesDe(nn) {
                         var _bJal = 3 * jalesL.length;
                         fuerza += _bJal;
                         var tieneGrupoDia = top5.some(function(x) { return x.tipos.indexOf('grupo del día') >= 0; });
-                        ranking.push({ lot: L, fuerza: fuerza, top: cands.slice(0, 3), jales: jalesL, grupoDia: tieneGrupoDia, det: { t3: _t3, t45: _t45, jal: _bJal }, datos: (todasLots[L] || 0) });
+                        // V46.9.174 (pedido de Leo, maqueta aprobada): TOP 5 DE CADA GRUPO —
+                        // cada grupo del extracto muestra SUS 5 mejores números por señales
+                        // (mayor → menor); los grupos se ordenan por la fuerza de su mejor número.
+                        var _porGrupoR = {};
+                        cands.forEach(function(x) {
+                            if (!x.grupo) return;
+                            if (!_porGrupoR[x.grupo]) _porGrupoR[x.grupo] = [];
+                            _porGrupoR[x.grupo].push(x);
+                        });
+                        var _topGrupos = Object.keys(_porGrupoR).map(function(gk) {
+                            var arr = _porGrupoR[gk].slice().sort(function(a, b) { return b.score !== a.score ? b.score - a.score : (a.pos || 999) - (b.pos || 999); });
+                            return { grupo: gk, nums: arr.slice(0, 5), mejor: arr[0] };
+                        });
+                        _topGrupos.sort(function(a, b) { return b.mejor.score !== a.mejor.score ? b.mejor.score - a.mejor.score : (a.mejor.pos || 999) - (b.mejor.pos || 999); });
+                        // V46.9.173 (pedido de Leo): las sugerencias de cada tarjeta pasan de 3 a TOP 5
+                        ranking.push({ lot: L, fuerza: fuerza, top: cands.slice(0, 5), topGrupos: _topGrupos, jales: jalesL, grupoDia: tieneGrupoDia, det: { t3: _t3, t45: _t45, jal: _bJal }, datos: (todasLots[L] || 0) });
                         top5.forEach(function(x) { jugadas.push({ lot: L, num: x.num, score: x.score, tipos: x.tipos }); });
                     });
                     ranking.sort(function(a, b) { return b.fuerza - a.fuerza; });
@@ -30493,7 +30508,7 @@ function senalesDe(nn) {
             var ranking = rc.ranking, jugadas = rc.jugadas;
             var html = '<div style="font-size:12px;font-weight:bold;color:#e9d5ff;margin-bottom:8px;">🏆 TODAS LAS LOTERÍAS ordenadas por fuerza de señales <span style="font-size:9px;color:#94a3b8;font-weight:normal;">(fuerza = suma de señales de sus 5 números más fuertes + 3 por cada jale activo)</span></div>';
             // ─── V46.9.149: TODAS las tarjetas con el MISMO formato e información
-            html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,190px),1fr));gap:8px;margin-bottom:12px;">';
+            html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:8px;margin-bottom:12px;">';
             ranking.forEach(function(rk, ix) {
                 var esOro = ix === 0;
                 var medalla = ix === 0 ? '🥇' : ix === 1 ? '🥈' : ix === 2 ? '🥉' : (ix + 1) + '°';
@@ -30537,6 +30552,29 @@ function senalesDe(nn) {
                     html += '</div>';
                 });
                 html += '</div>';
+                // V46.9.174 (pedido de Leo, maqueta aprobada): TOP 5 DE CADA GRUPO —
+                // una fila por grupo con sus 5 mejores números por señales (mayor → menor).
+                if (rk.topGrupos && rk.topGrupos.length) {
+                    html += '<div style="margin-top:8px;padding-top:6px;border-top:1px dashed rgba(168,85,247,0.5);">';
+                    html += '<div style="font-size:9px;font-weight:bold;color:#d8b4fe;margin-bottom:5px;">🧩 TOP 5 DE CADA GRUPO — ordenados por señales (mayor → menor)</div>';
+                    rk.topGrupos.forEach(function(bgR) {
+                        html += '<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;flex-wrap:wrap;background:rgba(0,0,0,0.25);border-radius:6px;padding:4px 6px;">';
+                        html += '<span style="background:rgba(168,85,247,0.3);border:1px solid #a855f7;color:#e9d5ff;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:bold;min-width:64px;text-align:center;">' + bgR.grupo + '<small style="display:block;font-size:7px;color:#c4b5fd;font-weight:normal;">mejor: ' + bgR.mejor.score + ' señ.</small></span>';
+                        bgR.nums.forEach(function(xg, xi) {
+                            var _tgT5 = xg.tipos.some(function(t) { return t.indexOf('(top-5 después-de)') > 0; });
+                            var esLider = (xi === 0);
+                            var bgC = _tgT5 ? 'rgba(219,39,119,0.2)' : esLider ? 'rgba(251,191,36,0.18)' : 'rgba(255,255,255,0.06)';
+                            var bdC = _tgT5 ? '2px solid #ec4899' : esLider ? '2px solid #fbbf24' : '1px solid rgba(168,85,247,0.5)';
+                            html += '<div title="' + xg.num + ': ' + xg.tipos.join(' · ').replace(/"/g, '') + '" style="background:' + bgC + ';border:' + bdC + ';border-radius:5px;padding:2px 6px;text-align:center;cursor:help;">';
+                            html += '<div style="font-family:monospace;font-size:14px;font-weight:bold;color:#fff;line-height:1.1;">' + (_tgT5 ? '🎯' : '') + xg.num + '</div>';
+                            html += '<div style="font-size:7px;color:' + (esLider ? '#fde68a' : '#d8b4fe') + ';' + (esLider ? 'font-weight:bold;' : '') + '">' + xg.score + ' señ.</div>';
+                            html += '</div>';
+                        });
+                        html += '</div>';
+                    });
+                    html += '<div style="font-size:8px;color:#94a3b8;margin-top:4px;line-height:1.5;">Dorado = líder del grupo · 🎯 rosado = coincide con el top-5 "después-de" · los grupos se ordenan por la fuerza de su mejor número. Pasá el cursor para ver las señales de cada número.</div>';
+                    html += '</div>';
+                }
                 // V46.9.166 (pedido de Leo): si NINGUNO de los 3 coincide con el "después de",
                 // mostrar el top-5 de después-de de esta lotería (mismos datos del sistema).
                 if (!_hayT5 && typeof _ngpSigueTop5 === 'function') {
