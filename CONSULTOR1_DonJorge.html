@@ -5827,7 +5827,7 @@
                 </div>
 
                 <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:10px;">
-                    <div style="font-size:12px;color:#fca5a5;font-weight:bold;width:100%;">🔚🔥 Terminaciones calientes (batch de alerta en el Top 10)</div>
+                    <div style="font-size:12px;color:#fca5a5;font-weight:bold;width:100%;">🔚🔥 Terminaciones y 🔢 Decenas calientes (batch de alerta en el Top 10)</div>
                     <div>
                         <label style="color:#fed7aa;font-size:11px;display:block;">Ventana (días):</label>
                         <input type="number" id="tcdDdgVentana" value="1" min="1" max="30" style="width:90px;padding:6px;background:#1e1e2e;color:white;border:1px solid #f59e0b;border-radius:5px;">
@@ -5836,7 +5836,7 @@
                         <label style="color:#fed7aa;font-size:11px;display:block;">Mín. repeticiones:</label>
                         <input type="number" id="tcdDdgMinVeces" value="3" min="1" max="20" style="width:90px;padding:6px;background:#1e1e2e;color:white;border:1px solid #f59e0b;border-radius:5px;">
                     </div>
-                    <div style="flex:1;min-width:200px;font-size:10px;color:#94a3b8;font-style:italic;align-self:center;">Se calcula al presionar "Comparar": aparece un batch arriba y un badge 🔚 en los números del Top 10 cuya terminación esté caliente.</div>
+                    <div style="flex:1;min-width:200px;font-size:10px;color:#94a3b8;font-style:italic;align-self:center;">Se calcula al presionar "Comparar": aparecen los batch de terminaciones y de decenas arriba, con badges 🔚 y 🔢 en los números del Top 10 cuya terminación o decena esté caliente. Ambos usan esta misma ventana y umbral.</div>
                 </div>
                 <button onclick="ejecutarDdgVsPm()" style="background:linear-gradient(135deg,#6c3483,#ffd200);border:2px solid #ffd200;color:#1a0533;padding:12px 28px;border-radius:8px;cursor:pointer;font-size:15px;font-weight:bold;width:100%;">🎯🏆 Comparar con Panel Maestro</button>
 
@@ -60633,6 +60633,91 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
             if (tcd.calientes.indexOf(t) < 0) return '';
             return '<div style="margin-top:4px;"><span style="background:rgba(239,68,68,0.2);border:1px solid #ef4444;color:#fca5a5;padding:2px 7px;border-radius:5px;font-size:9px;font-weight:bold;">🔚 Term x' + t + ' caliente \u00b7 ' + tcd.term[t].count + 'x hoy</span></div>';
         }
+        // ═══ V46.9.172 (pedido de Leo): DECENAS CALIENTES DEL DÍA (DCD) ═══════════
+        // Batch de alerta gemelo al de terminaciones, pero por DECENA (primer
+        // dígito): qué decenas han salido MÁS en la ventana del día. Comparte la
+        // misma ventana y umbral configurados para el batch de terminaciones.
+        function _dcdCalcular(fecha, ventanaDias, minVeces) {
+            ventanaDias = (ventanaDias && ventanaDias >= 1) ? ventanaDias : 1;
+            minVeces = (minVeces && minVeces >= 1) ? minVeces : 3;
+            var fechaIni = ventanaDias > 1 ? _tcdFechaMenos(fecha, ventanaDias - 1) : fecha;
+            var datos = (capturedResults || []).filter(function (r) {
+                return r.number && r.number.length === 2 && r.date >= fechaIni && r.date <= fecha;
+            });
+            var dec = {};
+            for (var d0 = 0; d0 < 10; d0++) dec[String(d0)] = { count: 0, hits: [], lots: {} };
+            datos.forEach(function (r) {
+                var dd = r.number.charAt(0);
+                if (!dec[dd]) return;
+                dec[dd].count++;
+                dec[dd].hits.push({ numero: r.number, lot: r.lottery, fecha: r.date, hora: r.time || '' });
+                dec[dd].lots[r.lottery] = true;
+            });
+            for (var k2 = 0; k2 < 10; k2++) {
+                dec[String(k2)].hits.sort(function (a, b) {
+                    return a.fecha.localeCompare(b.fecha) || (a.hora || '').localeCompare(b.hora || '');
+                });
+            }
+            var calientes = ['0','1','2','3','4','5','6','7','8','9']
+                .filter(function (d2) { return dec[d2].count >= minVeces; })
+                .sort(function (a, b) { return dec[b].count - dec[a].count; });
+            return { fechaIni: fechaIni, fechaFin: fecha, ventanaDias: ventanaDias, minVeces: minVeces, dec: dec, calientes: calientes, totalResultados: datos.length };
+        }
+        function _dcdDecsVib(fecha) {
+            var set = {};
+            try {
+                var vd = (typeof obtenerVibracionesCompletas === 'function') ? obtenerVibracionesCompletas(fecha) : null;
+                if (vd && vd.allNumbers) vd.allNumbers.forEach(function (n) {
+                    var s = String(n).padStart(2, '0');
+                    set[s.charAt(0)] = true;
+                });
+            } catch (e) {}
+            return set;
+        }
+        function _dcdDecsHoyPorLot(fecha) {
+            // { lot: { '4': true, ... } } — decenas que YA salieron en 'fecha'
+            var map = {};
+            (capturedResults || []).forEach(function (r) {
+                if (r.number && r.number.length === 2 && r.date === fecha) {
+                    if (!map[r.lottery]) map[r.lottery] = {};
+                    map[r.lottery][r.number.charAt(0)] = true;
+                }
+            });
+            return map;
+        }
+        // Badge para un número del Top 10 (DDG/PM) cuya DECENA esté caliente
+        function _dcdBadgeNum(numero, dcd) {
+            if (!dcd || !numero || numero.length < 2) return '';
+            var d2 = numero.charAt(0);
+            if (dcd.calientes.indexOf(d2) < 0) return '';
+            return '<div style="margin-top:4px;"><span style="background:rgba(56,189,248,0.2);border:1px solid #38bdf8;color:#7dd3fc;padding:2px 7px;border-radius:5px;font-size:9px;font-weight:bold;">🔢 Dec ' + d2 + 'x caliente · ' + dcd.dec[d2].count + 'x hoy</span></div>';
+        }
+        // Panel "batch de alerta" de DECENAS para DDG vs PM
+        function _dcdBatchPanelDDG(fecha, dcd, loteriasSel) {
+            if (!dcd || !dcd.calientes.length) return '';
+            var decsVib = _dcdDecsVib(fecha);
+            var decsHoyPorLot = _dcdDecsHoyPorLot(fecha);
+            var ventLabel = dcd.ventanaDias === 1 ? fecha : (dcd.ventanaDias + 'd (' + dcd.fechaIni + ' → ' + fecha + ')');
+            var html = '';
+            html += '<div style="background:linear-gradient(135deg,#0c4a6e,#1a0533);border:2px solid #38bdf8;border-radius:14px;padding:14px;margin-bottom:14px;color:#fff;">';
+            html += '<div style="font-size:15px;font-weight:bold;color:#7dd3fc;margin-bottom:4px;">🔢🔥 Batch de alerta — Decenas que MÁS han salido en el día</div>';
+            html += '<div style="font-size:11px;color:#bae6fd;margin-bottom:10px;">Ventana: ' + ventLabel + ' · umbral ≥' + dcd.minVeces + ' · solo loterías de 2 dígitos (usa la misma ventana y umbral del batch de terminaciones). Los números del Top 10 con estas decenas llevan el badge 🔢.</div>';
+            html += '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+            dcd.calientes.forEach(function (d2) {
+                var enVib = !!decsVib[d2];
+                var pend = [];
+                loteriasSel.forEach(function (lot) { if (!(decsHoyPorLot[lot] && decsHoyPorLot[lot][d2])) pend.push(lot); });
+                html += '<div style="background:rgba(56,189,248,0.15);border:1px solid #38bdf8;border-radius:10px;padding:8px 12px;min-width:170px;">';
+                html += '<div style="font-size:16px;font-weight:bold;color:#7dd3fc;">Dec ' + d2 + 'x · ' + dcd.dec[d2].count + 'x' + (enVib ? ' <span style="font-size:9px;color:#86efac;">✨vib</span>' : '') + '</div>';
+                var dets = dcd.dec[d2].hits.map(function (hh) { return hh.numero + ' ' + hh.lot + (hh.hora ? ' ' + ((typeof convertTo12Hour === 'function') ? convertTo12Hour(hh.hora) : hh.hora) : ''); }).join(' · ');
+                html += '<div title="' + dets.replace(/"/g, '') + '" style="font-size:9px;color:#bae6fd;margin-top:2px;cursor:help;text-decoration:underline dotted;">' + dcd.dec[d2].hits.map(function (hh) { return hh.numero; }).join(', ') + '</div>';
+                if (pend.length) html += '<div style="font-size:10px;color:#bae6fd;margin-top:3px;">Pendiente hoy en: ' + pend.join(', ') + '</div>';
+                else html += '<div style="font-size:10px;color:#94a3b8;margin-top:3px;">Ya salió hoy en todas las seleccionadas.</div>';
+                html += '</div>';
+            });
+            html += '</div></div>';
+            return html;
+        }
         // Panel "batch de alerta" para DDG vs PM
         function _tcdBatchPanelDDG(fecha, tcd, loteriasSel) {
             if (!tcd || !tcd.calientes.length) return '';
@@ -66991,6 +67076,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                 var html = '';
                 var _tcdCfgDdg = _tcdLeerConfig('tcdDdg');
                 var tcdDdg = _tcdCalcular(fecha, _tcdCfgDdg.ventana, _tcdCfgDdg.minVeces);
+                var dcdDdg = _dcdCalcular(fecha, _tcdCfgDdg.ventana, _tcdCfgDdg.minVeces); // V46.9.172 (pedido de Leo): decenas calientes del día
                 var totalCoinc = conCoinc.reduce(function(s,r){ return s + r.coincidencias.length; }, 0);
                 html += '<div style="background:linear-gradient(135deg,#1a0533,#0d1b2a);border:2px solid #ffd200;border-radius:14px;padding:14px;margin-bottom:14px;">';
                 html += '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">';
@@ -67032,6 +67118,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                 } catch (e) { console.error('Error vibración global:', e); }
 
                 html += _tcdBatchPanelDDG(fecha, tcdDdg, loteriasSel);
+                html += _dcdBatchPanelDDG(fecha, dcdDdg, loteriasSel); // V46.9.172 (pedido de Leo)
 
                 // ── SECCIÓN: TOP COINCIDENCIAS ENTRE LOTERÍAS ──
                 if (conCoinc.length > 0) {
@@ -67330,6 +67417,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                                 }
                                 html += '</div>';
                                 html += _tcdBadgeNum(d.numero, tcdDdg);
+                                html += _dcdBadgeNum(d.numero, dcdDdg); // V46.9.172
                                 // V46.8 — Chip de copia/vuelta de par destacado previo
                                 // Si este número es la copia o vuelta de algún par previo, mostrarlo prominente
                                 if (r.alertaParPrevio && r.alertaParPrevio.length > 0) {
@@ -67472,6 +67560,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
                                 }
                                 html += '</div>';
                                 html += _tcdBadgeNum(p.numero, tcdDdg);
+                                html += _dcdBadgeNum(p.numero, dcdDdg); // V46.9.172
                                 // V46.8 — Chip de copia/vuelta de par destacado previo (PM)
                                 if (r.alertaParPrevio && r.alertaParPrevio.length > 0) {
                                     var chipsParPrevP = '';
@@ -68086,7 +68175,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#065f46,#0d9488);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83c\udfa9 An\u00e1lisis Predictivo \u2014 Consulta Don Jorge <span style="font-size:10px;opacity:0.75;">r99 · v46.9.171</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#a7f3d0;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83c\udfa9 An\u00e1lisis Predictivo \u2014 Consulta Don Jorge <span style="font-size:10px;opacity:0.75;">r100 · v46.9.172</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#a7f3d0;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
