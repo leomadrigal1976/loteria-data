@@ -28280,6 +28280,7 @@ function senalesDe(nn) {
                 h += '<button onclick="_ngpAntesToggle()" style="background:linear-gradient(135deg,#3f3f46,#71717a);border:1px solid #d4d4d8;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">⏪ ¿Qué lo activó? (Antes de)</button>';
                 h += '<button onclick="_ngpDgToggle()" style="background:linear-gradient(135deg,#4a044e,#c026d3);border:1px solid #f0abfc;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🧩 Después de → por GRUPOS</button>';
                 h += '<button onclick="_ngpDgtToggle()" style="background:linear-gradient(135deg,#1e3a5f,#3b82f6);border:1px solid #93c5fd;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">📋 Tabla: Después de por Grupos</button>';
+                h += '<button onclick="_ngpFechaToggle()" style="background:linear-gradient(135deg,#115e59,#14b8a6);border:1px solid #5eead4;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">📅 Resultados por Fecha</button>'; // V46.9.178 (pedido de Leo)
                 h += '</div>';
                 // panel del filtro (oculto por defecto)
                 h += '<div id="ngpFiltroPanel" style="display:none;background:rgba(8,47,73,0.6);border:1px solid #22d3ee;border-radius:9px;padding:10px;margin-top:9px;">';
@@ -28358,6 +28359,24 @@ function senalesDe(nn) {
                 // V46.9.159 (pedido de Leo): tabla "Después de" ordenada por grupos
                 h += '<div id="ngpDgtPanel" style="display:none;background:rgba(30,58,95,0.4);border:1px solid #3b82f6;border-radius:9px;padding:10px;margin-top:9px;">';
                 h += '<div id="ngpDgtResultado" style="max-height:640px;overflow-y:auto;"><div style="font-size:11px;color:#94a3b8;padding:6px;">Cargando…</div></div>';
+                h += '</div>';
+                // V46.9.178 (pedido de Leo): panel "Resultados por Fecha" — todos los
+                // resultados por lotería (todas por defecto, con filtro) para una fecha
+                // elegida; por defecto AYER, con acceso rápido a HOY (acumulado).
+                h += '<div id="ngpFechaPanel" style="display:none;background:rgba(6,58,56,0.45);border:1px solid #14b8a6;border-radius:9px;padding:10px;margin-top:9px;">';
+                h += '<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">';
+                h += '<span style="font-size:11px;font-weight:bold;color:#5eead4;">📅 Fecha:</span>';
+                h += '<button onclick="_ngpFechaShift(-1)" title="Día anterior" style="background:rgba(20,184,166,0.15);border:1px solid #14b8a6;color:#99f6e4;padding:4px 9px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:bold;">◀</button>';
+                h += '<input id="ngpFechaInput" type="date" onchange="_efvSync(this);_ngpFechaRender()" style="background:#042f2e;color:#ccfbf1;border:1px solid #14b8a6;border-radius:6px;padding:5px 8px;font-size:12px;">';
+                h += '<button onclick="_ngpFechaShift(1)" title="Día siguiente" style="background:rgba(20,184,166,0.15);border:1px solid #14b8a6;color:#99f6e4;padding:4px 9px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:bold;">▶</button>';
+                h += '<button onclick="_ngpFechaSet(-1)" style="background:linear-gradient(135deg,#115e59,#14b8a6);border:1px solid #5eead4;color:#fff;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:bold;">Ayer</button>';
+                h += '<button onclick="_ngpFechaSet(0)" style="background:linear-gradient(135deg,#0e7490,#22d3ee);border:1px solid #a5f3fc;color:#083344;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:bold;">Hoy (acumulado)</button>';
+                h += '<span style="font-size:11px;font-weight:bold;color:#5eead4;margin-left:8px;">Lotería:</span>';
+                h += '<select id="ngpFechaLot" onchange="_efvSync(this);_ngpFechaRender()" style="background:#042f2e;color:#ccfbf1;border:1px solid #14b8a6;border-radius:6px;padding:5px 8px;font-size:12px;"><option value="__TODAS__" selected>🌎 Todas</option>';
+                lotsActivas.slice().sort().forEach(function(L5) { h += '<option value="' + L5 + '">' + L5 + '</option>'; });
+                h += '</select>';
+                h += '</div>';
+                h += '<div id="ngpFechaResultado" style="max-height:max(500px,70vh);overflow-y:auto;"><div style="font-size:11px;color:#94a3b8;padding:6px;">Elegí una fecha.</div></div>';
                 h += '</div>';
                 h += '<div style="font-size:10px;color:#bae6fd;margin-top:3px;">Rastrea números que dejaron de salir en <strong>todas</strong> las loterías por ' + DIAS_REZAGO + '+ días y volvieron a aparecer en los últimos ' + DIAS_RECIENTE + ' días. Para cada uno se muestra en qué otras loterías sigue pendiente.</div>';
 
@@ -28984,6 +29003,38 @@ function senalesDe(nn) {
                     return res;
                 }
 
+                // V46.9.178 (pedido de Leo): resultados capturados de una fecha, por lotería
+                function _resultadosDeFecha(fecha, lotFiltro) {
+                    var porLot = {};
+                    var total = 0;
+                    (capturedResults || []).forEach(function(r) {
+                        if (!r || r.date !== fecha || !r.number) return;
+                        if (lotFiltro && lotFiltro !== '__TODAS__' && r.lottery !== lotFiltro) return;
+                        if (!porLot[r.lottery]) porLot[r.lottery] = [];
+                        porLot[r.lottery].push({ n: _efvNorm(r.number), time: _jaleNormHora(r.time) });
+                        total++;
+                    });
+                    var _minDeF = function(t) {
+                        try {
+                            var p = ((typeof _horaNorm24 === 'function') ? _horaNorm24(t) : ('' + (t || ''))).split(':');
+                            var hh = parseInt(p[0], 10);
+                            return isNaN(hh) ? 9999 : hh * 60 + (parseInt(p[1] || '0', 10) || 0);
+                        } catch (e) { return 9999; }
+                    };
+                    var grupoDeN = function(nn) {
+                        try {
+                            if (typeof NUMBER_GROUPS === 'undefined' || !NUMBER_GROUPS) return '';
+                            var g = '';
+                            Object.keys(NUMBER_GROUPS).forEach(function(k) { if ((NUMBER_GROUPS[k] || []).indexOf(nn) >= 0) g = k; });
+                            return g;
+                        } catch (e) { return ''; }
+                    };
+                    return { total: total, lots: Object.keys(porLot).sort().map(function(L) {
+                        var arr = porLot[L].slice().sort(function(a, b) { return _minDeF(a.time) - _minDeF(b.time); });
+                        arr.forEach(function(x) { x.grupo = grupoDeN(x.n); });
+                        return { l: L, items: arr };
+                    }) };
+                }
                 window._ngpFiltro = {
                     lotsActivas: lotsActivas.slice(),
                     grupos: (function() {
@@ -28999,7 +29050,7 @@ function senalesDe(nn) {
                     ultPorNumLot: ultPorNumLot, difDias: difDias, hoyStr: hoyStr, porNum: porNum, serie: serie,
                     rankRezagoLot: rankRezagoLot, rankRezagoPrevLot: rankRezagoPrevLot,
                     jaleDe: _jaleDeAyer, decTermHoy: _decTermHoy, efvCalcular: _efvCalcular,
-                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, candidatosDe: _candidatosDeL
+                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, resultadosDeFecha: _resultadosDeFecha, candidatosDe: _candidatosDeL
                 };
                 try { _efvGuardarSnapshotHoy(); } catch (eSnap) {} // V46.9.144: foto diaria del extracto
                 return h;
@@ -29211,12 +29262,81 @@ function senalesDe(nn) {
             cont.innerHTML = html;
         }
         // V46.9.155: cierre mutuo de los 5 paneles del módulo
-        var _NGP_PANELES = ['ngpFiltroPanel', 'ngpExtractoPanel', 'ngpResumenPanel', 'ngpDespuesPanel', 'ngpBuscarPanel', 'ngpAntesPanel', 'ngpDgPanel', 'ngpDgtPanel'];
+        var _NGP_PANELES = ['ngpFiltroPanel', 'ngpExtractoPanel', 'ngpResumenPanel', 'ngpDespuesPanel', 'ngpBuscarPanel', 'ngpAntesPanel', 'ngpDgPanel', 'ngpDgtPanel', 'ngpFechaPanel'];
         function _ngpCerrarOtros(salvo) {
             _NGP_PANELES.forEach(function(id) {
                 if (id === salvo) return;
                 document.querySelectorAll('[id="' + id + '"]').forEach(function(o) { o.style.display = 'none'; });
             });
+        }
+        // V46.9.178 (pedido de Leo): panel "Resultados por Fecha"
+        function _ngpFechaHoyStr(offset) {
+            var d = new Date(); d.setDate(d.getDate() + (offset || 0));
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        }
+        function _ngpFechaToggle() {
+            var ps = document.querySelectorAll('[id="ngpFechaPanel"]');
+            if (!ps.length) return;
+            var abrir = (ps[0].style.display === 'none');
+            _ngpCerrarOtros('ngpFechaPanel');
+            ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
+            if (abrir) {
+                // por defecto: AYER (solo si el usuario no eligió ya una fecha)
+                var ins = document.querySelectorAll('[id="ngpFechaInput"]');
+                if (ins.length && !ins[0].value) { var ay = _ngpFechaHoyStr(-1); ins.forEach(function(i) { i.value = ay; }); }
+                _ngpFechaRender();
+            }
+        }
+        function _ngpFechaSet(offset) {
+            var v = _ngpFechaHoyStr(offset);
+            document.querySelectorAll('[id="ngpFechaInput"]').forEach(function(i) { i.value = v; });
+            _ngpFechaRender();
+        }
+        function _ngpFechaShift(delta) {
+            var ins = document.querySelectorAll('[id="ngpFechaInput"]');
+            if (!ins.length) return;
+            var v = ins[0].value || _ngpFechaHoyStr(-1);
+            var p = v.split('-');
+            var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+            d.setDate(d.getDate() + delta);
+            var nv = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            ins.forEach(function(i) { i.value = nv; });
+            _ngpFechaRender();
+        }
+        function _ngpFechaRender() {
+            var conts = document.querySelectorAll('[id="ngpFechaResultado"]');
+            if (!conts.length) return;
+            var fn = window._ngpFiltro && window._ngpFiltro.resultadosDeFecha;
+            if (!fn) { conts.forEach(function(x) { x.innerHTML = '<div style="font-size:11px;color:#f87171;padding:6px;">Módulo no disponible todavía — actualizá los datos primero.</div>'; }); return; }
+            var ins = document.querySelectorAll('[id="ngpFechaInput"]');
+            var fecha = (ins.length && ins[0].value) ? ins[0].value : _ngpFechaHoyStr(-1);
+            var sel = document.querySelector('[id="ngpFechaLot"]');
+            var lotF = sel ? sel.value : '__TODAS__';
+            var r = fn(fecha, lotF);
+            var etq = fecha === _ngpFechaHoyStr(0) ? ' · HOY (acumulado hasta ahora)' : fecha === _ngpFechaHoyStr(-1) ? ' · AYER' : '';
+            var fNom = fecha;
+            try {
+                var pf = fecha.split('-');
+                fNom = new Date(parseInt(pf[0], 10), parseInt(pf[1], 10) - 1, parseInt(pf[2], 10)).toLocaleDateString('es-CR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            } catch (e) {}
+            var html = '<div style="font-size:12px;font-weight:bold;color:#5eead4;margin-bottom:6px;">📅 ' + fNom + etq + ' — ' + r.total + ' resultado(s) · ' + (lotF !== '__TODAS__' ? lotF : 'todas las loterías') + '</div>';
+            if (!r.total) {
+                html += '<div style="font-size:11px;color:#94a3b8;padding:6px;">No hay resultados capturados para esa fecha' + (lotF !== '__TODAS__' ? ' en ' + lotF : '') + '. Probá otra fecha con los botones ◀ ▶ o revisá la captura de resultados.</div>';
+            } else {
+                r.lots.forEach(function(g) {
+                    html += '<div style="background:rgba(0,0,0,0.3);border:1px solid rgba(20,184,166,0.5);border-radius:8px;padding:7px 9px;margin-bottom:6px;">';
+                    html += '<div style="font-size:12px;font-weight:bold;color:#99f6e4;margin-bottom:4px;">' + g.l + ' <span style="font-size:9px;color:#5eead4;font-weight:normal;">(' + g.items.length + ' sorteo' + (g.items.length === 1 ? '' : 's') + ')</span></div>';
+                    html += '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
+                    g.items.forEach(function(it) {
+                        var hf = it.time;
+                        try { if (typeof convertTo12Hour === 'function' && it.time) hf = convertTo12Hour(it.time); } catch (e) {}
+                        html += '<span title="' + (it.grupo || 'sin grupo') + '" style="background:rgba(20,184,166,0.12);border:1px solid #14b8a6;border-radius:6px;padding:3px 9px;font-size:11px;color:#ccfbf1;cursor:help;"><strong style="font-family:monospace;font-size:15px;color:#fff;">' + it.n + '</strong>' + (hf ? ' · ' + hf : '') + (it.grupo ? ' <span style="font-size:8px;color:#5eead4;">' + it.grupo.replace('Grupo ', 'G') + '</span>' : '') + '</span>';
+                    });
+                    html += '</div></div>';
+                });
+            }
+            html += '<div style="font-size:8px;color:#64748b;margin-top:5px;">Se muestran los resultados CAPTURADOS en el sistema para la fecha elegida, por lotería y en orden de hora. "Hoy (acumulado)" trae lo que va del día hasta el momento de la consulta.</div>';
+            conts.forEach(function(x) { x.innerHTML = html; });
         }
         function _ngpFiltroToggle() {
             var ps = document.querySelectorAll('[id="ngpFiltroPanel"]');
@@ -71546,7 +71666,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r111 · v46.9.177</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r112 · v46.9.178</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
