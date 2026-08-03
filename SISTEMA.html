@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.174</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.177</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6339,7 +6339,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.174</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.177</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -28611,6 +28611,29 @@ ${groups.map((g,i)=>`
                                 }
                             } catch (eT) {}
                         }
+                        // V46.9.177 (pedido de Leo): TRES fotos diarias de los LÍDERES de
+                        // grupo, por franja horaria — F1: antes de 12 md · F2: 12 md a 5 pm ·
+                        // F3: 5 pm a medianoche. Se guarda al abrir/actualizar el sistema por
+                        // primera vez dentro de cada franja; luego cada sorteo se mide contra
+                        // la foto VIGENTE a su hora (así el reemplazo del que ya salió queda
+                        // registrado en la franja siguiente).
+                        try {
+                            var _ahoraG5 = new Date();
+                            var _frG5 = _ahoraG5.getHours() < 12 ? 'f1' : _ahoraG5.getHours() < 17 ? 'f2' : 'f3';
+                            var snaps5 = _efvG5Leer();
+                            if (!snaps5[hoyR2]) snaps5[hoyR2] = {};
+                            if (!snaps5[hoyR2][_frG5]) {
+                                var rc5 = _resumenCalc();
+                                var _hG5 = String(_ahoraG5.getHours()).padStart(2, '0') + ':' + String(_ahoraG5.getMinutes()).padStart(2, '0');
+                                snaps5[hoyR2][_frG5] = { h: _hG5, e: rc5.ranking.map(function(rk) {
+                                    var _tg5 = rk.topGrupos || [];
+                                    return { l: rk.lot, nums: _tg5.map(function(bg) { return bg.mejor.num; }), grps: _tg5.map(function(bg) { return bg.grupo; }) };
+                                }).filter(function(e) { return e.nums.length; }) };
+                                var f5k = Object.keys(snaps5).sort();
+                                while (f5k.length > 60) { delete snaps5[f5k[0]]; f5k.shift(); }
+                                localStorage.setItem(_EFV_G5_KEY, JSON.stringify(snaps5));
+                            }
+                        } catch (eG5F) {}
                     } catch (e) {}
                 }
                 // Efectividad: ganadores del rango vs la foto del día de cada sorteo.
@@ -28822,7 +28845,7 @@ function senalesDe(nn) {
                 // fuerza de señales (suma del top-5 + bonus por jale), podio + top de jugadas.
                 h += '<div id="ngpResumenPanel" style="display:none;background:rgba(46,16,101,0.4);border:1px solid #a855f7;border-radius:9px;padding:10px;margin-top:9px;">';
                 h += (typeof _ngpGrpDiasCtlHTML === 'function' ? _ngpGrpDiasCtlHTML() : ''); // V46.9.169 (pedido de Leo)
-                h += '<div id="ngpResumenResultado" style="max-height:600px;overflow-y:auto;"><div style="font-size:11px;color:#94a3b8;padding:6px;">Calculando…</div></div>';
+                h += '<div id="ngpResumenResultado" style="max-height:max(600px,85vh);overflow-y:auto;"><div style="font-size:11px;color:#94a3b8;padding:6px;">Calculando…</div></div>';
                 h += '</div>';
                 // V46.9.155 (pedido de Leo): panel "Buscar Después de" (mismo buscador de Don Jorge)
                 h += '<div id="ngpDespuesPanel" style="display:none;background:rgba(67,20,7,0.4);border:1px solid #ea580c;border-radius:9px;padding:10px;margin-top:9px;">';
@@ -29305,6 +29328,7 @@ function senalesDe(nn) {
                 }
                 var _EFV_T10_KEY = 'efvTop10Snaps';
                 var _EFV_T3_KEY = 'efvT3Snaps'; // V46.9.161: top-3 de cada tarjeta
+                var _EFV_G5_KEY = 'efvG5Snaps'; // V46.9.176: líderes de grupo de cada tarjeta (TOP 5 POR GRUPOS)
                 function _efvT10Leer() {
                     // V46.9.162: normaliza formato viejo (array) y nuevo ({h, j})
                     try {
@@ -29349,6 +29373,89 @@ function senalesDe(nn) {
                         });
                         res.total.lotsAcertadas += dia.aciertos;
                         res.total.lotsEvaluadas += dia.total;
+                        res.porDia.push(dia);
+                    }
+                    return res;
+                }
+                function _efvG5Leer() {
+                    // V46.9.177: formato por FRANJAS { f1:{h,e}, f2:{h,e}, f3:{h,e} }.
+                    // Normaliza el formato viejo de una sola foto {h,e} según su hora.
+                    try {
+                        var s = JSON.parse(localStorage.getItem(_EFV_G5_KEY) || '{}');
+                        Object.keys(s).forEach(function(f) {
+                            var v = s[f];
+                            if (v && v.e) {
+                                var hh5 = parseInt(('' + (v.h || '07')).split(':')[0], 10);
+                                var fr5 = (isNaN(hh5) || hh5 < 12) ? 'f1' : hh5 < 17 ? 'f2' : 'f3';
+                                var nv = {}; nv[fr5] = v; s[f] = nv;
+                            }
+                        });
+                        return s;
+                    } catch (e) { return {}; }
+                }
+                // V46.9.176/177 (pedido de Leo): efectividad de los LÍDERES DE GRUPO —
+                // 3 fotos diarias por franja (F1 antes de 12 md · F2 12-5 pm · F3 5 pm-12 am).
+                // Cada SORTEO se mide contra la foto VIGENTE a su hora (la última tomada
+                // antes del sorteo). Sorteos previos a la primera foto del día no se evalúan.
+                function _efvG5MinDe(t) {
+                    try {
+                        var tn = (typeof _horaNorm24 === 'function') ? _horaNorm24(t) : ('' + (t || ''));
+                        var p = tn.split(':');
+                        var h = parseInt(p[0], 10), m = parseInt(p[1] || '0', 10);
+                        if (isNaN(h)) return null;
+                        return h * 60 + (isNaN(m) ? 0 : m);
+                    } catch (e) { return null; }
+                }
+                function _efvG5Calc(diasAtras) {
+                    var snaps = _efvG5Leer();
+                    var dIni = new Date(); dIni.setDate(dIni.getDate() - (diasAtras || 0));
+                    var iniStr = _pmFechaLocalStr(dIni);
+                    var res = { porDia: [], total: { lotsAcertadas: 0, lotsEvaluadas: 0, sorteosAciertos: 0, sorteosEvaluados: 0, sorteosSinFoto: 0 }, sinFoto: 0 };
+                    for (var dd = 0; dd <= (diasAtras || 0); dd++) {
+                        var dx = new Date(); dx.setDate(dx.getDate() - dd);
+                        var fx = _pmFechaLocalStr(dx);
+                        var snap = snaps[fx];
+                        // fotos del día ordenadas por hora
+                        var fotos = [];
+                        if (snap) {
+                            ['f1', 'f2', 'f3'].forEach(function(fr) {
+                                if (snap[fr] && snap[fr].e && snap[fr].e.length) {
+                                    var mm = _efvG5MinDe(snap[fr].h);
+                                    fotos.push({ fr: fr, h: snap[fr].h, min: (mm === null ? 0 : mm), e: snap[fr].e });
+                                }
+                            });
+                        }
+                        fotos.sort(function(a, b) { return a.min - b.min; });
+                        if (!fotos.length) { res.sinFoto++; continue; }
+                        var dia = { fecha: fx, fotos: fotos.map(function(f0) { return { fr: f0.fr, h: f0.h }; }), hits: [], lotsAcertadas: 0, lotsTotal: 0, sorteosAciertos: 0, sorteosTotal: 0, sinFotoPrev: 0 };
+                        var lotsConSorteo = {}, lotsConHit = {};
+                        (capturedResults || []).forEach(function(r) {
+                            if (!r || r.date !== fx || !r.number || String(r.number).length < 2) return;
+                            var mSort = _efvG5MinDe(r.time);
+                            if (mSort === null) mSort = 24 * 60; // sin hora: cuenta contra la última foto
+                            // foto vigente = la última tomada ANTES (o al momento) del sorteo
+                            var vig = null;
+                            fotos.forEach(function(f0) { if (f0.min <= mSort) vig = f0; });
+                            if (!vig) { dia.sinFotoPrev++; res.total.sorteosSinFoto++; return; }
+                            var eLot = null;
+                            vig.e.forEach(function(e0) { if (!eLot && e0.l === r.lottery) eLot = e0; });
+                            if (!eLot) return; // lotería sin líderes en la foto: no se evalúa
+                            dia.sorteosTotal++;
+                            lotsConSorteo[r.lottery] = true;
+                            var nG = _efvNorm(r.number);
+                            var ix5 = (eLot.nums || []).indexOf(nG);
+                            if (ix5 >= 0) {
+                                dia.sorteosAciertos++;
+                                lotsConHit[r.lottery] = true;
+                                dia.hits.push({ l: r.lottery, n: nG, g: (eLot.grps && eLot.grps[ix5]) || '', time: _jaleNormHora(r.time), fr: vig.fr });
+                            }
+                        });
+                        dia.lotsTotal = Object.keys(lotsConSorteo).length;
+                        dia.lotsAcertadas = Object.keys(lotsConHit).length;
+                        res.total.lotsAcertadas += dia.lotsAcertadas;
+                        res.total.lotsEvaluadas += dia.lotsTotal;
+                        res.total.sorteosAciertos += dia.sorteosAciertos;
+                        res.total.sorteosEvaluados += dia.sorteosTotal;
                         res.porDia.push(dia);
                     }
                     return res;
@@ -29405,7 +29512,7 @@ function senalesDe(nn) {
                     ultPorNumLot: ultPorNumLot, difDias: difDias, hoyStr: hoyStr, porNum: porNum, serie: serie,
                     rankRezagoLot: rankRezagoLot, rankRezagoPrevLot: rankRezagoPrevLot,
                     jaleDe: _jaleDeAyer, decTermHoy: _decTermHoy, efvCalcular: _efvCalcular,
-                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, candidatosDe: _candidatosDeL
+                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, candidatosDe: _candidatosDeL
                 };
                 try { _efvGuardarSnapshotHoy(); } catch (eSnap) {} // V46.9.144: foto diaria del extracto
                 return h;
@@ -30687,6 +30794,45 @@ function senalesDe(nn) {
                 });
                 if (r3.sinFoto > 0) html += '<div style="font-size:9px;color:#fbbf24;margin-top:3px;">⚠️ ' + r3.sinFoto + ' día(s) sin foto de tarjetas (se guarda a diario desde esta versión).</div>';
                 html += '<div style="font-size:8px;color:#64748b;margin-top:4px;">Con 3 números por lotería y ~2-3 sorteos diarios, el azar rondaría 1-2 tarjetas acertadas por día — lo valioso es la tendencia sostenida.</div>';
+                html += '</div>';
+            }
+            // ═══ V46.9.176/177 (pedido de Leo): efectividad de los LÍDERES DE GRUPO ═
+            // 3 fotos diarias por franja; cada sorteo se mide contra la foto VIGENTE.
+            var r5g = (window._ngpFiltro && window._ngpFiltro.efvG5Calc) ? window._ngpFiltro.efvG5Calc(dias) : null;
+            if (r5g) {
+                var pctL5 = r5g.total.lotsEvaluadas ? (100 * r5g.total.lotsAcertadas / r5g.total.lotsEvaluadas) : 0;
+                var pctS5 = r5g.total.sorteosEvaluados ? (100 * r5g.total.sorteosAciertos / r5g.total.sorteosEvaluados) : 0;
+                var pctL5Col = pctL5 >= 45 ? '#34d399' : pctL5 >= 25 ? '#fbbf24' : '#f87171';
+                var pctS5Col = pctS5 >= 12 ? '#34d399' : pctS5 >= 8 ? '#fbbf24' : '#f87171';
+                html += '<div style="border-top:1px dashed rgba(216,180,254,0.5);margin-top:10px;padding-top:8px;">';
+                html += '<div style="font-size:11px;font-weight:bold;color:#d8b4fe;margin-bottom:2px;">🧩 Y los LÍDERES de grupo (el mejor número de cada grupo del TOP 5 POR GRUPOS):</div>';
+                html += '<div style="font-size:9px;color:#c4b5fd;margin-bottom:5px;">Se guardan hasta 3 fotos al día (antes de 12 md · 12-5 pm · 5 pm-12 am) y cada sorteo se compara contra la foto VIGENTE a su hora — así los reemplazos de números que ya salieron quedan bien registrados.</div>';
+                html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">';
+                html += '<div style="flex:1;min-width:150px;text-align:center;padding:7px;background:rgba(0,0,0,0.3);border-radius:8px;">';
+                html += '<div style="font-size:20px;font-weight:bold;color:' + pctL5Col + ';line-height:1.1;">' + pctL5.toFixed(1) + '%</div>';
+                html += '<div style="font-size:10px;color:#e9d5ff;">' + r5g.total.lotsAcertadas + ' de ' + r5g.total.lotsEvaluadas + ' loterías con sorteos evaluados acertaron con algún líder</div>';
+                html += '</div>';
+                html += '<div style="flex:1;min-width:150px;text-align:center;padding:7px;background:rgba(0,0,0,0.3);border-radius:8px;">';
+                html += '<div style="font-size:20px;font-weight:bold;color:' + pctS5Col + ';line-height:1.1;">' + pctS5.toFixed(1) + '%</div>';
+                html += '<div style="font-size:10px;color:#e9d5ff;">' + r5g.total.sorteosAciertos + ' de ' + r5g.total.sorteosEvaluados + ' sorteos: el ganador estaba entre los líderes vigentes</div>';
+                html += '</div>';
+                html += '</div>';
+                var _frNom5 = { f1: 'F1 (antes 12 md)', f2: 'F2 (12-5 pm)', f3: 'F3 (5 pm-12 am)' };
+                r5g.porDia.forEach(function(d5) {
+                    var _fotosTxt = (d5.fotos || []).map(function(f0) { return _frNom5[f0.fr] + ' ' + f0.h; }).join(' · ');
+                    html += '<div style="font-size:11px;font-weight:bold;color:#e9d5ff;">' + d5.fecha + ' <span style="font-size:9px;color:#c4b5fd;font-weight:normal;">(fotos: ' + _fotosTxt + ')</span> → <span style="color:' + (d5.sorteosAciertos > 0 ? '#34d399' : '#94a3b8') + ';">' + d5.lotsAcertadas + ' / ' + d5.lotsTotal + ' loterías · ' + d5.sorteosAciertos + ' / ' + d5.sorteosTotal + ' sorteos</span></div>';
+                    if (d5.sinFotoPrev > 0) html += '<div style="font-size:9px;color:#fbbf24;">' + d5.sinFotoPrev + ' sorteo(s) previos a la primera foto del día — no se evalúan.</div>';
+                    if (d5.hits.length) {
+                        html += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin:3px 0 6px;">';
+                        d5.hits.forEach(function(hh) {
+                            var hf5 = hh.time; try { if (typeof convertTo12Hour === 'function') hf5 = convertTo12Hour(hh.time); } catch (e) {}
+                            html += '<span style="background:linear-gradient(135deg,#4c1d95,#a855f7);border:1px solid #d8b4fe;border-radius:6px;padding:3px 9px;font-size:11px;color:#fff;"><strong style="font-family:monospace;font-size:14px;">' + hh.n + '</strong> ' + hh.l + (hh.g ? ' · ' + hh.g.replace('Grupo ', 'G') : '') + ' · ' + hf5 + (hh.fr ? ' <span style="font-size:8px;color:#d8b4fe;">' + hh.fr.toUpperCase() + '</span>' : '') + '</span>';
+                        });
+                        html += '</div>';
+                    }
+                });
+                if (r5g.sinFoto > 0) html += '<div style="font-size:9px;color:#fbbf24;margin-top:3px;">⚠️ ' + r5g.sinFoto + ' día(s) sin ninguna foto de líderes (se guarda por franja desde esta versión).</div>';
+                html += '<div style="font-size:8px;color:#64748b;margin-top:4px;">Referencia honesta: con ~8-10 líderes por lotería, el azar por SORTEO ronda el 8-10% (líderes/100). Si el % por sorteo se sostiene arriba de eso, los líderes de grupo están rindiendo de verdad. Cada sorteo es independiente.</div>';
                 html += '</div>';
             }
             if (r.sinFoto > 0) {
