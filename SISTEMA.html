@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.179</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.180</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6339,7 +6339,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.179</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.180</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -29248,6 +29248,38 @@ function senalesDe(nn) {
                 // (candidatos: mantener en sincronía con _ngpExtractoRender)
                 // V46.9.155: candidatos por lotería a nivel de módulo (los usa el resumen
                 // y el buscador de números/grupos). Mantener en sincronía con _ngpExtractoRender.
+                // V46.9.180 (pedido de Leo): PREDOMINIO DE GRUPOS HOY — cuenta las
+                // salidas de hoy por grupo en TODAS las loterías. Los "dominantes" son
+                // los 3 grupos con más salidas (mínimo 2). Para cada uno se sabe en qué
+                // loterías ya salió (y con qué números) y en cuáles sigue pendiente.
+                function _ngpPredominioHoy() {
+                    try {
+                        var key = hoyStr + '|' + ((capturedResults || []).length);
+                        if (window._ngpPredomCache && window._ngpPredomCache.key === key) return window._ngpPredomCache.val;
+                        var n2g = {};
+                        Object.keys(NUMBER_GROUPS || {}).forEach(function(g0) { (NUMBER_GROUPS[g0] || []).forEach(function(nn0) { n2g[nn0] = g0; }); });
+                        var por = {};
+                        (capturedResults || []).forEach(function(r) {
+                            if (!r || r.date !== hoyStr || !r.number) return;
+                            var nn = _efvNorm(r.number);
+                            var g0 = n2g[nn];
+                            if (!g0) return;
+                            if (!por[g0]) por[g0] = { g: g0, cnt: 0, salidas: [], porLot: {} };
+                            por[g0].cnt++;
+                            por[g0].salidas.push({ n: nn, l: r.lottery, time: _jaleNormHora(r.time) });
+                            if (!por[g0].porLot[r.lottery]) por[g0].porLot[r.lottery] = [];
+                            if (por[g0].porLot[r.lottery].indexOf(nn) < 0) por[g0].porLot[r.lottery].push(nn);
+                        });
+                        var lista = Object.keys(por).map(function(g0) { return por[g0]; });
+                        lista.sort(function(a, b) { return b.cnt - a.cnt; });
+                        var dominantes = lista.filter(function(x) { return x.cnt >= 2; }).slice(0, 3);
+                        var domSet = {};
+                        dominantes.forEach(function(x) { domSet[x.g] = x; });
+                        var val = { lista: lista, dominantes: dominantes, domSet: domSet };
+                        window._ngpPredomCache = { key: key, val: val };
+                        return val;
+                    } catch (e) { return { lista: [], dominantes: [], domSet: {} }; }
+                }
                 function _candidatosDeL(L, jalesL) {
                     var _gruposOrd = (window._ngpGInfoOrden || Object.keys(NUMBER_GROUPS || {})).slice();
                     var dth2 = _decTermHoy || { decTop: [], termTop: [] };
@@ -29293,6 +29325,18 @@ function senalesDe(nn) {
                                     var gsC = (typeof _ngpGrupoSalidorHorario === 'function') ? _ngpGrupoSalidorHorario(L) : null;
                                     if (gsC && gsC.grupo === g) { scoreL += 2; _tuvoHorC = true; tiposL.push('🕐📁 ' + g + ' MÁS salidor del próx. sorteo ' + gsC.horaFmt + ' (x' + gsC.veces + ')'); }
                                     if (_tuvoGrpC && _tuvoHorC) tiposL.push('🔥 CRUCE: grupo pendiente + horario salidor');
+                                    // V46.9.180 (pedido de Leo): 📈 grupo DOMINANTE del día (+1) —
+                                    // el grupo del candidato es de los que más han salido HOY en
+                                    // todas las loterías y en ESTA aún está pendiente (del todo,
+                                    // o al menos este número en particular).
+                                    var pdC = (typeof _ngpPredominioHoy === 'function') ? _ngpPredominioHoy() : null;
+                                    if (pdC && pdC.domSet[g]) {
+                                        var _yaEnL = (pdC.domSet[g].porLot[L] || []);
+                                        if (_yaEnL.indexOf(nn) < 0) {
+                                            scoreL += 1;
+                                            tiposL.push('📈 ' + g + ' DOMINANTE hoy (' + pdC.domSet[g].cnt + ' salidas en todas las loterías)' + (_yaEnL.length ? ' — parcial acá (ya: ' + _yaEnL.join(', ') + ')' : ' — pendiente del todo acá'));
+                                        }
+                                    }
                                 } catch (eGH3) {}
                                 lista.push({ num: nn, score: scoreL, tipos: tiposL, pos: pos, grupo: g }); // V46.9.173: guarda el grupo del candidato
                             });
@@ -29563,7 +29607,7 @@ function senalesDe(nn) {
                     ultPorNumLot: ultPorNumLot, difDias: difDias, hoyStr: hoyStr, porNum: porNum, serie: serie,
                     rankRezagoLot: rankRezagoLot, rankRezagoPrevLot: rankRezagoPrevLot,
                     jaleDe: _jaleDeAyer, decTermHoy: _decTermHoy, efvCalcular: _efvCalcular,
-                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, resultadosDeFecha: _resultadosDeFecha, candidatosDe: _candidatosDeL
+                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, resultadosDeFecha: _resultadosDeFecha, predominioHoy: _ngpPredominioHoy, candidatosDe: _candidatosDeL
                 };
                 try { _efvGuardarSnapshotHoy(); } catch (eSnap) {} // V46.9.144: foto diaria del extracto
                 return h;
@@ -30187,7 +30231,7 @@ function senalesDe(nn) {
             return '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:7px;background:rgba(29,78,216,0.15);border:1px dashed #60a5fa;border-radius:6px;padding:5px 8px;">' +
                 '<span style="font-size:10px;font-weight:bold;color:#93c5fd;">📁 Señal: grupo COMPLETO pendiente ≥</span>' +
                 '<input id="ngpGrpDiasInp" type="number" min="3" max="365" value="' + _ngpGrpDiasUmbral() + '" onchange="_ngpGrpDiasSet(this)" style="width:54px;background:#0c1a3a;color:#fff;border:1px solid #60a5fa;border-radius:5px;font-size:11px;padding:3px 5px;text-align:center;">' +
-                '<span style="font-size:10px;color:#93c5fd;">días (+1) · <strong style="color:#5eead4;">🕐 número más salidor en horario que AÚN FALTA hoy (+2)</strong> · <strong style="color:#5eead4;">🕐📁 grupo MÁS salidor del PRÓXIMO sorteo (+2)</strong> · 🔥 cruce = pendiente + horario</span>' +
+                '<span style="font-size:10px;color:#93c5fd;">días (+1) · <strong style="color:#5eead4;">🕐 número más salidor en horario que AÚN FALTA hoy (+2)</strong> · <strong style="color:#5eead4;">🕐📁 grupo MÁS salidor del PRÓXIMO sorteo (+2)</strong> · 🔥 cruce = pendiente + horario · <strong style="color:#7dd3fc;">📈 grupo dominante del día aún pendiente (+1)</strong></span>' +
                 '</div>';
         }
         function _ngpFechaHoyLocal() {
@@ -30739,6 +30783,38 @@ function senalesDe(nn) {
             var rc = F.resumenCalc();
             var ranking = rc.ranking, jugadas = rc.jugadas;
             var html = '<div style="font-size:12px;font-weight:bold;color:#e9d5ff;margin-bottom:8px;">🏆 TODAS LAS LOTERÍAS ordenadas por fuerza de señales <span style="font-size:9px;color:#94a3b8;font-weight:normal;">(fuerza = suma de señales de sus 5 números más fuertes + 3 por cada jale activo)</span></div>';
+            // ═══ V46.9.180 (pedido de Leo): PREDOMINIO DE GRUPOS HOY — visible ══════
+            try {
+                var pdR = F.predominioHoy ? F.predominioHoy() : null;
+                if (pdR && pdR.lista.length) {
+                    var _lotsRk = ranking.map(function(r0) { return r0.lot; });
+                    var hPd = '<div style="background:rgba(8,47,73,0.55);border:1px solid #38bdf8;border-radius:9px;padding:9px 11px;margin-bottom:10px;">';
+                    hPd += '<div style="font-size:12px;font-weight:bold;color:#7dd3fc;margin-bottom:4px;">📈 PREDOMINIO DE GRUPOS HOY <span style="font-size:9px;color:#94a3b8;font-weight:normal;">(salidas de hoy en todas las loterías — los 🔥 dominantes dan +1 a sus números aún pendientes)</span></div>';
+                    hPd += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;">';
+                    pdR.lista.forEach(function(gp) {
+                        var esDom = !!pdR.domSet[gp.g];
+                        var tt = gp.salidas.map(function(s0) {
+                            var hf0 = s0.time; try { if (typeof convertTo12Hour === 'function' && s0.time) hf0 = convertTo12Hour(s0.time); } catch (e0) {}
+                            return s0.n + ' en ' + s0.l + (hf0 ? ' (' + hf0 + ')' : '');
+                        }).join(' · ');
+                        hPd += '<span title="' + tt.replace(/"/g, '') + '" style="background:' + (esDom ? 'rgba(56,189,248,0.25)' : 'rgba(255,255,255,0.05)') + ';border:' + (esDom ? '2px solid #38bdf8' : '1px solid rgba(148,163,184,0.4)') + ';border-radius:6px;padding:3px 9px;font-size:11px;color:' + (esDom ? '#e0f2fe' : '#94a3b8') + ';cursor:help;font-weight:' + (esDom ? 'bold' : 'normal') + ';">' + (esDom ? '🔥 ' : '') + gp.g.replace('Grupo ', 'G') + ' × ' + gp.cnt + '</span>';
+                    });
+                    hPd += '</div>';
+                    pdR.dominantes.forEach(function(gp) {
+                        var pendTodo = [], parcial = [];
+                        _lotsRk.forEach(function(L0) {
+                            var ya = gp.porLot[L0] || [];
+                            if (!ya.length) pendTodo.push(L0);
+                            else parcial.push(L0 + ' (ya: ' + ya.join(', ') + ')');
+                        });
+                        hPd += '<div style="font-size:10px;color:#bae6fd;margin-bottom:3px;line-height:1.5;"><strong style="color:#7dd3fc;">🔥 ' + gp.g + ' — ' + gp.cnt + ' salidas hoy</strong> → <span style="color:#34d399;font-weight:bold;">pendiente del todo en:</span> ' + (pendTodo.length ? pendTodo.join(', ') : '—') + (parcial.length ? ' · <span style="color:#fbbf24;font-weight:bold;">parcial en:</span> ' + parcial.join(' · ') : '') + '</div>';
+                    });
+                    if (!pdR.dominantes.length) hPd += '<div style="font-size:10px;color:#94a3b8;">Todavía no hay grupo dominante claro hoy (se necesitan al menos 2 salidas de un mismo grupo).</div>';
+                    hPd += '<div style="font-size:8px;color:#64748b;margin-top:3px;">Pasá el cursor sobre cada grupo para ver qué números salieron, en qué lotería y a qué hora. Las loterías "pendientes del todo" del grupo dominante son las candidatas naturales para que el predominio se traslade.</div>';
+                    hPd += '</div>';
+                    html += hPd;
+                }
+            } catch (ePdR) {}
             // ─── V46.9.149: TODAS las tarjetas con el MISMO formato e información
             html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:8px;margin-bottom:12px;">';
             ranking.forEach(function(rk, ix) {
