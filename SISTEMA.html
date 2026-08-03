@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.178</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.179</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6339,7 +6339,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.178</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.179</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -29832,21 +29832,26 @@ function senalesDe(nn) {
                 var pf = fecha.split('-');
                 fNom = new Date(parseInt(pf[0], 10), parseInt(pf[1], 10) - 1, parseInt(pf[2], 10)).toLocaleDateString('es-CR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
             } catch (e) {}
-            var html = '<div style="font-size:12px;font-weight:bold;color:#5eead4;margin-bottom:6px;">📅 ' + fNom + etq + ' — ' + r.total + ' resultado(s) · ' + (lotF !== '__TODAS__' ? lotF : 'todas las loterías') + '</div>';
+            var html = '<div style="font-size:14px;font-weight:bold;color:#5eead4;margin-bottom:7px;">📅 ' + fNom + etq + ' — ' + r.total + ' resultado(s) · ' + (lotF !== '__TODAS__' ? lotF : 'todas las loterías') + '</div>';
             if (!r.total) {
-                html += '<div style="font-size:11px;color:#94a3b8;padding:6px;">No hay resultados capturados para esa fecha' + (lotF !== '__TODAS__' ? ' en ' + lotF : '') + '. Probá otra fecha con los botones ◀ ▶ o revisá la captura de resultados.</div>';
+                html += '<div style="font-size:13px;color:#94a3b8;padding:6px;">No hay resultados capturados para esa fecha' + (lotF !== '__TODAS__' ? ' en ' + lotF : '') + '. Probá otra fecha con los botones ◀ ▶ o revisá la captura de resultados.</div>';
             } else {
+                // V46.9.179 (pedido de Leo): DOS COLUMNAS verticales — el orden alfabético
+                // baja por la 1ª columna y continúa en la 2ª (en pantallas angostas vuelve
+                // a una sola) — y letra más grande en nombres, números y horas.
+                html += '<div style="columns:2 320px;column-gap:10px;">';
                 r.lots.forEach(function(g) {
-                    html += '<div style="background:rgba(0,0,0,0.3);border:1px solid rgba(20,184,166,0.5);border-radius:8px;padding:7px 9px;margin-bottom:6px;">';
-                    html += '<div style="font-size:12px;font-weight:bold;color:#99f6e4;margin-bottom:4px;">' + g.l + ' <span style="font-size:9px;color:#5eead4;font-weight:normal;">(' + g.items.length + ' sorteo' + (g.items.length === 1 ? '' : 's') + ')</span></div>';
-                    html += '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
+                    html += '<div style="background:rgba(0,0,0,0.3);border:1px solid rgba(20,184,166,0.5);border-radius:8px;padding:9px 11px;margin-bottom:8px;break-inside:avoid;">';
+                    html += '<div style="font-size:15px;font-weight:bold;color:#99f6e4;margin-bottom:5px;">' + g.l + ' <span style="font-size:11px;color:#5eead4;font-weight:normal;">(' + g.items.length + ' sorteo' + (g.items.length === 1 ? '' : 's') + ')</span></div>';
+                    html += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
                     g.items.forEach(function(it) {
                         var hf = it.time;
                         try { if (typeof convertTo12Hour === 'function' && it.time) hf = convertTo12Hour(it.time); } catch (e) {}
-                        html += '<span title="' + (it.grupo || 'sin grupo') + '" style="background:rgba(20,184,166,0.12);border:1px solid #14b8a6;border-radius:6px;padding:3px 9px;font-size:11px;color:#ccfbf1;cursor:help;"><strong style="font-family:monospace;font-size:15px;color:#fff;">' + it.n + '</strong>' + (hf ? ' · ' + hf : '') + (it.grupo ? ' <span style="font-size:8px;color:#5eead4;">' + it.grupo.replace('Grupo ', 'G') + '</span>' : '') + '</span>';
+                        html += '<span title="' + (it.grupo || 'sin grupo') + '" style="background:rgba(20,184,166,0.12);border:1px solid #14b8a6;border-radius:6px;padding:4px 11px;font-size:13px;color:#ccfbf1;cursor:help;"><strong style="font-family:monospace;font-size:19px;color:#fff;">' + it.n + '</strong>' + (hf ? ' · ' + hf : '') + (it.grupo ? ' <span style="font-size:10px;color:#5eead4;">' + it.grupo.replace('Grupo ', 'G') + '</span>' : '') + '</span>';
                     });
                     html += '</div></div>';
                 });
+                html += '</div>';
             }
             html += '<div style="font-size:8px;color:#64748b;margin-top:5px;">Se muestran los resultados CAPTURADOS en el sistema para la fecha elegida, por lotería y en orden de hora. "Hoy (acumulado)" trae lo que va del día hasta el momento de la consulta.</div>';
             conts.forEach(function(x) { x.innerHTML = html; });
