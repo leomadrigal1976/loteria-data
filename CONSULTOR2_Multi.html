@@ -28822,6 +28822,18 @@ function senalesDe(nn) {
                                         if (_yaEnL.indexOf(nn) < 0) {
                                             scoreL += 1;
                                             tiposL.push('📈 ' + g + ' DOMINANTE hoy (' + pdC.domSet[g].cnt + ' salidas en todas las loterías)' + (_yaEnL.length ? ' — parcial acá (ya: ' + _yaEnL.join(', ') + ')' : ' — pendiente del todo acá'));
+                                            // V46.9.181 (aclaración de Leo): +1 EXTRA si además el grupo
+                                            // lleva varios días (≥3) sin salir DEL TODO en esta lotería
+                                            // (o nunca se ha registrado acá) — doble razón para considerarlo.
+                                            var _dGrpL = null;
+                                            (NUMBER_GROUPS[g] || []).forEach(function(nn2) {
+                                                var u2 = (ultPorNumLot[nn2] || {})[L];
+                                                if (u2) { var d2 = difDias(u2, hoyStr); if (_dGrpL === null || d2 < _dGrpL) _dGrpL = d2; }
+                                            });
+                                            if (_dGrpL === null || _dGrpL >= 3) {
+                                                scoreL += 1;
+                                                tiposL.push('📈📁 CRUCE: dominante hoy Y sin salir del todo acá' + (_dGrpL === null ? ' (nunca registrado)' : ' hace ' + _dGrpL + 'd'));
+                                            }
                                         }
                                     }
                                 } catch (eGH3) {}
@@ -30291,10 +30303,25 @@ function senalesDe(nn) {
                         var pendTodo = [], parcial = [];
                         _lotsRk.forEach(function(L0) {
                             var ya = gp.porLot[L0] || [];
-                            if (!ya.length) pendTodo.push(L0);
-                            else parcial.push(L0 + ' (ya: ' + ya.join(', ') + ')');
+                            if (!ya.length) {
+                                // V46.9.181 (aclaración de Leo): cuántos días lleva el grupo sin
+                                // salir DEL TODO en esa lotería — ≥3d va resaltado en verde.
+                                var dg0 = null;
+                                (((F.NUMBER_GROUPS || {})[gp.g]) || []).forEach(function(n0) {
+                                    var u0 = (F.ultPorNumLot[n0] || {})[L0];
+                                    if (u0) { var d0 = F.difDias(u0, F.hoyStr); if (dg0 === null || d0 < dg0) dg0 = d0; }
+                                });
+                                var _txtD = dg0 === null ? 'sin registro' : dg0 + 'd sin el grupo';
+                                pendTodo.push(L0 + ' <span style="' + ((dg0 === null || dg0 >= 3) ? 'color:#34d399;font-weight:bold;' : 'color:#64748b;') + '">(' + _txtD + ')</span>');
+                            } else parcial.push(L0 + ' (ya: ' + ya.join(', ') + ')');
                         });
-                        hPd += '<div style="font-size:10px;color:#bae6fd;margin-bottom:3px;line-height:1.5;"><strong style="color:#7dd3fc;">🔥 ' + gp.g + ' — ' + gp.cnt + ' salidas hoy</strong> → <span style="color:#34d399;font-weight:bold;">pendiente del todo en:</span> ' + (pendTodo.length ? pendTodo.join(', ') : '—') + (parcial.length ? ' · <span style="color:#fbbf24;font-weight:bold;">parcial en:</span> ' + parcial.join(' · ') : '') + '</div>';
+                        // V46.9.181 (aclaración de Leo): números del grupo que aún NO han
+                        // salido hoy en NINGUNA lotería — si una sugerencia coincide con
+                        // ellos, es una consideración importante (marcada 📈 en las tarjetas).
+                        var _salioHoyG = {};
+                        gp.salidas.forEach(function(s0) { _salioHoyG[s0.n] = true; });
+                        var _faltG = (((F.NUMBER_GROUPS || {})[gp.g]) || []).filter(function(n0) { return !_salioHoyG[n0]; });
+                        hPd += '<div style="font-size:10px;color:#bae6fd;margin-bottom:4px;line-height:1.6;"><strong style="color:#7dd3fc;">🔥 ' + gp.g + ' — ' + gp.cnt + ' salidas hoy</strong> · <span style="color:#e0f2fe;">faltan del grupo hoy:</span> <strong style="font-family:monospace;color:#fff;">' + (_faltG.length ? _faltG.join(', ') : '— salió completo') + '</strong><br>→ <span style="color:#34d399;font-weight:bold;">pendiente del todo en:</span> ' + (pendTodo.length ? pendTodo.join(', ') : '—') + (parcial.length ? ' · <span style="color:#fbbf24;font-weight:bold;">parcial en:</span> ' + parcial.join(' · ') : '') + '</div>';
                     });
                     if (!pdR.dominantes.length) hPd += '<div style="font-size:10px;color:#94a3b8;">Todavía no hay grupo dominante claro hoy (se necesitan al menos 2 salidas de un mismo grupo).</div>';
                     hPd += '<div style="font-size:8px;color:#64748b;margin-top:3px;">Pasá el cursor sobre cada grupo para ver qué números salieron, en qué lotería y a qué hora. Las loterías "pendientes del todo" del grupo dominante son las candidatas naturales para que el predominio se traslade.</div>';
@@ -30340,10 +30367,11 @@ function senalesDe(nn) {
                     // V46.9.166 (pedido de Leo): distintivo claro si coincide con el top-5 "después de"
                     var _t5 = x.tipos.some(function(t) { return t.indexOf('(top-5 después-de)') > 0; });
                     var _horR = x.tipos.some(function(t) { return t.indexOf('FALTA HOY') > 0; }); // V46.9.169
+                    var _pdM = x.tipos.some(function(t) { return t.indexOf('📈') === 0; }); // V46.9.181: coincide con grupo dominante pendiente
                     if (_t5) _hayT5 = true;
                     html += '<div title="' + x.tipos.join(' · ').replace(/"/g, '') + '" style="background:' + (_t5 ? 'rgba(219,39,119,0.3)' : 'rgba(220,38,38,0.2)') + ';border:' + (_t5 ? '2px solid #ec4899;box-shadow:0 0 7px rgba(236,72,153,0.6)' : '1px solid #f87171') + ';border-radius:6px;padding:4px 8px;text-align:center;flex:1;cursor:help;">';
                     html += '<div style="font-family:monospace;font-size:19px;font-weight:bold;color:#fff;line-height:1;">' + (_t5 ? '🎯' : '') + x.num + '</div>';
-                    html += '<div style="font-size:8px;color:' + (_t5 ? '#f9a8d4' : '#fca5a5') + ';">' + x.score + ' señ.' + (_t5 ? ' · top-5 desp.' : '') + (_horR ? ' · <span style="color:#5eead4;font-weight:bold;">🕐 hor. salidor</span>' : '') + '</div>';
+                    html += '<div style="font-size:8px;color:' + (_t5 ? '#f9a8d4' : '#fca5a5') + ';">' + x.score + ' señ.' + (_t5 ? ' · top-5 desp.' : '') + (_horR ? ' · <span style="color:#5eead4;font-weight:bold;">🕐 hor. salidor</span>' : '') + (_pdM ? ' · <span style="color:#7dd3fc;font-weight:bold;">📈 grupo dom.</span>' : '') + '</div>';
                     html += '</div>';
                 });
                 html += '</div>';
@@ -30357,12 +30385,13 @@ function senalesDe(nn) {
                         html += '<span style="background:rgba(168,85,247,0.3);border:1px solid #a855f7;color:#e9d5ff;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:bold;min-width:64px;text-align:center;">' + bgR.grupo + '<small style="display:block;font-size:7px;color:#c4b5fd;font-weight:normal;">mejor: ' + bgR.mejor.score + ' señ.</small></span>';
                         bgR.nums.forEach(function(xg, xi) {
                             var _tgT5 = xg.tipos.some(function(t) { return t.indexOf('(top-5 después-de)') > 0; });
+                            var _pdM2 = xg.tipos.some(function(t) { return t.indexOf('📈') === 0; }); // V46.9.181
                             var esLider = (xi === 0);
                             var bgC = _tgT5 ? 'rgba(219,39,119,0.2)' : esLider ? 'rgba(251,191,36,0.18)' : 'rgba(255,255,255,0.06)';
                             var bdC = _tgT5 ? '2px solid #ec4899' : esLider ? '2px solid #fbbf24' : '1px solid rgba(168,85,247,0.5)';
                             html += '<div title="' + xg.num + ': ' + xg.tipos.join(' · ').replace(/"/g, '') + '" style="background:' + bgC + ';border:' + bdC + ';border-radius:5px;padding:2px 6px;text-align:center;cursor:help;">';
                             html += '<div style="font-family:monospace;font-size:14px;font-weight:bold;color:#fff;line-height:1.1;">' + (_tgT5 ? '🎯' : '') + xg.num + '</div>';
-                            html += '<div style="font-size:7px;color:' + (esLider ? '#fde68a' : '#d8b4fe') + ';' + (esLider ? 'font-weight:bold;' : '') + '">' + xg.score + ' señ.</div>';
+                            html += '<div style="font-size:7px;color:' + (esLider ? '#fde68a' : '#d8b4fe') + ';' + (esLider ? 'font-weight:bold;' : '') + '">' + xg.score + ' señ.' + (_pdM2 ? ' <span style="color:#7dd3fc;font-weight:bold;">📈</span>' : '') + '</div>';
                             html += '</div>';
                         });
                         html += '</div>';
@@ -71747,7 +71776,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r114 · v46.9.180</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r115 · v46.9.181</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
