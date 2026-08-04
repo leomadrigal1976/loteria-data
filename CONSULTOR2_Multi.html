@@ -28333,7 +28333,7 @@ function senalesDe(nn) {
                 // fuerza de señales (suma del top-5 + bonus por jale), podio + top de jugadas.
                 h += '<div id="ngpResumenPanel" style="display:none;background:rgba(46,16,101,0.4);border:1px solid #a855f7;border-radius:9px;padding:10px;margin-top:9px;">';
                 h += (typeof _ngpGrpDiasCtlHTML === 'function' ? _ngpGrpDiasCtlHTML() : ''); // V46.9.169 (pedido de Leo)
-                h += '<div id="ngpResumenResultado" style="max-height:max(600px,85vh);overflow-y:auto;"><div style="font-size:11px;color:#94a3b8;padding:6px;">Calculando…</div></div>';
+                h += '<div id="ngpResumenResultado"> /* V46.9.185 (pedido de Leo): sin tope de altura — el recuadro crece hacia abajo y se ve el top + las sugerencias completas */<div style="font-size:11px;color:#94a3b8;padding:6px;">Calculando…</div></div>';
                 h += '</div>';
                 // V46.9.155 (pedido de Leo): panel "Buscar Después de" (mismo buscador de Don Jorge)
                 h += '<div id="ngpDespuesPanel" style="display:none;background:rgba(67,20,7,0.4);border:1px solid #ea580c;border-radius:9px;padding:10px;margin-top:9px;">';
@@ -71860,7 +71860,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r118 · v46.9.184</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r119 · v46.9.185</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
