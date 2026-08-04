@@ -28780,6 +28780,63 @@ function senalesDe(nn) {
                         return val;
                     } catch (e) { return { sem: [], dia: [], rep: [], dow: 0, dom: 0, tot: 0 }; }
                 }
+                // V46.9.186 (pedido de Leo, maqueta aprobada): EN ESPERA HOY — para
+                // cada lotería, los DOS números más salidores de cada patrón (día de la
+                // semana, período del mes hasta el día TOPE configurable, fecha exacta y
+                // más repetidos) con su estado: ⏳ en espera o ✅ ya salió (y cuándo).
+                function _ngpEsperaTope() {
+                    try {
+                        var v = parseInt(localStorage.getItem('ngpEsperaDiaTope') || '10', 10);
+                        return (isNaN(v) || v < 1 || v > 28) ? 10 : v;
+                    } catch (e) { return 10; }
+                }
+                function _ngpEsperaDe(L) {
+                    try {
+                        var tope = _ngpEsperaTope();
+                        var key = L + '|' + hoyStr + '|' + tope + '|' + ((capturedResults || []).length);
+                        if (!window._ngpEsperaCache) window._ngpEsperaCache = {};
+                        if (window._ngpEsperaCache[key]) return window._ngpEsperaCache[key];
+                        var td = _ngpTopsDia(L);
+                        var hp = hoyStr.split('-');
+                        var domHoy = parseInt(hp[2], 10);
+                        var mesHoy = hp[0] + '-' + hp[1];
+                        // top histórico del período del mes (días 1..tope)
+                        var cPer = {}, ultPer = {};
+                        (capturedResults || []).forEach(function(r) {
+                            if (!r || r.lottery !== L || !r.date || !r.number) return;
+                            var dd = parseInt(r.date.split('-')[2], 10);
+                            if (isNaN(dd) || dd < 1 || dd > tope) return;
+                            var nn = _efvNorm(r.number);
+                            cPer[nn] = (cPer[nn] || 0) + 1;
+                            if (!ultPer[nn] || r.date > ultPer[nn]) ultPer[nn] = r.date;
+                        });
+                        var topPer = Object.keys(cPer).map(function(n0) { return { n: n0, veces: cPer[n0], ult: ultPer[n0] }; })
+                            .sort(function(a, b) { return b.veces - a.veces; }).slice(0, 2);
+                        // ¿salió HOY? / ¿salió en el período (1..tope) de ESTE mes?
+                        var salioHoy = {}, salioPerMes = {};
+                        (capturedResults || []).forEach(function(r) {
+                            if (!r || r.lottery !== L || !r.date || !r.number) return;
+                            var nn = _efvNorm(r.number);
+                            if (r.date === hoyStr && !salioHoy[nn]) salioHoy[nn] = { time: _jaleNormHora(r.time), date: r.date };
+                            if (r.date.substring(0, 7) === mesHoy) {
+                                var dd2 = parseInt(r.date.split('-')[2], 10);
+                                if (dd2 >= 1 && dd2 <= tope && (!salioPerMes[nn] || r.date < salioPerMes[nn].date)) salioPerMes[nn] = { time: _jaleNormHora(r.time), date: r.date };
+                            }
+                        });
+                        var arma2 = function(lst, modo) {
+                            return (lst || []).slice(0, 2).map(function(x0) {
+                                return { n: x0.n, veces: x0.veces, ult: x0.ult, salio: (modo === 'per' ? salioPerMes[x0.n] : salioHoy[x0.n]) || null };
+                            });
+                        };
+                        var val = { tope: tope, domHoy: domHoy, dow: td.dow, filas: [] };
+                        if (td.sem.length) val.filas.push({ tipo: 'sem', nums: arma2(td.sem, 'hoy') });
+                        if (domHoy <= tope && topPer.length) val.filas.push({ tipo: 'per', nums: arma2(topPer, 'per') });
+                        if (td.dia.length) val.filas.push({ tipo: 'dia', nums: arma2(td.dia, 'hoy') });
+                        if (td.rep.length) val.filas.push({ tipo: 'rep', nums: arma2(td.rep, 'hoy') });
+                        window._ngpEsperaCache[key] = val;
+                        return val;
+                    } catch (e) { return { tope: 10, domHoy: 1, dow: 0, filas: [] }; }
+                }
                 // V46.9.180 (pedido de Leo): PREDOMINIO DE GRUPOS HOY — cuenta las
                 // salidas de hoy por grupo en TODAS las loterías. Los "dominantes" son
                 // los 3 grupos con más salidas (mínimo 2). Para cada uno se sabe en qué
@@ -29151,7 +29208,7 @@ function senalesDe(nn) {
                     ultPorNumLot: ultPorNumLot, difDias: difDias, hoyStr: hoyStr, porNum: porNum, serie: serie,
                     rankRezagoLot: rankRezagoLot, rankRezagoPrevLot: rankRezagoPrevLot,
                     jaleDe: _jaleDeAyer, decTermHoy: _decTermHoy, efvCalcular: _efvCalcular,
-                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, resultadosDeFecha: _resultadosDeFecha, predominioHoy: _ngpPredominioHoy, topsDia: _ngpTopsDia, candidatosDe: _candidatosDeL
+                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, resultadosDeFecha: _resultadosDeFecha, predominioHoy: _ngpPredominioHoy, topsDia: _ngpTopsDia, esperaDe: _ngpEsperaDe, candidatosDe: _candidatosDeL
                 };
                 try { _efvGuardarSnapshotHoy(); } catch (eSnap) {} // V46.9.144: foto diaria del extracto
                 return h;
@@ -30356,6 +30413,68 @@ function senalesDe(nn) {
                 return h0;
             } catch (e) { return ''; }
         }
+        // V46.9.186 (pedido de Leo): día TOPE del período — editable y guardado.
+        function _ngpEsperaTopeSet(inp) {
+            var v = parseInt(inp.value, 10);
+            if (isNaN(v) || v < 1 || v > 28) { v = 10; }
+            try { localStorage.setItem('ngpEsperaDiaTope', String(v)); } catch (e) {}
+            window._ngpEsperaCache = {};
+            try { _ngpResumenRender(); } catch (e1) {}
+            try { _ngpExtractoRender(); } catch (e2) {}
+        }
+        // V46.9.186 (pedido de Leo, maqueta aprobada): tarjeta "👁️ EN ESPERA HOY" —
+        // 4 líneas (día de semana, período del mes, fecha exacta, más repetidos),
+        // cada una con sus DOS números en la misma línea y estado individual.
+        function _ngpEsperaHTML(L) {
+            try {
+                var F0 = window._ngpFiltro;
+                if (!F0 || !F0.esperaDe) return '';
+                var ep = F0.esperaDe(L);
+                if (!ep || !ep.filas.length) return '';
+                var DIAS_SEM = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+                var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+                var hoyP = (F0.hoyStr || '').split('-');
+                var mesNom = MESES[(parseInt(hoyP[1], 10) || 1) - 1] || '';
+                var diaNom = DIAS_SEM[ep.dow];
+                var diaPl = diaNom + (diaNom.charAt(diaNom.length - 1) === 's' ? '' : 's');
+                var fmtF = function(d0) { if (!d0) return '—'; var p0 = d0.split('-'); return p0[2] + '/' + p0[1]; };
+                var fmtH = function(t0) { try { if (typeof convertTo12Hour === 'function' && t0) return convertTo12Hour(t0); } catch (e) {} return t0 || ''; };
+                var h0 = '<div style="background:linear-gradient(135deg,rgba(120,53,15,0.5),rgba(69,26,3,0.35));border:2px dashed #f59e0b;border-radius:9px;padding:7px 9px;margin-top:7px;">';
+                h0 += '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">';
+                h0 += '<span style="font-size:11px;font-weight:bold;color:#fcd34d;letter-spacing:0.4px;">👁️ EN ESPERA HOY — ' + diaNom + ' ' + ep.domHoy + ' de ' + mesNom + '</span>';
+                h0 += '<span style="font-size:9px;color:#fde68a;display:flex;align-items:center;gap:4px;">📅 Día TOPE del período: <input type="number" min="1" max="28" value="' + ep.tope + '" onchange="_ngpEsperaTopeSet(this)" title="Escribí hasta qué día del mes se vigila el período. Ej: 10 = se vigila del día 1 al día 10 de cada mes. Se guarda automáticamente." style="width:44px;background:#3a1d00;color:#fff;border:1px solid #f59e0b;border-radius:4px;font-size:11px;text-align:center;padding:1px 2px;font-weight:bold;"> <span style="color:#fcd34d;">→ se vigila del 1 al ' + ep.tope + ' de cada mes</span> <span style="color:#b45309;">(se guarda)</span></span>';
+                h0 += '</div>';
+                ep.filas.forEach(function(f5) {
+                    var etq = '', pendTxt = '';
+                    if (f5.tipo === 'sem') { etq = 'Nº1 y Nº2 de los ' + diaPl; pendTxt = 'hoy es ' + diaNom + ' y aún no sale(n)'; }
+                    else if (f5.tipo === 'per') { etq = 'Nº1 y Nº2 del período del mes (del 1 al día tope ' + ep.tope + ')'; pendTxt = 'no ha(n) salido del 1 al ' + ep.domHoy + ' de ' + mesNom + ' · quedan ' + (ep.tope - ep.domHoy) + ' día(s) del período'; }
+                    else if (f5.tipo === 'dia') { etq = 'Nº1 y Nº2 de fecha ' + ep.domHoy; pendTxt = 'aún no sale(n) hoy'; }
+                    else { etq = 'Nº1 y Nº2 de los que MÁS repiten acá'; pendTxt = 'aún no sale(n) hoy'; }
+                    var pend = f5.nums.filter(function(x0) { return !x0.salio; });
+                    var vecesTxt = f5.nums.map(function(x0) { return '×' + x0.veces; }).join(' y ');
+                    var tt = f5.nums.map(function(x0, xi0) { return x0.n + ' (Nº' + (xi0 + 1) + ', salió ' + x0.veces + ' veces' + (x0.ult ? ', última: ' + x0.ult : '') + ')' + (x0.salio ? ' — YA CUMPLIÓ: ' + (x0.salio.date === F0.hoyStr ? 'hoy ' + fmtH(x0.salio.time) : x0.salio.date) : ' — en espera'); }).join(' · ');
+                    h0 += '<div class="' + (pend.length ? 'ngp-parpadea' : '') + '" title="' + tt.replace(/"/g, '') + '" style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.35);border-radius:7px;padding:4px 8px;margin-top:5px;cursor:help;">';
+                    h0 += '<span style="display:flex;align-items:center;gap:6px;">';
+                    f5.nums.forEach(function(x0, xi0) {
+                        if (xi0 > 0) h0 += '<span style="font-size:10px;color:#b45309;font-weight:bold;">y</span>';
+                        if (x0.salio) {
+                            var cu = (x0.salio.date === F0.hoyStr) ? '✓ ' + fmtH(x0.salio.time) : '✓ ' + fmtF(x0.salio.date);
+                            h0 += '<span style="font-family:monospace;font-size:22px;font-weight:bold;min-width:34px;text-align:center;line-height:1;color:#34d399;">' + x0.n + '<small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:8px;font-weight:bold;letter-spacing:0.5px;margin-top:2px;color:#6ee7b7;">' + cu + '</small></span>';
+                        } else {
+                            h0 += '<span style="font-family:monospace;font-size:22px;font-weight:bold;min-width:34px;text-align:center;line-height:1;color:#fbbf24;text-shadow:0 0 8px rgba(251,191,36,0.5);">' + x0.n + '<small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:8px;font-weight:bold;letter-spacing:0.5px;margin-top:2px;color:#b45309;">Nº' + (xi0 + 1) + '</small></span>';
+                        }
+                    });
+                    h0 += '</span>';
+                    h0 += '<span style="font-size:10px;line-height:1.4;color:#fde68a;flex:1;"><strong style="color:#fff;">' + etq + '</strong> (' + vecesTxt + ')' + (pend.length ? ' · ' + pendTxt : ' · patrón cumplido') + '</span>';
+                    if (!pend.length) h0 += '<span style="font-size:9px;font-weight:bold;padding:3px 8px;border-radius:5px;white-space:nowrap;background:rgba(16,185,129,0.2);border:1px solid #34d399;color:#a7f3d0;">✅ CUMPLIDO</span>';
+                    else if (pend.length < f5.nums.length) h0 += '<span style="font-size:9px;font-weight:bold;padding:3px 8px;border-radius:5px;white-space:nowrap;background:rgba(251,191,36,0.2);border:1px solid #fbbf24;color:#fde68a;">⏳ Nº' + (f5.nums.indexOf(pend[0]) + 1) + ' EN ESPERA</span>';
+                    else h0 += '<span style="font-size:9px;font-weight:bold;padding:3px 8px;border-radius:5px;white-space:nowrap;background:rgba(251,191,36,0.2);border:1px solid #fbbf24;color:#fde68a;">⏳ EN ESPERA</span>';
+                    h0 += '</div>';
+                });
+                h0 += '</div>';
+                return h0;
+            } catch (e) { return ''; }
+        }
         function _ngpResumenRender() {
             window._ngpGrpPendCache = {}; window._ngpHorCache = {}; window._ngpGrpHorCache = {}; // V46.9.169/170: señales con datos frescos
             var conts = document.querySelectorAll('[id="ngpResumenResultado"]');
@@ -30442,6 +30561,7 @@ function senalesDe(nn) {
                 if (rk.datos === 0) etq.push('<span style="color:#94a3b8;">⚪ sin datos aún</span>');
                 else if (rk.datos < 30) etq.push('<span style="color:#94a3b8;">⚪ pocos datos (' + rk.datos + ' sorteos)</span>');
                 if (etq.length) html += '<div style="font-size:9px;color:#fdba74;margin-top:2px;">' + etq.join(' · ') + '</div>';
+                html += _ngpEsperaHTML(rk.lot); // V46.9.186 (pedido de Leo): EN ESPERA HOY, arriba de los tops
                 html += _ngpTopsDiaHTML(rk.lot); // V46.9.182 (pedido de Leo): tops del día en el encabezado
                 html += '<div style="display:flex;gap:5px;margin-top:6px;">';
                 if (!rk.top.length) html += '<div style="font-size:10px;color:#64748b;padding:4px;">Sin candidatos (necesita más capturas de esta lotería).</div>';
@@ -30832,6 +30952,7 @@ function senalesDe(nn) {
                 }
                 htmlLots += '<div style="margin-bottom:12px;border:1px solid rgba(245,158,11,0.4);border-radius:8px;padding:8px;background:rgba(0,0,0,0.2);">';
                 htmlLots += '<div style="font-size:13px;font-weight:bold;color:#fcd34d;margin-bottom:6px;">🎯 ' + L + ' <span style="font-size:9px;color:#94a3b8;font-weight:normal;">— top de cada grupo por rezago + señales, en orden de importancia</span></div>';
+                htmlLots += _ngpEsperaHTML(L); // V46.9.186 (pedido de Leo): EN ESPERA HOY, arriba de los tops
                 htmlLots += _ngpTopsDiaHTML(L); // V46.9.182 (pedido de Leo): tops del día en el encabezado
                 // V46.9.142/146: alerta con TODOS los jales candidatos
                 if (jales.length) {
@@ -71860,7 +71981,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r119 · v46.9.185</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r120 · v46.9.186</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
