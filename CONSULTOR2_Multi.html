@@ -28735,6 +28735,51 @@ function senalesDe(nn) {
                 // (candidatos: mantener en sincronía con _ngpExtractoRender)
                 // V46.9.155: candidatos por lotería a nivel de módulo (los usa el resumen
                 // y el buscador de números/grupos). Mantener en sincronía con _ngpExtractoRender.
+                // V46.9.182 (pedido de Leo): TOPS DEL DÍA por lotería — los 5 números
+                // que más salen (1) en este día de la SEMANA, (2) en este NÚMERO de día
+                // del mes y (3) en total (más repetidos). Para cada uno: cuántos sorteos
+                // lleva sin salir en esa lotería y su última fecha de salida.
+                function _ngpTopsDia(L) {
+                    try {
+                        var key = L + '|' + hoyStr + '|' + ((capturedResults || []).length);
+                        if (!window._ngpTopsCache) window._ngpTopsCache = {};
+                        if (window._ngpTopsCache[key]) return window._ngpTopsCache[key];
+                        var _minT = function(t) {
+                            try {
+                                var p = ((typeof _horaNorm24 === 'function') ? _horaNorm24(t) : ('' + (t || ''))).split(':');
+                                var hh = parseInt(p[0], 10);
+                                return isNaN(hh) ? 0 : hh * 60 + (parseInt(p[1] || '0', 10) || 0);
+                            } catch (e) { return 0; }
+                        };
+                        var sorteos = [];
+                        (capturedResults || []).forEach(function(r) {
+                            if (!r || r.lottery !== L || !r.date || !r.number) return;
+                            sorteos.push({ n: _efvNorm(r.number), d: r.date, m: _minT(r.time) });
+                        });
+                        sorteos.sort(function(a, b) { return a.d !== b.d ? (a.d < b.d ? -1 : 1) : a.m - b.m; });
+                        var hp = hoyStr.split('-');
+                        var hoyD = new Date(parseInt(hp[0], 10), parseInt(hp[1], 10) - 1, parseInt(hp[2], 10));
+                        var dowHoy = hoyD.getDay(), domHoy = hoyD.getDate();
+                        var cSem = {}, cDia = {}, cRep = {}, ultIdx = {}, ultFecha = {};
+                        sorteos.forEach(function(s0, ix) {
+                            cRep[s0.n] = (cRep[s0.n] || 0) + 1;
+                            ultIdx[s0.n] = ix; ultFecha[s0.n] = s0.d;
+                            var pp = s0.d.split('-');
+                            var dd0 = new Date(parseInt(pp[0], 10), parseInt(pp[1], 10) - 1, parseInt(pp[2], 10));
+                            if (dd0.getDay() === dowHoy) cSem[s0.n] = (cSem[s0.n] || 0) + 1;
+                            if (dd0.getDate() === domHoy) cDia[s0.n] = (cDia[s0.n] || 0) + 1;
+                        });
+                        var tot = sorteos.length;
+                        var arma = function(cnt) {
+                            return Object.keys(cnt).map(function(n0) {
+                                return { n: n0, veces: cnt[n0], sinSalir: tot - 1 - ultIdx[n0], ult: ultFecha[n0] };
+                            }).sort(function(a, b) { return b.veces !== a.veces ? b.veces - a.veces : b.sinSalir - a.sinSalir; }).slice(0, 5);
+                        };
+                        var val = { sem: arma(cSem), dia: arma(cDia), rep: arma(cRep), dow: dowHoy, dom: domHoy, tot: tot };
+                        window._ngpTopsCache[key] = val;
+                        return val;
+                    } catch (e) { return { sem: [], dia: [], rep: [], dow: 0, dom: 0, tot: 0 }; }
+                }
                 // V46.9.180 (pedido de Leo): PREDOMINIO DE GRUPOS HOY — cuenta las
                 // salidas de hoy por grupo en TODAS las loterías. Los "dominantes" son
                 // los 3 grupos con más salidas (mínimo 2). Para cada uno se sabe en qué
@@ -29106,7 +29151,7 @@ function senalesDe(nn) {
                     ultPorNumLot: ultPorNumLot, difDias: difDias, hoyStr: hoyStr, porNum: porNum, serie: serie,
                     rankRezagoLot: rankRezagoLot, rankRezagoPrevLot: rankRezagoPrevLot,
                     jaleDe: _jaleDeAyer, decTermHoy: _decTermHoy, efvCalcular: _efvCalcular,
-                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, resultadosDeFecha: _resultadosDeFecha, predominioHoy: _ngpPredominioHoy, candidatosDe: _candidatosDeL
+                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, resultadosDeFecha: _resultadosDeFecha, predominioHoy: _ngpPredominioHoy, topsDia: _ngpTopsDia, candidatosDe: _candidatosDeL
                 };
                 try { _efvGuardarSnapshotHoy(); } catch (eSnap) {} // V46.9.144: foto diaria del extracto
                 return h;
@@ -30274,6 +30319,33 @@ function senalesDe(nn) {
             html += '<div style="font-size:8px;color:#64748b;margin-top:4px;">Busca contra las mismas sugerencias del extracto y el resumen de este momento. Cada sorteo es independiente — las señales organizan el análisis, no cambian probabilidades.</div>';
             conts.forEach(function(x) { x.innerHTML = html; });
         }
+        // V46.9.182 (pedido de Leo): filas compactas TOP 5 DEL DÍA para el encabezado
+        // de cada lotería — número · sorteos sin salir · última fecha (detalle en tooltip).
+        function _ngpTopsDiaHTML(L) {
+            try {
+                var F0 = window._ngpFiltro;
+                if (!F0 || !F0.topsDia) return '';
+                var td = F0.topsDia(L);
+                if (!td || !td.tot) return '';
+                var DIAS_SEM = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+                var fmtF = function(d0) { if (!d0) return '—'; var p0 = d0.split('-'); return p0[2] + '/' + p0[1]; };
+                var fila = function(icono, etq, lst, etqTt) {
+                    if (!lst.length) return '';
+                    var s0 = '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:3px;">';
+                    s0 += '<span style="font-size:8px;font-weight:bold;color:#93c5fd;min-width:88px;">' + icono + ' ' + etq + ':</span>';
+                    lst.forEach(function(x0) {
+                        s0 += '<span title="' + x0.n + ': salió ' + x0.veces + ' vez(ces) ' + etqTt + ' · última salida: ' + x0.ult + ' · lleva ' + x0.sinSalir + ' sorteos sin salir en esta lotería" style="background:rgba(59,130,246,0.12);border:1px solid rgba(147,197,253,0.5);border-radius:5px;padding:1px 6px;font-size:9px;color:#dbeafe;cursor:help;"><strong style="font-family:monospace;font-size:12px;color:#fff;">' + x0.n + '</strong> · ' + x0.sinSalir + 's · ' + fmtF(x0.ult) + '</span>';
+                    });
+                    return s0 + '</div>';
+                };
+                var h0 = '<div style="background:rgba(30,58,138,0.25);border:1px dashed rgba(147,197,253,0.45);border-radius:7px;padding:4px 7px;margin-top:5px;">';
+                h0 += fila('📆', 'top ' + DIAS_SEM[td.dow], td.sem, 'en ' + DIAS_SEM[td.dow]);
+                h0 += fila('📅', 'top día ' + td.dom, td.dia, 'los días ' + td.dom + ' del mes');
+                h0 += fila('🔁', 'más repiten', td.rep, 'en total en esta lotería');
+                h0 += '</div>';
+                return h0;
+            } catch (e) { return ''; }
+        }
         function _ngpResumenRender() {
             window._ngpGrpPendCache = {}; window._ngpHorCache = {}; window._ngpGrpHorCache = {}; // V46.9.169/170: señales con datos frescos
             var conts = document.querySelectorAll('[id="ngpResumenResultado"]');
@@ -30360,6 +30432,7 @@ function senalesDe(nn) {
                 if (rk.datos === 0) etq.push('<span style="color:#94a3b8;">⚪ sin datos aún</span>');
                 else if (rk.datos < 30) etq.push('<span style="color:#94a3b8;">⚪ pocos datos (' + rk.datos + ' sorteos)</span>');
                 if (etq.length) html += '<div style="font-size:9px;color:#fdba74;margin-top:2px;">' + etq.join(' · ') + '</div>';
+                html += _ngpTopsDiaHTML(rk.lot); // V46.9.182 (pedido de Leo): tops del día en el encabezado
                 html += '<div style="display:flex;gap:5px;margin-top:6px;">';
                 if (!rk.top.length) html += '<div style="font-size:10px;color:#64748b;padding:4px;">Sin candidatos (necesita más capturas de esta lotería).</div>';
                 var _hayT5 = false;
@@ -30749,6 +30822,7 @@ function senalesDe(nn) {
                 }
                 htmlLots += '<div style="margin-bottom:12px;border:1px solid rgba(245,158,11,0.4);border-radius:8px;padding:8px;background:rgba(0,0,0,0.2);">';
                 htmlLots += '<div style="font-size:13px;font-weight:bold;color:#fcd34d;margin-bottom:6px;">🎯 ' + L + ' <span style="font-size:9px;color:#94a3b8;font-weight:normal;">— top de cada grupo por rezago + señales, en orden de importancia</span></div>';
+                htmlLots += _ngpTopsDiaHTML(L); // V46.9.182 (pedido de Leo): tops del día en el encabezado
                 // V46.9.142/146: alerta con TODOS los jales candidatos
                 if (jales.length) {
                     var _jTxt = jales.map(function(j) { return 'a las ' + j.horaFmt + ' salió el <span style="color:#fde68a;">' + j.numAyer + '</span> (' + j.grupo + ')'; }).join(' · ');
@@ -71776,7 +71850,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r115 · v46.9.181</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r116 · v46.9.182</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
