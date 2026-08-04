@@ -30346,9 +30346,12 @@ function senalesDe(nn) {
                     return s0;
                 };
                 var h0 = '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:7px;align-items:stretch;">';
-                h0 += col('📆', DIAS_SEM[td.dow].toUpperCase(), td.sem, 'en ' + DIAS_SEM[td.dow], '#38bdf8', 'rgba(8,47,73,0.5)', '#7dd3fc');
-                h0 += col('📅', 'DÍA ' + td.dom, td.dia, 'los días ' + td.dom + ' del mes', '#a78bfa', 'rgba(46,16,101,0.5)', '#c4b5fd');
-                h0 += col('🔁', 'MÁS REPITEN', td.rep, 'en total en esta lotería', '#fbbf24', 'rgba(69,26,3,0.5)', '#fde68a');
+                // V46.9.184 (pedido de Leo): títulos "Top de <día>", "Top de fecha <N>",
+                // "Top que más repiten".
+                var _diaCap = DIAS_SEM[td.dow].charAt(0).toUpperCase() + DIAS_SEM[td.dow].slice(1);
+                h0 += col('📆', 'Top de ' + _diaCap, td.sem, 'en ' + DIAS_SEM[td.dow], '#38bdf8', 'rgba(8,47,73,0.5)', '#7dd3fc');
+                h0 += col('📅', 'Top de fecha ' + td.dom, td.dia, 'los días ' + td.dom + ' del mes', '#a78bfa', 'rgba(46,16,101,0.5)', '#c4b5fd');
+                h0 += col('🔁', 'Top que más repiten', td.rep, 'en total en esta lotería', '#fbbf24', 'rgba(69,26,3,0.5)', '#fde68a');
                 h0 += '</div>';
                 return h0;
             } catch (e) { return ''; }
@@ -30409,7 +30412,7 @@ function senalesDe(nn) {
                 }
             } catch (ePdR) {}
             // ─── V46.9.149: TODAS las tarjetas con el MISMO formato e información
-            html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:8px;margin-bottom:12px;">';
+            html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(max(330px,calc(33.333% - 6px)),1fr));gap:8px;margin-bottom:12px;">';
             ranking.forEach(function(rk, ix) {
                 var esOro = ix === 0;
                 var medalla = ix === 0 ? '🥇' : ix === 1 ? '🥈' : ix === 2 ? '🥉' : (ix + 1) + '°';
@@ -71857,7 +71860,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r117 · v46.9.183</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r118 · v46.9.184</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {

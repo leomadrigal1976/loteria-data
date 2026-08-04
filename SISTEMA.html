@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.183</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.184</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6339,7 +6339,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.183</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.184</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -30859,9 +30859,12 @@ function senalesDe(nn) {
                     return s0;
                 };
                 var h0 = '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:7px;align-items:stretch;">';
-                h0 += col('📆', DIAS_SEM[td.dow].toUpperCase(), td.sem, 'en ' + DIAS_SEM[td.dow], '#38bdf8', 'rgba(8,47,73,0.5)', '#7dd3fc');
-                h0 += col('📅', 'DÍA ' + td.dom, td.dia, 'los días ' + td.dom + ' del mes', '#a78bfa', 'rgba(46,16,101,0.5)', '#c4b5fd');
-                h0 += col('🔁', 'MÁS REPITEN', td.rep, 'en total en esta lotería', '#fbbf24', 'rgba(69,26,3,0.5)', '#fde68a');
+                // V46.9.184 (pedido de Leo): títulos "Top de <día>", "Top de fecha <N>",
+                // "Top que más repiten".
+                var _diaCap = DIAS_SEM[td.dow].charAt(0).toUpperCase() + DIAS_SEM[td.dow].slice(1);
+                h0 += col('📆', 'Top de ' + _diaCap, td.sem, 'en ' + DIAS_SEM[td.dow], '#38bdf8', 'rgba(8,47,73,0.5)', '#7dd3fc');
+                h0 += col('📅', 'Top de fecha ' + td.dom, td.dia, 'los días ' + td.dom + ' del mes', '#a78bfa', 'rgba(46,16,101,0.5)', '#c4b5fd');
+                h0 += col('🔁', 'Top que más repiten', td.rep, 'en total en esta lotería', '#fbbf24', 'rgba(69,26,3,0.5)', '#fde68a');
                 h0 += '</div>';
                 return h0;
             } catch (e) { return ''; }
@@ -30922,7 +30925,7 @@ function senalesDe(nn) {
                 }
             } catch (ePdR) {}
             // ─── V46.9.149: TODAS las tarjetas con el MISMO formato e información
-            html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:8px;margin-bottom:12px;">';
+            html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(max(330px,calc(33.333% - 6px)),1fr));gap:8px;margin-bottom:12px;">';
             ranking.forEach(function(rk, ix) {
                 var esOro = ix === 0;
                 var medalla = ix === 0 ? '🥇' : ix === 1 ? '🥈' : ix === 2 ? '🥉' : (ix + 1) + '°';
