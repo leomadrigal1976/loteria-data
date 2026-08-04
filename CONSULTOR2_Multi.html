@@ -30452,16 +30452,18 @@ function senalesDe(nn) {
                     else { etq = 'Nº1 y Nº2 de los que MÁS repiten acá'; pendTxt = 'aún no sale(n) hoy'; }
                     var pend = f5.nums.filter(function(x0) { return !x0.salio; });
                     var vecesTxt = f5.nums.map(function(x0) { return '×' + x0.veces; }).join(' y ');
-                    var tt = f5.nums.map(function(x0, xi0) { return x0.n + ' (Nº' + (xi0 + 1) + ', salió ' + x0.veces + ' veces' + (x0.ult ? ', última: ' + x0.ult : '') + ')' + (x0.salio ? ' — YA CUMPLIÓ: ' + (x0.salio.date === F0.hoyStr ? 'hoy ' + fmtH(x0.salio.time) : x0.salio.date) : ' — en espera'); }).join(' · ');
+                    var tt = f5.nums.map(function(x0, xi0) { return x0.n + ' (Nº' + (xi0 + 1) + ', ' + x0.veces + ' veces en este patrón' + (x0.ult ? ', última salida en esta lotería: ' + x0.ult : '') + ')' + (x0.salio ? ' — YA CUMPLIÓ: ' + (x0.salio.date === F0.hoyStr ? 'hoy ' + fmtH(x0.salio.time) : x0.salio.date) : ' — en espera'); }).join(' · ');
                     h0 += '<div class="' + (pend.length ? 'ngp-parpadea' : '') + '" title="' + tt.replace(/"/g, '') + '" style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.35);border-radius:7px;padding:4px 8px;margin-top:5px;cursor:help;">';
                     h0 += '<span style="display:flex;align-items:center;gap:6px;">';
                     f5.nums.forEach(function(x0, xi0) {
                         if (xi0 > 0) h0 += '<span style="font-size:10px;color:#b45309;font-weight:bold;">y</span>';
                         if (x0.salio) {
                             var cu = (x0.salio.date === F0.hoyStr) ? '✓ ' + fmtH(x0.salio.time) : '✓ ' + fmtF(x0.salio.date);
-                            h0 += '<span style="font-family:monospace;font-size:22px;font-weight:bold;min-width:34px;text-align:center;line-height:1;color:#34d399;">' + x0.n + '<small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:8px;font-weight:bold;letter-spacing:0.5px;margin-top:2px;color:#6ee7b7;">' + cu + '</small></span>';
+                            h0 += '<span title="' + x0.n + ': ' + x0.veces + ' veces en este patrón · YA CUMPLIÓ: salió ' + (x0.salio.date === F0.hoyStr ? 'hoy a las ' + fmtH(x0.salio.time) : 'el ' + x0.salio.date) + '" style="font-family:monospace;font-size:22px;font-weight:bold;min-width:34px;text-align:center;line-height:1;color:#34d399;cursor:help;">' + x0.n + '<small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:8px;font-weight:bold;letter-spacing:0.5px;margin-top:2px;color:#6ee7b7;">Nº' + (xi0 + 1) + ' ' + cu + '</small></span>';
                         } else {
-                            h0 += '<span style="font-family:monospace;font-size:22px;font-weight:bold;min-width:34px;text-align:center;line-height:1;color:#fbbf24;text-shadow:0 0 8px rgba(251,191,36,0.5);">' + x0.n + '<small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:8px;font-weight:bold;letter-spacing:0.5px;margin-top:2px;color:#b45309;">Nº' + (xi0 + 1) + '</small></span>';
+                            // V46.9.187 (pedido de Leo): tooltip PROPIO de cada número (antes
+                            // era de la fila y confundía) + última salida siempre visible debajo.
+                            h0 += '<span title="' + x0.n + ': ' + x0.veces + ' veces en este patrón · última salida en esta lotería (cualquier día): ' + (x0.ult || 'sin registro') + ' · aún en espera" style="font-family:monospace;font-size:22px;font-weight:bold;min-width:34px;text-align:center;line-height:1;color:#fbbf24;text-shadow:0 0 8px rgba(251,191,36,0.5);cursor:help;">' + x0.n + '<small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:8px;font-weight:bold;letter-spacing:0.5px;margin-top:2px;color:#b45309;">Nº' + (xi0 + 1) + ' · últ ' + fmtF(x0.ult) + '</small></span>';
                         }
                     });
                     h0 += '</span>';
@@ -71981,7 +71983,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r120 · v46.9.186</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r121 · v46.9.187</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
