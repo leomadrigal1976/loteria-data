@@ -30593,7 +30593,11 @@ function senalesDe(nn) {
             var otra = fe !== hoyR;
             var h9 = '<div style="background:' + (otra ? 'rgba(120,53,15,0.55)' : 'rgba(0,0,0,0.25)') + ';border:1px ' + (otra ? 'solid #f59e0b' : 'dashed rgba(148,163,184,0.4)') + ';border-radius:7px;padding:6px 9px;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
             h9 += '<span style="font-size:10px;font-weight:bold;color:' + (otra ? '#fcd34d' : '#cbd5e1') + ';">📅 Fecha de estudio:</span>';
-            h9 += '<input type="date" value="' + fe + '" onchange="_ngpFechaEstudioSet(this.value)" style="background:#1e293b;color:#fff;border:1px solid ' + (otra ? '#f59e0b' : '#64748b') + ';border-radius:5px;padding:3px 7px;font-size:11px;">';
+            // V46.9.190 (reporte de Leo): el onchange directo recalculaba el módulo a media
+            // edición de la fecha y "congelaba" el campo. Ahora el campo solo se sincroniza
+            // y el recálculo lo dispara el botón "Estudiar esta fecha".
+            h9 += '<input type="date" id="ngpFechaEstudioInp" value="' + fe + '" onchange="_efvSync(this)" style="background:#1e293b;color:#fff;border:1px solid ' + (otra ? '#f59e0b' : '#64748b') + ';border-radius:5px;padding:3px 7px;font-size:11px;">';
+            h9 += '<button onclick="_ngpFechaEstudioAplicar(this)" style="background:linear-gradient(135deg,#581c87,#a855f7);border:1px solid #d8b4fe;color:#fff;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">🔍 Estudiar esta fecha</button>';
             if (otra) {
                 h9 += '<button onclick="_ngpFechaEstudioSet(\'\')" style="background:linear-gradient(135deg,#0e7490,#22d3ee);border:1px solid #a5f3fc;color:#083344;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">Volver a HOY</button>';
                 h9 += '<span style="font-size:9px;color:#fde68a;flex:1;min-width:220px;">⚠️ Estás estudiando el <strong>' + fe + '</strong>: vibración, grupo del día, tops, EN ESPERA, rezagos y señales se calculan para esa fecha. Si es una fecha futura, aún no hay salidas de "ese día": los patrones aparecen todos pendientes y no se toman fotos de efectividad.</span>';
@@ -30602,6 +30606,13 @@ function senalesDe(nn) {
             }
             h9 += '</div>';
             return h9;
+        }
+        function _ngpFechaEstudioAplicar(btn) {
+            // V46.9.190: lee la fecha del campo junto al botón (o de cualquier instancia)
+            var inp = null;
+            try { inp = btn.parentNode.querySelector('input[type="date"]'); } catch (e) {}
+            if (!inp) inp = document.querySelector('[id="ngpFechaEstudioInp"]');
+            _ngpFechaEstudioSet(inp ? inp.value : '');
         }
         function _ngpFechaEstudioSet(v) {
             var hoyR = _ngpHoyRealStr();
@@ -72140,7 +72151,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r123 · v46.9.189</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r124 · v46.9.190</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {

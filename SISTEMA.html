@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.189</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.190</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6339,7 +6339,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.189</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.190</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -31106,7 +31106,11 @@ function senalesDe(nn) {
             var otra = fe !== hoyR;
             var h9 = '<div style="background:' + (otra ? 'rgba(120,53,15,0.55)' : 'rgba(0,0,0,0.25)') + ';border:1px ' + (otra ? 'solid #f59e0b' : 'dashed rgba(148,163,184,0.4)') + ';border-radius:7px;padding:6px 9px;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
             h9 += '<span style="font-size:10px;font-weight:bold;color:' + (otra ? '#fcd34d' : '#cbd5e1') + ';">📅 Fecha de estudio:</span>';
-            h9 += '<input type="date" value="' + fe + '" onchange="_ngpFechaEstudioSet(this.value)" style="background:#1e293b;color:#fff;border:1px solid ' + (otra ? '#f59e0b' : '#64748b') + ';border-radius:5px;padding:3px 7px;font-size:11px;">';
+            // V46.9.190 (reporte de Leo): el onchange directo recalculaba el módulo a media
+            // edición de la fecha y "congelaba" el campo. Ahora el campo solo se sincroniza
+            // y el recálculo lo dispara el botón "Estudiar esta fecha".
+            h9 += '<input type="date" id="ngpFechaEstudioInp" value="' + fe + '" onchange="_efvSync(this)" style="background:#1e293b;color:#fff;border:1px solid ' + (otra ? '#f59e0b' : '#64748b') + ';border-radius:5px;padding:3px 7px;font-size:11px;">';
+            h9 += '<button onclick="_ngpFechaEstudioAplicar(this)" style="background:linear-gradient(135deg,#581c87,#a855f7);border:1px solid #d8b4fe;color:#fff;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">🔍 Estudiar esta fecha</button>';
             if (otra) {
                 h9 += '<button onclick="_ngpFechaEstudioSet(\'\')" style="background:linear-gradient(135deg,#0e7490,#22d3ee);border:1px solid #a5f3fc;color:#083344;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">Volver a HOY</button>';
                 h9 += '<span style="font-size:9px;color:#fde68a;flex:1;min-width:220px;">⚠️ Estás estudiando el <strong>' + fe + '</strong>: vibración, grupo del día, tops, EN ESPERA, rezagos y señales se calculan para esa fecha. Si es una fecha futura, aún no hay salidas de "ese día": los patrones aparecen todos pendientes y no se toman fotos de efectividad.</span>';
@@ -31115,6 +31119,13 @@ function senalesDe(nn) {
             }
             h9 += '</div>';
             return h9;
+        }
+        function _ngpFechaEstudioAplicar(btn) {
+            // V46.9.190: lee la fecha del campo junto al botón (o de cualquier instancia)
+            var inp = null;
+            try { inp = btn.parentNode.querySelector('input[type="date"]'); } catch (e) {}
+            if (!inp) inp = document.querySelector('[id="ngpFechaEstudioInp"]');
+            _ngpFechaEstudioSet(inp ? inp.value : '');
         }
         function _ngpFechaEstudioSet(v) {
             var hoyR = _ngpHoyRealStr();
