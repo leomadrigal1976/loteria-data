@@ -28780,6 +28780,40 @@ function senalesDe(nn) {
                         return val;
                     } catch (e) { return { sem: [], dia: [], rep: [], dow: 0, dom: 0, tot: 0 }; }
                 }
+                // V46.9.188 (pedido de Leo): CONVERSIÓN 4↔7 / 3↔8 (en cualquier dígito)
+                // y ALERTA ESPEJO (familia 12·21·17·71·67·76) — sobre las salidas de HOY
+                // en TODAS las loterías. Umbral: al menos 2 apariciones (vale el mismo
+                // número repetido).
+                function _ngpConvEspHoy() {
+                    try {
+                        var key = hoyStr + '|' + ((capturedResults || []).length);
+                        if (window._ngpConvEspCache && window._ngpConvEspCache.key === key) return window._ngpConvEspCache.val;
+                        var MAPD = { '4': '7', '7': '4', '3': '8', '8': '3' };
+                        var convDe = function(n0) { return (MAPD[n0.charAt(0)] || n0.charAt(0)) + (MAPD[n0.charAt(1)] || n0.charAt(1)); };
+                        var FAM = ['12', '21', '17', '71', '67', '76'];
+                        var cnt = {}, det = {};
+                        (capturedResults || []).forEach(function(r) {
+                            if (!r || r.date !== hoyStr || !r.number) return;
+                            var nn = _efvNorm(r.number);
+                            cnt[nn] = (cnt[nn] || 0) + 1;
+                            if (!det[nn]) det[nn] = [];
+                            det[nn].push({ l: r.lottery, time: _jaleNormHora(r.time) });
+                        });
+                        var convPor = {}; // número convertido -> { origen, veces, salidas }
+                        Object.keys(cnt).forEach(function(n0) {
+                            if (cnt[n0] < 2) return;
+                            var c0 = convDe(n0);
+                            if (c0 === n0) return;
+                            if (!convPor[c0] || cnt[n0] > convPor[c0].veces) convPor[c0] = { origen: n0, veces: cnt[n0], salidas: det[n0] };
+                        });
+                        var apar = 0, salieronFam = [];
+                        FAM.forEach(function(m0) { if (cnt[m0]) { apar += cnt[m0]; salieronFam.push({ n: m0, veces: cnt[m0], salidas: det[m0] }); } });
+                        var famSet = {}; FAM.forEach(function(m0) { famSet[m0] = true; });
+                        var val = { convPor: convPor, espejoActiva: apar >= 2, apariciones: apar, salieronFam: salieronFam, FAM: FAM, famSet: famSet };
+                        window._ngpConvEspCache = { key: key, val: val };
+                        return val;
+                    } catch (e) { return { convPor: {}, espejoActiva: false, apariciones: 0, salieronFam: [], FAM: [], famSet: {} }; }
+                }
                 // V46.9.186 (pedido de Leo, maqueta aprobada): EN ESPERA HOY — para
                 // cada lotería, los DOS números más salidores de cada patrón (día de la
                 // semana, período del mes hasta el día TOPE configurable, fecha exacta y
@@ -28833,6 +28867,30 @@ function senalesDe(nn) {
                         if (domHoy <= tope && topPer.length) val.filas.push({ tipo: 'per', nums: arma2(topPer, 'per') });
                         if (td.dia.length) val.filas.push({ tipo: 'dia', nums: arma2(td.dia, 'hoy') });
                         if (td.rep.length) val.filas.push({ tipo: 'rep', nums: arma2(td.rep, 'hoy') });
+                        // V46.9.188 (pedido de Leo): conversión + espejo para ESTA lotería
+                        var ce = (typeof _ngpConvEspHoy === 'function') ? _ngpConvEspHoy() : null;
+                        if (ce) {
+                            var _uEnL = function(n0) { return (ultPorNumLot[n0] || {})[L]; };
+                            var _salioHoyEnL = function(n0) { return _uEnL(n0) === hoyStr; };
+                            val.conv = [];
+                            Object.keys(ce.convPor).forEach(function(c0) {
+                                if (_salioHoyEnL(c0)) return; // ya salió acá: no es posibilidad
+                                var u0 = _uEnL(c0);
+                                val.conv.push({ n: c0, origen: ce.convPor[c0].origen, veces: ce.convPor[c0].veces, salidas: ce.convPor[c0].salidas, ult: u0 || null, dias: (u0 ? difDias(u0, hoyStr) : null) });
+                            });
+                            val.conv.sort(function(a, b) { return b.veces - a.veces; });
+                            val.conv = val.conv.slice(0, 4);
+                            val.espejo = null;
+                            if (ce.espejoActiva) {
+                                var pendF = [];
+                                ce.FAM.forEach(function(m0) {
+                                    if (_salioHoyEnL(m0)) return;
+                                    var u1 = _uEnL(m0);
+                                    pendF.push({ n: m0, ult: u1 || null, dias: (u1 ? difDias(u1, hoyStr) : null) });
+                                });
+                                if (pendF.length) val.espejo = { apariciones: ce.apariciones, salieron: ce.salieronFam, pendientes: pendF };
+                            }
+                        }
                         window._ngpEsperaCache[key] = val;
                         return val;
                     } catch (e) { return { tope: 10, domHoy: 1, dow: 0, filas: [] }; }
@@ -28936,6 +28994,20 @@ function senalesDe(nn) {
                                                 scoreL += 1;
                                                 tiposL.push('📈📁 CRUCE: dominante hoy Y sin salir del todo acá' + (_dGrpL === null ? ' (nunca registrado)' : ' hace ' + _dGrpL + 'd'));
                                             }
+                                        }
+                                    }
+                                    // V46.9.188 (pedido de Leo): señales de CONVERSIÓN (4↔7/3↔8) y
+                                    // ALERTA ESPEJO (familia 12·21·17·71·67·76), +1 cada una, solo si
+                                    // el número no ha salido HOY en esta lotería.
+                                    var ceC = (typeof _ngpConvEspHoy === 'function') ? _ngpConvEspHoy() : null;
+                                    if (ceC && ((ultPorNumLot[nn] || {})[L] !== hoyStr)) {
+                                        if (ceC.convPor[nn]) {
+                                            scoreL += 1;
+                                            tiposL.push('🔄 conversión del ' + ceC.convPor[nn].origen + ' (salió ' + ceC.convPor[nn].veces + ' veces hoy en todas las loterías)');
+                                        }
+                                        if (ceC.espejoActiva && ceC.famSet[nn]) {
+                                            scoreL += 1;
+                                            tiposL.push('🪞 espejo: familia 12·21·17·71·67·76 con ' + ceC.apariciones + ' apariciones hoy');
                                         }
                                     }
                                 } catch (eGH3) {}
@@ -29832,7 +29904,7 @@ function senalesDe(nn) {
             return '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:7px;background:rgba(29,78,216,0.15);border:1px dashed #60a5fa;border-radius:6px;padding:5px 8px;">' +
                 '<span style="font-size:10px;font-weight:bold;color:#93c5fd;">📁 Señal: grupo COMPLETO pendiente ≥</span>' +
                 '<input id="ngpGrpDiasInp" type="number" min="3" max="365" value="' + _ngpGrpDiasUmbral() + '" onchange="_ngpGrpDiasSet(this)" style="width:54px;background:#0c1a3a;color:#fff;border:1px solid #60a5fa;border-radius:5px;font-size:11px;padding:3px 5px;text-align:center;">' +
-                '<span style="font-size:10px;color:#93c5fd;">días (+1) · <strong style="color:#5eead4;">🕐 número más salidor en horario que AÚN FALTA hoy (+2)</strong> · <strong style="color:#5eead4;">🕐📁 grupo MÁS salidor del PRÓXIMO sorteo (+2)</strong> · 🔥 cruce = pendiente + horario · <strong style="color:#7dd3fc;">📈 grupo dominante del día aún pendiente (+1)</strong></span>' +
+                '<span style="font-size:10px;color:#93c5fd;">días (+1) · <strong style="color:#5eead4;">🕐 número más salidor en horario que AÚN FALTA hoy (+2)</strong> · <strong style="color:#5eead4;">🕐📁 grupo MÁS salidor del PRÓXIMO sorteo (+2)</strong> · 🔥 cruce = pendiente + horario · <strong style="color:#7dd3fc;">📈 grupo dominante del día aún pendiente (+1)</strong> · <strong style="color:#67e8f9;">🔄 conversión 4↔7/3↔8 repetida hoy (+1)</strong> · <strong style="color:#f9a8d4;">🪞 espejo 12·21·17·71·67·76 (+1)</strong></span>' +
                 '</div>';
         }
         function _ngpFechaHoyLocal() {
@@ -30394,9 +30466,12 @@ function senalesDe(nn) {
                     s0 += '<div style="padding:5px;">';
                     if (!lst.length) s0 += '<div style="font-size:10px;color:#64748b;text-align:center;padding:5px;">sin datos aún</div>';
                     lst.forEach(function(x0, xi) {
-                        s0 += '<div title="' + x0.n + ': salió ' + x0.veces + ' vez(ces) ' + etqTt + ' · última salida: ' + x0.ult + ' · lleva ' + x0.sinSalir + ' sorteos sin salir en esta lotería" style="display:flex;align-items:center;gap:8px;padding:3px 6px;margin-bottom:3px;border-radius:6px;cursor:help;background:' + (xi === 0 ? cBorde + '2e' : 'rgba(255,255,255,0.04)') + ';' + (xi === 0 ? 'border:1px solid ' + cBorde + ';' : 'border:1px solid transparent;') + '">';
+                        // V46.9.188 (pedido de Leo): también los DÍAS sin salir
+                        var _dss = null;
+                        try { if (x0.ult && F0.difDias && F0.hoyStr) _dss = F0.difDias(x0.ult, F0.hoyStr); } catch (eD) {}
+                        s0 += '<div title="' + x0.n + ': salió ' + x0.veces + ' vez(ces) ' + etqTt + ' · última salida: ' + x0.ult + ' · lleva ' + x0.sinSalir + ' sorteos' + (_dss !== null ? ' (' + _dss + ' días)' : '') + ' sin salir en esta lotería" style="display:flex;align-items:center;gap:8px;padding:3px 6px;margin-bottom:3px;border-radius:6px;cursor:help;background:' + (xi === 0 ? cBorde + '2e' : 'rgba(255,255,255,0.04)') + ';' + (xi === 0 ? 'border:1px solid ' + cBorde + ';' : 'border:1px solid transparent;') + '">';
                         s0 += '<span style="font-family:monospace;font-size:18px;font-weight:bold;color:#fff;min-width:28px;text-align:center;">' + x0.n + '</span>';
-                        s0 += '<span style="font-size:10px;color:#cbd5e1;line-height:1.3;"><strong style="color:' + cTit + ';font-size:11px;">' + x0.sinSalir + '</strong> sorteos sin salir<br><span style="color:#94a3b8;">últ: ' + fmtF(x0.ult) + '</span></span>';
+                        s0 += '<span style="font-size:10px;color:#cbd5e1;line-height:1.3;"><strong style="color:' + cTit + ';font-size:11px;">' + x0.sinSalir + '</strong> sorteos sin salir' + (_dss !== null ? ' · <strong style="color:' + cTit + ';font-size:11px;">' + _dss + 'd</strong>' : '') + '<br><span style="color:#94a3b8;">últ: ' + fmtF(x0.ult) + '</span></span>';
                         s0 += '</div>';
                     });
                     s0 += '</div></div>';
@@ -30473,6 +30548,28 @@ function senalesDe(nn) {
                     else h0 += '<span style="font-size:9px;font-weight:bold;padding:3px 8px;border-radius:5px;white-space:nowrap;background:rgba(251,191,36,0.2);border:1px solid #fbbf24;color:#fde68a;">⏳ EN ESPERA</span>';
                     h0 += '</div>';
                 });
+                // V46.9.188 (pedido de Leo): renglones de CONVERSIÓN (celeste) y ESPEJO (rosado)
+                (ep.conv || []).forEach(function(cv) {
+                    var salTxt = (cv.salidas || []).map(function(s1) { return s1.l + (s1.time ? ' ' + fmtH(s1.time) : ''); }).join(', ');
+                    h0 += '<div class="ngp-parpadea" style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.35);border-left:3px solid #22d3ee;border-radius:7px;padding:4px 8px;margin-top:5px;">';
+                    h0 += '<span title="' + cv.n + ': conversión del ' + cv.origen + ', que salió ' + cv.veces + ' veces HOY en todas las loterías (' + salTxt.replace(/"/g, '') + ') · última salida del ' + cv.n + ' en esta lotería: ' + (cv.ult || 'sin registro') + '" style="font-family:monospace;font-size:22px;font-weight:bold;min-width:34px;text-align:center;line-height:1;color:#67e8f9;text-shadow:0 0 8px rgba(103,232,249,0.5);cursor:help;">' + cv.n + '<small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:8px;font-weight:bold;margin-top:2px;color:#0e7490;">últ ' + fmtF(cv.ult) + (cv.dias !== null ? ' · ' + cv.dias + 'd' : '') + '</small></span>';
+                    h0 += '<span style="font-size:10px;line-height:1.45;color:#a5f3fc;flex:1;"><strong style="color:#fff;">🔄 SUGERENCIA POR CONVERSIÓN (4↔7 / 3↔8):</strong> el <strong style="color:#fff;">' + cv.origen + '</strong> salió ' + cv.veces + ' veces HOY en todas las loterías → su conversión <strong style="color:#fff;">' + cv.n + '</strong> es posibilidad acá (no ha salido hoy en esta lotería) · +1 señal</span>';
+                    h0 += '<span style="font-size:9px;font-weight:bold;padding:3px 8px;border-radius:5px;white-space:nowrap;background:rgba(34,211,238,0.15);border:1px solid #22d3ee;color:#a5f3fc;">🔄 POSIBILIDAD</span>';
+                    h0 += '</div>';
+                });
+                if (ep.espejo) {
+                    var esjSal = (ep.espejo.salieron || []).map(function(s2) { return s2.n + (s2.veces > 1 ? ' ×' + s2.veces : ''); }).join(' y ');
+                    var esjTt = (ep.espejo.salieron || []).map(function(s2) { return s2.n + ': ' + (s2.salidas || []).map(function(s3) { return s3.l + (s3.time ? ' ' + fmtH(s3.time) : ''); }).join(', '); }).join(' · ');
+                    h0 += '<div class="ngp-parpadea" title="Familia espejo 12·21·17·71·67·76. Salidas de HOY en todas las loterías: ' + esjTt.replace(/"/g, '') + '. Los miembros pendientes en esta lotería son posibilidad y reciben +1 señal." style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.35);border-left:3px solid #f472b6;border-radius:7px;padding:4px 8px;margin-top:5px;cursor:help;">';
+                    h0 += '<span style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">';
+                    ep.espejo.pendientes.forEach(function(pf) {
+                        h0 += '<span style="font-family:monospace;font-size:18px;font-weight:bold;min-width:30px;text-align:center;line-height:1;color:#f9a8d4;text-shadow:0 0 8px rgba(244,114,182,0.5);">' + pf.n + '<small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:8px;font-weight:bold;margin-top:2px;color:#be185d;">últ ' + fmtF(pf.ult) + (pf.dias !== null ? ' · ' + pf.dias + 'd' : '') + '</small></span>';
+                    });
+                    h0 += '</span>';
+                    h0 += '<span style="font-size:10px;line-height:1.45;color:#fbcfe8;flex:1;"><strong style="color:#fff;">🪞 ALERTA ESPEJO (familia 12·21·17·71·67·76):</strong> hoy salieron <strong style="color:#fff;">' + esjSal + '</strong> (' + ep.espejo.apariciones + ' apariciones en todas las loterías) → los miembros pendientes en ESTA lotería son posibilidad · +1 señal</span>';
+                    h0 += '<span style="font-size:9px;font-weight:bold;padding:3px 8px;border-radius:5px;white-space:nowrap;background:rgba(244,114,182,0.15);border:1px solid #f472b6;color:#fbcfe8;">🪞 ALERTA</span>';
+                    h0 += '</div>';
+                }
                 h0 += '</div>';
                 return h0;
             } catch (e) { return ''; }
@@ -30596,7 +30693,10 @@ function senalesDe(nn) {
                             var bdC = _tgT5 ? '2px solid #ec4899' : esLider ? '2px solid #fbbf24' : '1px solid rgba(168,85,247,0.5)';
                             html += '<div title="' + xg.num + ': ' + xg.tipos.join(' · ').replace(/"/g, '') + '" style="background:' + bgC + ';border:' + bdC + ';border-radius:5px;padding:2px 6px;text-align:center;cursor:help;">';
                             html += '<div style="font-family:monospace;font-size:14px;font-weight:bold;color:#fff;line-height:1.1;">' + (_tgT5 ? '🎯' : '') + xg.num + '</div>';
-                            html += '<div style="font-size:7px;color:' + (esLider ? '#fde68a' : '#d8b4fe') + ';' + (esLider ? 'font-weight:bold;' : '') + '">' + xg.score + ' señ.' + (_pdM2 ? ' <span style="color:#7dd3fc;font-weight:bold;">📈</span>' : '') + '</div>';
+                            // V46.9.188 (pedido de Leo): días sin salir junto a las señales
+                            var _dXg = null;
+                            try { var _uXg = (F.ultPorNumLot[xg.num] || {})[rk.lot]; if (_uXg) _dXg = F.difDias(_uXg, F.hoyStr); } catch (eXg) {}
+                            html += '<div style="font-size:7px;color:' + (esLider ? '#fde68a' : '#d8b4fe') + ';' + (esLider ? 'font-weight:bold;' : '') + '">' + xg.score + ' señ.' + (_dXg !== null ? ' · <b style="color:#fdba74;">' + _dXg + 'd</b>' : '') + (_pdM2 ? ' <span style="color:#7dd3fc;font-weight:bold;">📈</span>' : '') + '</div>';
                             html += '</div>';
                         });
                         html += '</div>';
@@ -71983,7 +72083,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r121 · v46.9.187</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r122 · v46.9.188</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
