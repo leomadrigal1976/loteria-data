@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.193</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.194</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6339,7 +6339,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.193</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.194</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -29300,12 +29300,13 @@ function senalesDe(nn) {
                         return val;
                     } catch (e) { return { sem: [], dia: [], rep: [], dow: 0, dom: 0, tot: 0 }; }
                 }
-                // V46.9.192 (hipótesis de Leo): "el grupo que CIERRA el día (último
-                // sorteo) vuelve a tirar al día siguiente". Backtest honesto por lotería:
-                // por cada par de días consecutivos con datos, toma el grupo del último
-                // sorteo del día 1 y revisa si algún sorteo del día 2 fue de ese grupo.
-                // Línea base de azar: 1-((100-tamañoGrupo)/100)^sorteosDelDía2. La señal
-                // (+1) SOLO se aplica donde el patrón supera el azar en 15%+ con n>=30.
+                // V46.9.192/194 (hipótesis de Leo, corregida): "el grupo que CIERRA
+                // el día (último sorteo) ABRE el día siguiente" — la regla aplica SOLO
+                // al PRIMER sorteo del día siguiente de la MISMA lotería. Backtest:
+                // compara el grupo del último sorteo del día 1 contra el grupo del
+                // PRIMER sorteo del día 2. Línea base de azar: tamañoGrupo/100 (~10%).
+                // La señal (+1) SOLO se aplica donde supera el azar en 15%+ con n>=30,
+                // y únicamente MIENTRAS el primer sorteo de hoy no se haya jugado.
                 function _ngpCierreDia(L) {
                     try {
                         var key = L + '|' + hoyStr + '|' + ((capturedResults || []).length);
@@ -29336,10 +29337,11 @@ function senalesDe(nn) {
                             var dArr = porDia[fechas[i]].slice().sort(function(a, b) { return a.m - b.m; });
                             var gC = n2g[dArr[dArr.length - 1].n];
                             if (!gC) continue;
-                            var sig = porDia[fechas[i + 1]];
+                            // V46.9.194 (corrección de Leo): SOLO el primer sorteo del día 2
+                            var sigArr = porDia[fechas[i + 1]].slice().sort(function(a, b) { return a.m - b.m; });
                             evaluados++;
-                            for (var q = 0; q < sig.length; q++) { if (n2g[sig[q].n] === gC) { aciertos++; break; } }
-                            baseSum += 1 - Math.pow((100 - (gSize[gC] || 10)) / 100, sig.length);
+                            if (n2g[sigArr[0].n] === gC) aciertos++;
+                            baseSum += (gSize[gC] || 10) / 100;
                         }
                         var rate = evaluados ? (aciertos / evaluados) : 0;
                         var base = evaluados ? (baseSum / evaluados) : 0;
@@ -29353,15 +29355,18 @@ function senalesDe(nn) {
                             numCierre = aArr[aArr.length - 1].n;
                             gAyer = n2g[numCierre] || null;
                         }
-                        // ¿ese grupo ya repitió HOY acá?
-                        var yaRepitio = null;
-                        if (gAyer && porDia[hoyStr]) {
-                            porDia[hoyStr].forEach(function(x2) { if (!yaRepitio && n2g[x2.n] === gAyer) yaRepitio = x2.n; });
+                        // V46.9.194: ¿HOY ya se jugó el PRIMER sorteo acá? ¿abrió con el grupo?
+                        var hoyYaAbrio = false, hoyPrimero = null, abrioConGrupo = false;
+                        if (porDia[hoyStr] && porDia[hoyStr].length) {
+                            var hArr = porDia[hoyStr].slice().sort(function(a, b) { return a.m - b.m; });
+                            hoyYaAbrio = true;
+                            hoyPrimero = hArr[0].n;
+                            abrioConGrupo = (gAyer !== null && n2g[hoyPrimero] === gAyer);
                         }
-                        var val = { evaluados: evaluados, aciertos: aciertos, rate: rate, base: base, aplica: aplica, gAyer: gAyer, numCierre: numCierre, ayer: ayS, yaRepitio: yaRepitio };
+                        var val = { evaluados: evaluados, aciertos: aciertos, rate: rate, base: base, aplica: aplica, gAyer: gAyer, numCierre: numCierre, ayer: ayS, hoyYaAbrio: hoyYaAbrio, hoyPrimero: hoyPrimero, abrioConGrupo: abrioConGrupo };
                         window._ngpCierreCache[key] = val;
                         return val;
-                    } catch (e) { return { evaluados: 0, aciertos: 0, rate: 0, base: 0, aplica: false, gAyer: null, numCierre: null, ayer: '', yaRepitio: null }; }
+                    } catch (e) { return { evaluados: 0, aciertos: 0, rate: 0, base: 0, aplica: false, gAyer: null, numCierre: null, ayer: '', hoyYaAbrio: false, hoyPrimero: null, abrioConGrupo: false }; }
                 }
                 // V46.9.188 (pedido de Leo): CONVERSIÓN 4↔7 / 3↔8 (en cualquier dígito)
                 // y ALERTA ESPEJO (familia 12·21·17·71·67·76) — sobre las salidas de HOY
@@ -29619,9 +29624,11 @@ function senalesDe(nn) {
                                     // lotería tiende a repetir hoy — señal SOLO si el backtest
                                     // de esta lotería comprueba el patrón (supera el azar 15%+).
                                     var cieC = (typeof _ngpCierreDia === 'function') ? _ngpCierreDia(L) : null;
-                                    if (cieC && cieC.aplica && cieC.gAyer === g && ((ultPorNumLot[nn] || {})[L] !== hoyStr)) {
+                                    // V46.9.194 (corrección de Leo): la regla es SOLO para el PRIMER
+                                    // sorteo de hoy — si hoy ya abrió, la oportunidad pasó y se apaga.
+                                    if (cieC && cieC.aplica && cieC.gAyer === g && !cieC.hoyYaAbrio) {
                                         scoreL += 1;
-                                        tiposL.push('🌙 ' + g + ' CERRÓ ayer esta lotería (con el ' + cieC.numCierre + ') y acá el patrón "repite al día siguiente" se comprueba: ' + Math.round(100 * cieC.rate) + '% vs ' + Math.round(100 * cieC.base) + '% azar en ' + cieC.evaluados + ' días');
+                                        tiposL.push('🌙 ' + g + ' CERRÓ ayer esta lotería (con el ' + cieC.numCierre + ') y acá el patrón "ABRE el día siguiente" se comprueba: ' + Math.round(100 * cieC.rate) + '% vs ' + Math.round(100 * cieC.base) + '% azar en ' + cieC.evaluados + ' días — aplica SOLO al PRIMER sorteo de hoy');
                                     }
                                 } catch (eGH3) {}
                                 lista.push({ num: nn, score: scoreL, tipos: tiposL, pos: pos, grupo: g }); // V46.9.173: guarda el grupo del candidato
@@ -30517,7 +30524,7 @@ function senalesDe(nn) {
             return '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:7px;background:rgba(29,78,216,0.15);border:1px dashed #60a5fa;border-radius:6px;padding:5px 8px;">' +
                 '<span style="font-size:10px;font-weight:bold;color:#93c5fd;">📁 Señal: grupo COMPLETO pendiente ≥</span>' +
                 '<input id="ngpGrpDiasInp" type="number" min="3" max="365" value="' + _ngpGrpDiasUmbral() + '" onchange="_ngpGrpDiasSet(this)" style="width:54px;background:#0c1a3a;color:#fff;border:1px solid #60a5fa;border-radius:5px;font-size:11px;padding:3px 5px;text-align:center;">' +
-                '<span style="font-size:10px;color:#93c5fd;">días (+1) · <strong style="color:#5eead4;">🕐 número más salidor en horario que AÚN FALTA hoy (+2)</strong> · <strong style="color:#5eead4;">🕐📁 grupo MÁS salidor del PRÓXIMO sorteo (+2)</strong> · 🔥 cruce = pendiente + horario · <strong style="color:#7dd3fc;">📈 grupo dominante del día aún pendiente (+1)</strong> · <strong style="color:#67e8f9;">🔄 conversión 4↔7/3↔8 repetida hoy (+1)</strong> · <strong style="color:#f9a8d4;">🪞 espejo 12·21·17·71·67·76 (+1)</strong> · <strong style="color:#34d399;">🌙 grupo de cierre de ayer (+1 solo donde el patrón se comprueba)</strong> · <strong style="color:#d9f99d;">🔗 familia 74·47·14·41 (+1 con una sola salida hoy)</strong></span>' +
+                '<span style="font-size:10px;color:#93c5fd;">días (+1) · <strong style="color:#5eead4;">🕐 número más salidor en horario que AÚN FALTA hoy (+2)</strong> · <strong style="color:#5eead4;">🕐📁 grupo MÁS salidor del PRÓXIMO sorteo (+2)</strong> · 🔥 cruce = pendiente + horario · <strong style="color:#7dd3fc;">📈 grupo dominante del día aún pendiente (+1)</strong> · <strong style="color:#67e8f9;">🔄 conversión 4↔7/3↔8 repetida hoy (+1)</strong> · <strong style="color:#f9a8d4;">🪞 espejo 12·21·17·71·67·76 (+1)</strong> · <strong style="color:#34d399;">🌙 grupo de cierre ABRE el día sig. (+1 donde se comprueba, solo antes del 1er sorteo de hoy)</strong> · <strong style="color:#d9f99d;">🔗 familia 74·47·14·41 (+1 con una sola salida hoy)</strong></span>' +
                 '</div>';
         }
         function _ngpFechaHoyLocal() {
@@ -31373,7 +31380,11 @@ function senalesDe(nn) {
                     var cieR = (F.cierreDia) ? F.cierreDia(rk.lot) : null;
                     if (cieR && cieR.gAyer && cieR.evaluados > 0) {
                         var pctC = Math.round(100 * cieR.rate), pctB = Math.round(100 * cieR.base);
-                        etq.push('<span title="Hipótesis: el grupo del ÚLTIMO sorteo del día vuelve a tirar al día siguiente. En ESTA lotería, de ' + cieR.evaluados + ' pares de días evaluados repitió el ' + pctC + '% de las veces (azar esperado: ' + pctB + '%). ' + (cieR.aplica ? 'SE COMPRUEBA acá → los números del grupo de cierre reciben +1 señal.' : 'NO supera claramente el azar acá → solo informativo, sin señal.') + ' Ayer cerró con el ' + cieR.numCierre + ' (' + cieR.gAyer + ').' + (cieR.yaRepitio ? ' HOY ya repitió con el ' + cieR.yaRepitio + ' ✓' : '') + '" style="color:' + (cieR.aplica ? '#34d399' : '#94a3b8') + ';font-weight:bold;cursor:help;">🌙 cierre ayer: ' + cieR.gAyer.replace('Grupo ', 'G') + ' (' + cieR.numCierre + ') · repite ' + pctC + '% vs ' + pctB + '% azar' + (cieR.aplica ? ' ✓ señal' : '') + (cieR.yaRepitio ? ' · ✅ ya repitió hoy (' + cieR.yaRepitio + ')' : '') + '</span>');
+                        // V46.9.194 (corrección de Leo): veredicto sobre el PRIMER sorteo del día sig.
+                        var _estC = '';
+                        if (cieR.hoyYaAbrio) _estC = cieR.abrioConGrupo ? ' · ✅ HOY abrió con el ' + cieR.hoyPrimero + ' — cumplió' : ' · ✗ hoy abrió con el ' + cieR.hoyPrimero + ' — no cumplió';
+                        else if (cieR.aplica) _estC = ' · vigente para el 1er sorteo de hoy';
+                        etq.push('<span title="Hipótesis (regla corregida): el grupo del ÚLTIMO sorteo del día ABRE el día siguiente — se evalúa SOLO contra el PRIMER sorteo del día siguiente de esta misma lotería. Acá, de ' + cieR.evaluados + ' pares de días evaluados, el día siguiente abrió con el grupo de cierre el ' + pctC + '% de las veces (azar esperado: ' + pctB + '%). ' + (cieR.aplica ? 'SE COMPRUEBA acá → los números del grupo de cierre reciben +1 señal SOLO mientras el primer sorteo de hoy no se haya jugado.' : 'NO supera claramente el azar acá → solo informativo, sin señal.') + ' Ayer cerró con el ' + cieR.numCierre + ' (' + cieR.gAyer + ').' + '" style="color:' + (cieR.aplica ? '#34d399' : '#94a3b8') + ';font-weight:bold;cursor:help;">🌙 cierre ayer: ' + cieR.gAyer.replace('Grupo ', 'G') + ' (' + cieR.numCierre + ') · abre día sig. ' + pctC + '% vs ' + pctB + '% azar' + (cieR.aplica ? ' ✓ señal' : '') + _estC + '</span>');
                     }
                 } catch (eCie) {}
                 // V46.9.153: aclarar cuando la lotería tiene pocos datos capturados
