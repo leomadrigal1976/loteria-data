@@ -28814,6 +28814,7 @@ function senalesDe(nn) {
                         var mejor = null, mejorMin = -1;
                         (capturedResults || []).forEach(function(r) {
                             if (!r || r.date !== hoyStr || !r.number) return;
+                            if (typeof _ngpEsLot3d === 'function' && _ngpEsLot3d(r.lottery)) return; // V46.9.196
                             var mm = 0;
                             try {
                                 var p = ((typeof _horaNorm24 === 'function') ? _horaNorm24(r.time) : ('' + (r.time || ''))).split(':');
@@ -28948,6 +28949,7 @@ function senalesDe(nn) {
                         var cnt = {}, det = {};
                         (capturedResults || []).forEach(function(r) {
                             if (!r || r.date !== hoyStr || !r.number) return;
+                            if (_ngpEsLot3d(r.lottery)) return; // V46.9.196: sin Monazos/Tripleta
                             var nn = _efvNorm(r.number);
                             cnt[nn] = (cnt[nn] || 0) + 1;
                             if (!det[nn]) det[nn] = [];
@@ -29077,6 +29079,19 @@ function senalesDe(nn) {
                         return val;
                     } catch (e) { return { tope: 10, domHoy: 1, dow: 0, filas: [] }; }
                 }
+                // V46.9.196 (pedido de Leo): las loterías de 3 DÍGITOS (Monazo Tica,
+                // Tripleta Nica, etc.) NO deben contar en los cálculos globales del día
+                // (predominio de grupos, conversión/espejo/familias y contagio ⚡).
+                var _ngpLots3d = {};
+                try {
+                    (typeof LOTTERIES !== 'undefined' ? LOTTERIES : []).forEach(function(l3) { if (l3 && l3.digits === 3 && l3.name) _ngpLots3d[l3.name] = true; });
+                } catch (e3d) {}
+                function _ngpEsLot3d(lot) {
+                    if (!lot) return false;
+                    if (_ngpLots3d[lot]) return true;
+                    var s3 = ('' + lot).toLowerCase();
+                    return s3.indexOf('monazo') >= 0 || s3.indexOf('tripleta') >= 0;
+                }
                 // V46.9.180 (pedido de Leo): PREDOMINIO DE GRUPOS HOY — cuenta las
                 // salidas de hoy por grupo en TODAS las loterías. Los "dominantes" son
                 // los 3 grupos con más salidas (mínimo 2). Para cada uno se sabe en qué
@@ -29090,6 +29105,7 @@ function senalesDe(nn) {
                         var por = {};
                         (capturedResults || []).forEach(function(r) {
                             if (!r || r.date !== hoyStr || !r.number) return;
+                            if (_ngpEsLot3d(r.lottery)) return; // V46.9.196: sin Monazos/Tripleta
                             var nn = _efvNorm(r.number);
                             var g0 = n2g[nn];
                             if (!g0) return;
@@ -30937,7 +30953,7 @@ function senalesDe(nn) {
                 if (pdR && pdR.lista.length) {
                     var _lotsRk = ranking.map(function(r0) { return r0.lot; });
                     var hPd = '<div style="background:rgba(8,47,73,0.55);border:1px solid #38bdf8;border-radius:9px;padding:9px 11px;margin-bottom:10px;">';
-                    hPd += '<div style="font-size:12px;font-weight:bold;color:#7dd3fc;margin-bottom:4px;">📈 PREDOMINIO DE GRUPOS HOY <span style="font-size:9px;color:#94a3b8;font-weight:normal;">(salidas de hoy en todas las loterías — los 🔥 dominantes dan +1 a sus números aún pendientes)</span></div>';
+                    hPd += '<div style="font-size:12px;font-weight:bold;color:#7dd3fc;margin-bottom:4px;">📈 PREDOMINIO DE GRUPOS HOY <span style="font-size:9px;color:#94a3b8;font-weight:normal;">(salidas de hoy en todas las loterías de 2 dígitos — sin Monazos ni Tripleta — los 🔥 dominantes dan +1 a sus números aún pendientes)</span></div>';
                     hPd += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;">';
                     pdR.lista.forEach(function(gp) {
                         var esDom = !!pdR.domSet[gp.g];
@@ -72476,7 +72492,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r129 · v46.9.195</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r130 · v46.9.196</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {

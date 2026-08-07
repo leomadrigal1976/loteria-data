@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.195</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.196</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6339,7 +6339,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.195</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.196</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -29327,6 +29327,7 @@ function senalesDe(nn) {
                         var mejor = null, mejorMin = -1;
                         (capturedResults || []).forEach(function(r) {
                             if (!r || r.date !== hoyStr || !r.number) return;
+                            if (typeof _ngpEsLot3d === 'function' && _ngpEsLot3d(r.lottery)) return; // V46.9.196
                             var mm = 0;
                             try {
                                 var p = ((typeof _horaNorm24 === 'function') ? _horaNorm24(r.time) : ('' + (r.time || ''))).split(':');
@@ -29461,6 +29462,7 @@ function senalesDe(nn) {
                         var cnt = {}, det = {};
                         (capturedResults || []).forEach(function(r) {
                             if (!r || r.date !== hoyStr || !r.number) return;
+                            if (_ngpEsLot3d(r.lottery)) return; // V46.9.196: sin Monazos/Tripleta
                             var nn = _efvNorm(r.number);
                             cnt[nn] = (cnt[nn] || 0) + 1;
                             if (!det[nn]) det[nn] = [];
@@ -29590,6 +29592,19 @@ function senalesDe(nn) {
                         return val;
                     } catch (e) { return { tope: 10, domHoy: 1, dow: 0, filas: [] }; }
                 }
+                // V46.9.196 (pedido de Leo): las loterías de 3 DÍGITOS (Monazo Tica,
+                // Tripleta Nica, etc.) NO deben contar en los cálculos globales del día
+                // (predominio de grupos, conversión/espejo/familias y contagio ⚡).
+                var _ngpLots3d = {};
+                try {
+                    (typeof LOTTERIES !== 'undefined' ? LOTTERIES : []).forEach(function(l3) { if (l3 && l3.digits === 3 && l3.name) _ngpLots3d[l3.name] = true; });
+                } catch (e3d) {}
+                function _ngpEsLot3d(lot) {
+                    if (!lot) return false;
+                    if (_ngpLots3d[lot]) return true;
+                    var s3 = ('' + lot).toLowerCase();
+                    return s3.indexOf('monazo') >= 0 || s3.indexOf('tripleta') >= 0;
+                }
                 // V46.9.180 (pedido de Leo): PREDOMINIO DE GRUPOS HOY — cuenta las
                 // salidas de hoy por grupo en TODAS las loterías. Los "dominantes" son
                 // los 3 grupos con más salidas (mínimo 2). Para cada uno se sabe en qué
@@ -29603,6 +29618,7 @@ function senalesDe(nn) {
                         var por = {};
                         (capturedResults || []).forEach(function(r) {
                             if (!r || r.date !== hoyStr || !r.number) return;
+                            if (_ngpEsLot3d(r.lottery)) return; // V46.9.196: sin Monazos/Tripleta
                             var nn = _efvNorm(r.number);
                             var g0 = n2g[nn];
                             if (!g0) return;
@@ -31450,7 +31466,7 @@ function senalesDe(nn) {
                 if (pdR && pdR.lista.length) {
                     var _lotsRk = ranking.map(function(r0) { return r0.lot; });
                     var hPd = '<div style="background:rgba(8,47,73,0.55);border:1px solid #38bdf8;border-radius:9px;padding:9px 11px;margin-bottom:10px;">';
-                    hPd += '<div style="font-size:12px;font-weight:bold;color:#7dd3fc;margin-bottom:4px;">📈 PREDOMINIO DE GRUPOS HOY <span style="font-size:9px;color:#94a3b8;font-weight:normal;">(salidas de hoy en todas las loterías — los 🔥 dominantes dan +1 a sus números aún pendientes)</span></div>';
+                    hPd += '<div style="font-size:12px;font-weight:bold;color:#7dd3fc;margin-bottom:4px;">📈 PREDOMINIO DE GRUPOS HOY <span style="font-size:9px;color:#94a3b8;font-weight:normal;">(salidas de hoy en todas las loterías de 2 dígitos — sin Monazos ni Tripleta — los 🔥 dominantes dan +1 a sus números aún pendientes)</span></div>';
                     hPd += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;">';
                     pdR.lista.forEach(function(gp) {
                         var esDom = !!pdR.domSet[gp.g];
