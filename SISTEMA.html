@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.197</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.198</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6339,7 +6339,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.197</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.198</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -28287,7 +28287,13 @@ ${groups.map((g,i)=>`
                 });
                 var todasLots = {};
                 serie.forEach(function(e) { todasLots[e.lot] = (todasLots[e.lot] || 0) + 1; });
-                var lotsActivas = Object.keys(todasLots).filter(function(L) { return todasLots[L] >= 30; });
+                // V46.9.198 (pedido de Leo): las loterías de 3 dígitos (Monazos, Tripleta)
+                // NO participan del módulo (Resumen, extracto, filtros, análisis de grupos).
+                var lotsActivas = Object.keys(todasLots).filter(function(L) {
+                    if (todasLots[L] < 30) return false;
+                    var _sL = ('' + L).toLowerCase();
+                    return _sL.indexOf('monazo') < 0 && _sL.indexOf('tripleta') < 0;
+                });
 
                 // V46.9.127 (pedido de Leo): posición de cada número en el ranking de
                 // rezago de cada lotería (top de más vencidos). Sirve para resaltar cuando
@@ -28894,7 +28900,7 @@ function senalesDe(nn) {
                 h += '<button onclick="_ngpFechaSet(0)" style="background:linear-gradient(135deg,#0e7490,#22d3ee);border:1px solid #a5f3fc;color:#083344;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:bold;">Hoy (acumulado)</button>';
                 h += '<span style="font-size:11px;font-weight:bold;color:#5eead4;margin-left:8px;">Lotería:</span>';
                 h += '<select id="ngpFechaLot" onchange="_efvSync(this);_ngpFechaRender()" style="background:#042f2e;color:#ccfbf1;border:1px solid #14b8a6;border-radius:6px;padding:5px 8px;font-size:12px;"><option value="__TODAS__" selected>🌎 Todas</option>';
-                lotsActivas.slice().sort().forEach(function(L5) { h += '<option value="' + L5 + '">' + L5 + '</option>'; });
+                Object.keys(todasLots).sort().forEach(function(L5) { h += '<option value="' + L5 + '">' + L5 + '</option>'; }); // V46.9.198: acá SÍ van Monazos/Tripleta
                 h += '</select>';
                 h += '</div>';
                 h += '<div id="ngpFechaResultado" style="max-height:max(500px,70vh);overflow-y:auto;"><div style="font-size:11px;color:#94a3b8;padding:6px;">Elegí una fecha.</div></div>';
@@ -29772,6 +29778,7 @@ function senalesDe(nn) {
                         });
                     } catch (e) {}
                     lotsActivas.forEach(function(L) { if (lots2d.indexOf(L) < 0) lots2d.push(L); });
+                    lots2d = lots2d.filter(function(L) { return !(typeof _ngpEsLot3d === 'function' && _ngpEsLot3d(L)); }); // V46.9.198: sin 3 dígitos
                     if (!lots2d.length) lots2d = lotsActivas.slice();
                     lots2d.forEach(function(L) {
                         var jalesL = _jaleDeAyer(L) || [];
