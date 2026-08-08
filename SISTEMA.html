@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.200</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.201</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6339,7 +6339,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.200</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.201</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -30073,7 +30073,7 @@ function senalesDe(nn) {
                     ultPorNumLot: ultPorNumLot, difDias: difDias, hoyStr: hoyStr, porNum: porNum, serie: serie,
                     rankRezagoLot: rankRezagoLot, rankRezagoPrevLot: rankRezagoPrevLot,
                     jaleDe: _jaleDeAyer, decTermHoy: _decTermHoy, efvCalcular: _efvCalcular,
-                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, resultadosDeFecha: _resultadosDeFecha, predominioHoy: _ngpPredominioHoy, topsDia: _ngpTopsDia, esperaDe: _ngpEsperaDe, cierreDia: _ngpCierreDia, gruposPromedio: _ngpGruposPromedio, vibHoy: _vibHoy, propensosHoy: _ngpPropensosHoy, candidatosDe: _candidatosDeL
+                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, resultadosDeFecha: _resultadosDeFecha, predominioHoy: _ngpPredominioHoy, topsDia: _ngpTopsDia, esperaDe: _ngpEsperaDe, cierreDia: _ngpCierreDia, gruposPromedio: _ngpGruposPromedio, vibHoy: _vibHoy, propensosHoy: _ngpPropensosHoy, grupoDelDia: _grupoDelDiaNums, candidatosDe: _candidatosDeL
                 };
                 try { _efvGuardarSnapshotHoy(); } catch (eSnap) {} // V46.9.144: foto diaria del extracto
                 return h;
@@ -31466,6 +31466,54 @@ function senalesDe(nn) {
             if (resAb) { document.querySelectorAll('[id="ngpResumenPanel"]').forEach(function(p) { p.style.display = 'block'; }); try { _ngpResumenRender(); } catch (e2) {} }
             if (extAb) { document.querySelectorAll('[id="ngpExtractoPanel"]').forEach(function(p) { p.style.display = 'block'; }); try { _ngpExtractoRender(); } catch (e3) {} }
         }
+        // V46.9.201 (pedido de Leo): tarjeta "📅 GRUPO DEL DÍA" — clara y con estado.
+        // Muestra el grupo de la fecha de hoy, sus números como fichas (verde ✓ los
+        // que ya salieron hoy, con lotería y hora; ámbar los pendientes) y si el
+        // grupo ya se activó / está insistiendo.
+        function _ngpGrupoDiaHTML() {
+            try {
+                var F0 = window._ngpFiltro;
+                if (!F0 || !F0.grupoDelDia || !F0.grupoDelDia.grupo) return '';
+                var gd = F0.grupoDelDia;
+                var numsG = ((F0.NUMBER_GROUPS || {})[gd.grupo] || []).slice();
+                if (!numsG.length) return '';
+                var pd = F0.predominioHoy ? F0.predominioHoy() : null;
+                var info = null;
+                if (pd) pd.lista.forEach(function(x0) { if (x0.g === gd.grupo) info = x0; });
+                var salidas = info ? info.salidas : [];
+                var porNum = {};
+                salidas.forEach(function(s0) {
+                    var hf0 = s0.time; try { if (typeof convertTo12Hour === 'function' && s0.time) hf0 = convertTo12Hour(s0.time); } catch (e0) {}
+                    if (!porNum[s0.n]) porNum[s0.n] = [];
+                    porNum[s0.n].push(s0.l + (hf0 ? ' ' + hf0 : ''));
+                });
+                var lotsU = {};
+                salidas.forEach(function(s0) { lotsU[s0.l] = true; });
+                var nLots = Object.keys(lotsU).length;
+                var activado = salidas.length > 0;
+                var insiste = salidas.length >= 2;
+                var h6 = '<div style="background:linear-gradient(135deg,rgba(20,83,45,0.6),rgba(6,78,59,0.4));border:2px solid #22c55e;border-radius:9px;padding:9px 12px;margin-bottom:10px;">';
+                h6 += '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px;">';
+                h6 += '<span style="font-size:13px;font-weight:bold;color:#bbf7d0;">📅 GRUPO DEL DÍA — hoy es día ' + gd.dia + ' → <span style="color:#fff;">' + gd.grupo + '</span></span>';
+                if (insiste) h6 += '<span class="ngp-parpadea" style="font-size:11px;font-weight:bold;padding:3px 10px;border-radius:12px;background:rgba(34,197,94,0.3);border:1px solid #4ade80;color:#dcfce7;">🔗 ACTIVADO E INSISTIENDO — ' + salidas.length + ' salidas en ' + nLots + ' lotería' + (nLots === 1 ? '' : 's') + '</span>';
+                else if (activado) h6 += '<span style="font-size:11px;font-weight:bold;padding:3px 10px;border-radius:12px;background:rgba(34,197,94,0.25);border:1px solid #4ade80;color:#dcfce7;">✅ YA SE ACTIVÓ HOY — 1 salida</span>';
+                else h6 += '<span style="font-size:11px;font-weight:bold;padding:3px 10px;border-radius:12px;background:rgba(251,191,36,0.18);border:1px solid #fbbf24;color:#fde68a;">⏳ AÚN NO SE ACTIVA HOY</span>';
+                h6 += '</div>';
+                h6 += '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
+                numsG.forEach(function(n6) {
+                    var sal6 = porNum[n6];
+                    if (sal6) {
+                        h6 += '<span title="' + n6 + ': ya salió hoy en ' + sal6.join(' · ').replace(/"/g, '') + '" style="font-family:monospace;font-size:17px;font-weight:bold;color:#dcfce7;background:rgba(34,197,94,0.25);border:2px solid #4ade80;border-radius:6px;padding:3px 8px;cursor:help;text-align:center;">' + n6 + '<small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:7px;font-weight:bold;color:#86efac;">✓ ' + sal6[0] + (sal6.length > 1 ? ' +' + (sal6.length - 1) : '') + '</small></span>';
+                    } else {
+                        h6 += '<span title="' + n6 + ': del ' + gd.grupo + ' (grupo del día) y aún no sale hoy — suma peso fuerte en las sugerencias" style="font-family:monospace;font-size:17px;font-weight:bold;color:#fde68a;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.55);border-radius:6px;padding:3px 8px;cursor:help;text-align:center;">' + n6 + '<small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:7px;font-weight:bold;color:#fbbf24;">pendiente</small></span>';
+                    }
+                });
+                h6 += '</div>';
+                h6 += '<div style="font-size:9px;color:#86efac;margin-top:5px;">Los números del grupo del día suman peso fuerte (+4) en las sugerencias de hoy.' + (insiste ? ' El grupo está INSISTIENDO: ojo con los que siguen pendientes (ámbar).' : (activado ? ' Ya abrió — los pendientes quedan en observación.' : ' Todavía nada del grupo ha salido hoy.')) + '</div>';
+                h6 += '</div>';
+                return h6;
+            } catch (e) { return ''; }
+        }
         // V46.9.195 (pedido de Leo): panel PROMEDIO DE GRUPOS
         function _ngpGrpPromToggle() {
             var ps = document.querySelectorAll('[id="ngpGrpPromPanel"]');
@@ -31615,6 +31663,7 @@ function senalesDe(nn) {
                     html += hPd;
                 }
             } catch (ePdR) {}
+            html += _ngpGrupoDiaHTML(); // V46.9.201 (pedido de Leo): tarjeta del grupo del día
             // ─── V46.9.149: TODAS las tarjetas con el MISMO formato e información
             // V46.9.191 (pedido de Leo, maqueta aprobada): UNA lotería por fila
             // (se apilan hacia abajo por fuerza) + selector de loterías a mostrar.
@@ -32013,7 +32062,7 @@ function senalesDe(nn) {
 
             function fmtFecha(d) { if (!d) return '—'; var p = d.split('-'); return p[2] + '-' + p[1] + '-' + p[0].substring(2); }
 
-            var htmlLots = '';
+            var htmlLots = _ngpGrupoDiaHTML(); // V46.9.201 (pedido de Leo): tarjeta del grupo del día
             sel.forEach(function(L) {
                 // V46.9.142: JALE DEL DÍA DE AYER — grupo del sorteo de ayer a la hora
                 // del próximo sorteo de hoy sin capturar. Ese grupo va PRIMERO y sus
