@@ -28835,6 +28835,44 @@ function senalesDe(nn) {
                         return out;
                     } catch (e) { return []; }
                 }
+                // V46.9.202 (pedido de Leo): CONVERSIÓN INMEDIATA — se toman los
+                // ÚLTIMOS 2 sorteos capturados de HOY (todas las loterías de 2 díg);
+                // la conversión (4↔7 / 3↔8 en cualquier dígito) de cada uno es
+                // posibilidad CERCANA. La ventana expira sola: al capturarse 2 sorteos
+                // más, esos orígenes dejan de estar entre los últimos 2.
+                function _ngpConvInmediata() {
+                    try {
+                        var key = hoyStr + '|' + ((capturedResults || []).length);
+                        if (window._ngpConvInmCache && window._ngpConvInmCache.key === key) return window._ngpConvInmCache.val;
+                        var MAPD2 = { '4': '7', '7': '4', '3': '8', '8': '3' };
+                        var convDe2 = function(n0) { return (MAPD2[n0.charAt(0)] || n0.charAt(0)) + (MAPD2[n0.charAt(1)] || n0.charAt(1)); };
+                        var _minI = function(t) {
+                            try {
+                                var p = ((typeof _horaNorm24 === 'function') ? _horaNorm24(t) : ('' + (t || ''))).split(':');
+                                var hh = parseInt(p[0], 10);
+                                return isNaN(hh) ? 0 : hh * 60 + (parseInt(p[1] || '0', 10) || 0);
+                            } catch (e2) { return 0; }
+                        };
+                        var hoyArr = [];
+                        (capturedResults || []).forEach(function(r) {
+                            if (!r || r.date !== hoyStr || !r.number) return;
+                            if (typeof _ngpEsLot3d === 'function' && _ngpEsLot3d(r.lottery)) return;
+                            hoyArr.push({ n: _efvNorm(r.number), lot: r.lottery, time: _jaleNormHora(r.time), m: _minI(r.time) });
+                        });
+                        hoyArr.sort(function(a, b) { return a.m - b.m; });
+                        var val = [];
+                        var ult2 = hoyArr.slice(-2).reverse(); // [último, penúltimo]
+                        ult2.forEach(function(e0, i0) {
+                            var c0 = convDe2(e0.n);
+                            if (c0 === e0.n) return; // sin dígitos convertibles
+                            // sin duplicar el mismo destino
+                            for (var q0 = 0; q0 < val.length; q0++) { if (val[q0].conv === c0) return; }
+                            val.push({ origen: e0.n, conv: c0, lot: e0.lot, time: e0.time, idx: i0 + 1 });
+                        });
+                        window._ngpConvInmCache = { key: key, val: val };
+                        return val;
+                    } catch (e) { return []; }
+                }
                 // V46.9.195 (pedido de Leo): ÚLTIMO resultado capturado de HOY (el más
                 // reciente por hora, en todas las loterías) — para el contagio de grupo.
                 function _ngpUltimoHoy() {
@@ -29112,6 +29150,14 @@ function senalesDe(nn) {
                             prE5.forEach(function(pp5) {
                                 val.propensos.push({ n: pp5.n, vuelta: pp5.vuelta, pct: pp5.pct, azar: pp5.azar, time: pp5.time, vueltaSalio: ((ultPorNumLot[pp5.vuelta] || {})[L] === hoyStr) });
                             });
+                            // V46.9.202 (pedido de Leo): 🔁 conversión INMEDIATA en ESTA lotería
+                            val.convInm = [];
+                            var ciE5 = (typeof _ngpConvInmediata === 'function') ? _ngpConvInmediata() : [];
+                            ciE5.forEach(function(cc5) {
+                                if ((ultPorNumLot[cc5.conv] || {})[L] === hoyStr) return; // ya salió acá
+                                var uC5 = (ultPorNumLot[cc5.conv] || {})[L];
+                                val.convInm.push({ origen: cc5.origen, conv: cc5.conv, lot: cc5.lot, time: cc5.time, idx: cc5.idx, ult: uC5 || null, dias: (uC5 ? difDias(uC5, hoyStr) : null) });
+                            });
                         }
                         window._ngpEsperaCache[key] = val;
                         return val;
@@ -29285,6 +29331,17 @@ function senalesDe(nn) {
                                         if (prHC[pi5].n === nn || prHC[pi5].vuelta === nn) {
                                             scoreL += 1;
                                             tiposL.push('🔥 PROPENSO: hoy salió acá el ' + prHC[pi5].n + ', que repite/voltea EL MISMO DÍA ' + prHC[pi5].pct + '% vs ' + prHC[pi5].azar + '% azar — considerá el ' + prHC[pi5].n + (prHC[pi5].n === prHC[pi5].vuelta ? ' (palíndromo)' : ' y su vuelta ' + prHC[pi5].vuelta));
+                                            break;
+                                        }
+                                    }
+                                    // V46.9.202 (pedido de Leo): 🔁 conversión INMEDIATA — la
+                                    // conversión de alguno de los ÚLTIMOS 2 sorteos del día es
+                                    // este número y acá sigue pendiente (+1, ventana corta).
+                                    var ciI = (typeof _ngpConvInmediata === 'function') ? _ngpConvInmediata() : [];
+                                    for (var ci5 = 0; ci5 < ciI.length; ci5++) {
+                                        if (ciI[ci5].conv === nn && ((ultPorNumLot[nn] || {})[L] !== hoyStr)) {
+                                            scoreL += 1;
+                                            tiposL.push('🔁 conversión INMEDIATA: ' + (ciI[ci5].idx === 1 ? 'el ÚLTIMO sorteo' : 'el penúltimo sorteo') + ' del día fue el ' + ciI[ci5].origen + ' en ' + ciI[ci5].lot + ' → su conversión ' + ciI[ci5].conv + ' es posibilidad en los sorteos cercanos');
                                             break;
                                         }
                                     }
@@ -30184,7 +30241,7 @@ function senalesDe(nn) {
             return '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:7px;background:rgba(29,78,216,0.15);border:1px dashed #60a5fa;border-radius:6px;padding:5px 8px;">' +
                 '<span style="font-size:10px;font-weight:bold;color:#93c5fd;">📁 Señal: grupo COMPLETO pendiente ≥</span>' +
                 '<input id="ngpGrpDiasInp" type="number" min="3" max="365" value="' + _ngpGrpDiasUmbral() + '" onchange="_ngpGrpDiasSet(this)" style="width:54px;background:#0c1a3a;color:#fff;border:1px solid #60a5fa;border-radius:5px;font-size:11px;padding:3px 5px;text-align:center;">' +
-                '<span style="font-size:10px;color:#93c5fd;">días (+1) · <strong style="color:#5eead4;">🕐 número más salidor en horario que AÚN FALTA hoy (+2)</strong> · <strong style="color:#5eead4;">🕐📁 grupo MÁS salidor del PRÓXIMO sorteo (+2)</strong> · 🔥 cruce = pendiente + horario · <strong style="color:#7dd3fc;">📈 grupo dominante del día aún pendiente (+1)</strong> · <strong style="color:#67e8f9;">🔄 conversión 4↔7/3↔8 repetida hoy (+1)</strong> · <strong style="color:#f9a8d4;">🪞 espejo 12·21·17·71·67·76 (+1)</strong> · <strong style="color:#34d399;">🌙 grupo de cierre ABRE el día sig. (+1 donde se comprueba, solo antes del 1er sorteo de hoy)</strong> · <strong style="color:#d9f99d;">🔗 familia 74·47·14·41 (+1 con una sola salida hoy)</strong> · <strong style="color:#fca5a5;">⚡ contagio: grupo del último salido HOY pegado en esta lotería (+1)</strong> · <strong style="color:#ffd700;">🔥 propenso del día: repite/voltea el mismo día (+1 al número y su vuelta)</strong></span>' +
+                '<span style="font-size:10px;color:#93c5fd;">días (+1) · <strong style="color:#5eead4;">🕐 número más salidor en horario que AÚN FALTA hoy (+2)</strong> · <strong style="color:#5eead4;">🕐📁 grupo MÁS salidor del PRÓXIMO sorteo (+2)</strong> · 🔥 cruce = pendiente + horario · <strong style="color:#7dd3fc;">📈 grupo dominante del día aún pendiente (+1)</strong> · <strong style="color:#67e8f9;">🔄 conversión 4↔7/3↔8 repetida hoy (+1)</strong> · <strong style="color:#f9a8d4;">🪞 espejo 12·21·17·71·67·76 (+1)</strong> · <strong style="color:#34d399;">🌙 grupo de cierre ABRE el día sig. (+1 donde se comprueba, solo antes del 1er sorteo de hoy)</strong> · <strong style="color:#d9f99d;">🔗 familia 74·47·14·41 (+1 con una sola salida hoy)</strong> · <strong style="color:#fca5a5;">⚡ contagio: grupo del último salido HOY pegado en esta lotería (+1)</strong> · <strong style="color:#ffd700;">🔥 propenso del día: repite/voltea el mismo día (+1 al número y su vuelta)</strong> · <strong style="color:#67e8f9;">🔁 conversión INMEDIATA de los últimos 2 sorteos (+1, ventana corta)</strong></span>' +
                 '</div>';
         }
         function _ngpFechaHoyLocal() {
@@ -30886,6 +30943,15 @@ function senalesDe(nn) {
                     h0 += '</span>';
                     h0 += '<span style="font-size:10px;line-height:1.45;color:#fff;flex:1;"><strong>🔥 PROPENSO:</strong> el <strong>' + pr.n + '</strong> salió hoy acá y repite/voltea EL MISMO DÍA <strong>' + pr.pct + '%</strong> vs <strong>' + pr.azar + '%</strong> azar → ' + (esPal ? 'considerá repetirle al ' + pr.n : 'considerá el ' + pr.n + ' y su vuelta ' + pr.vuelta) + ' · +1 señal</span>';
                     h0 += '<span style="font-size:9px;font-weight:bold;padding:3px 8px;border-radius:5px;white-space:nowrap;background:rgba(255,215,0,0.25);border:1px solid #ffd700;color:#fff;">🔥 PROPENSO</span>';
+                    h0 += '</div>';
+                });
+                // V46.9.202 (pedido de Leo): 🔁 conversión INMEDIATA — renglón cian
+                (ep.convInm || []).forEach(function(cc) {
+                    var hfCc = cc.time; try { if (typeof convertTo12Hour === 'function' && cc.time) hfCc = convertTo12Hour(cc.time); } catch (eCc) {}
+                    h0 += '<div class="ngp-parpadea" title="' + (cc.idx === 1 ? 'El ÚLTIMO sorteo capturado del día' : 'El penúltimo sorteo del día') + ' fue el ' + cc.origen + ' en ' + cc.lot + (hfCc ? ' a las ' + hfCc : '') + '. Su conversión (4↔7/3↔8) es el ' + cc.conv + ', que acá no ha salido hoy → posibilidad en los sorteos CERCANOS (ventana de ~2 sorteos; expira sola al capturar más resultados). +1 señal." style="display:flex;align-items:center;gap:8px;background:rgba(8,51,68,0.6);border:2px solid #22d3ee;border-radius:7px;padding:5px 9px;margin-top:5px;cursor:help;">';
+                    h0 += '<span style="font-family:monospace;font-size:22px;font-weight:bold;min-width:34px;text-align:center;line-height:1;color:#67e8f9;text-shadow:0 0 9px rgba(34,211,238,0.7);">' + cc.conv + '<small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:8px;font-weight:bold;margin-top:2px;color:#0e7490;">últ ' + (cc.ult ? cc.ult.split('-')[2] + '/' + cc.ult.split('-')[1] : '—') + (cc.dias !== null ? ' · ' + cc.dias + 'd' : '') + '</small></span>';
+                    h0 += '<span style="font-size:10px;line-height:1.45;color:#a5f3fc;flex:1;"><strong style="color:#fff;">🔁 CONVERSIÓN INMEDIATA:</strong> ' + (cc.idx === 1 ? 'el ÚLTIMO sorteo del día' : 'el penúltimo sorteo del día') + ' fue el <strong style="color:#fff;">' + cc.origen + '</strong> en <strong style="color:#fff;">' + cc.lot + '</strong>' + (hfCc ? ' (' + hfCc + ')' : '') + ' → su conversión <strong style="color:#fff;">' + cc.conv + '</strong> es posibilidad CERCANA acá · +1 señal</span>';
+                    h0 += '<span style="font-size:9px;font-weight:bold;padding:3px 8px;border-radius:5px;white-space:nowrap;background:rgba(34,211,238,0.18);border:1px solid #22d3ee;color:#a5f3fc;">🔁 CERCANA</span>';
                     h0 += '</div>';
                 });
                 h0 += '</div>';
@@ -72667,7 +72733,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r135 · v46.9.201</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r136 · v46.9.202</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
