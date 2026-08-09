@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.202</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.203</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6339,7 +6339,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.202</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.203</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -31486,8 +31486,13 @@ function senalesDe(nn) {
             // V46.9.190 (reporte de Leo): el onchange directo recalculaba el módulo a media
             // edición de la fecha y "congelaba" el campo. Ahora el campo solo se sincroniza
             // y el recálculo lo dispara el botón "Estudiar esta fecha".
+            // V46.9.203 (pedido de Leo): flechas ◀ ▶ (mueven un día y recalculan al
+            // instante) y atajo "Mañana" — sin necesidad de digitar la fecha completa.
+            h9 += '<button onclick="_ngpFechaEstudioShift(-1)" title="Un día antes (recalcula al instante)" style="background:rgba(148,163,184,0.15);border:1px solid #64748b;color:#e2e8f0;padding:3px 9px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:bold;">◀</button>';
             h9 += '<input type="date" id="ngpFechaEstudioInp" value="' + fe + '" onchange="_efvSync(this)" style="background:#1e293b;color:#fff;border:1px solid ' + (otra ? '#f59e0b' : '#64748b') + ';border-radius:5px;padding:3px 7px;font-size:11px;">';
+            h9 += '<button onclick="_ngpFechaEstudioShift(1)" title="Un día después (recalcula al instante)" style="background:rgba(148,163,184,0.15);border:1px solid #64748b;color:#e2e8f0;padding:3px 9px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:bold;">▶</button>';
             h9 += '<button onclick="_ngpFechaEstudioAplicar(this)" style="background:linear-gradient(135deg,#581c87,#a855f7);border:1px solid #d8b4fe;color:#fff;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">🔍 Estudiar esta fecha</button>';
+            h9 += '<button onclick="_ngpFechaEstudioManana()" title="Estudiar el día de mañana de un clic" style="background:linear-gradient(135deg,#b45309,#f59e0b);border:1px solid #fcd34d;color:#3a1d00;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">Mañana ➡</button>';
             if (otra) {
                 h9 += '<button onclick="_ngpFechaEstudioSet(\'\')" style="background:linear-gradient(135deg,#0e7490,#22d3ee);border:1px solid #a5f3fc;color:#083344;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">Volver a HOY</button>';
                 h9 += '<span style="font-size:9px;color:#fde68a;flex:1;min-width:220px;">⚠️ Estás estudiando el <strong>' + fe + '</strong>: vibración, grupo del día, tops, EN ESPERA, rezagos y señales se calculan para esa fecha. Si es una fecha futura, aún no hay salidas de "ese día": los patrones aparecen todos pendientes y no se toman fotos de efectividad.</span>';
@@ -31496,6 +31501,22 @@ function senalesDe(nn) {
             }
             h9 += '</div>';
             return h9;
+        }
+        // V46.9.203 (pedido de Leo): mover la fecha de estudio de a un día,
+        // partiendo de la que está en el campo (mantiene mes y año si no cambian).
+        function _ngpFechaEstudioShift(delta) {
+            var ins = document.querySelectorAll('[id="ngpFechaEstudioInp"]');
+            var v = (ins.length && ins[0].value) ? ins[0].value : _ngpHoyRealStr();
+            var p = v.split('-');
+            var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+            d.setDate(d.getDate() + delta);
+            _ngpFechaEstudioSet(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'));
+        }
+        function _ngpFechaEstudioManana() {
+            var p = _ngpHoyRealStr().split('-');
+            var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+            d.setDate(d.getDate() + 1);
+            _ngpFechaEstudioSet(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'));
         }
         function _ngpFechaEstudioAplicar(btn) {
             // V46.9.190: lee la fecha del campo junto al botón (o de cualquier instancia)
@@ -31885,7 +31906,7 @@ function senalesDe(nn) {
             html += '</div>';
             // ─── TOP 10 JUGADAS GLOBALES + botón de efectividad
             html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;flex-wrap:wrap;gap:6px;">';
-            html += '<span style="font-size:12px;font-weight:bold;color:#e9d5ff;">🎯 TOP 10 JUGADAS de todo el sistema (número + lotería con más señales):</span>';
+            html += '<span style="font-size:12px;font-weight:bold;color:#e9d5ff;">🏅 TOP JUGADAS — las loterías con mejores señales y sus DOS mejores números del top 5:</span>';
             html += '<button onclick="_efvT10Toggle()" style="background:linear-gradient(135deg,#065f46,#10b981);border:1px solid #6ee7b7;color:#fff;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">📊 Efectividad del Top 10</button>';
             html += '</div>';
             // panel de efectividad del top 10 (cerrado por defecto)
@@ -31896,13 +31917,25 @@ function senalesDe(nn) {
             html += '</div>';
             html += '<div id="efvT10Resultado" style="font-size:10px;color:#d1fae5;">…</div>';
             html += '</div>';
-            html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">';
-            jugadas.slice(0, 10).forEach(function(j, ix) {
-                html += '<div title="' + j.tipos.join(' · ').replace(/"/g, '') + '" style="background:linear-gradient(135deg,#1e1b4b,#4c1d95);border:1px solid #a78bfa;border-radius:8px;padding:5px 10px;text-align:center;cursor:help;">';
-                html += '<div style="font-size:8px;color:#c4b5fd;">' + (ix + 1) + '°</div>';
-                html += '<div style="font-family:monospace;font-size:20px;font-weight:bold;color:#fff;line-height:1;">' + j.num + '</div>';
-                html += '<div style="font-size:9px;color:#ddd6fe;">' + j.lot + ' · <strong>' + j.score + ' señ.</strong></div>';
+            // V46.9.203 (pedido de Leo): tarjetas más vistosas — una por lotería,
+            // con sus DOS mejores números del top 5 (ordenadas por su mejor señal).
+            html += '<div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px;">';
+            var _mejoresTJ = ranking.filter(function(r5) { return r5.top && r5.top.length; }).slice()
+                .sort(function(a, b) { return b.top[0].score - a.top[0].score; }).slice(0, 10);
+            _mejoresTJ.forEach(function(rj, ix) {
+                var oro3 = ix < 3;
+                html += '<div style="background:linear-gradient(150deg,#4a044e,#7c3aed);border:2px solid ' + (oro3 ? '#fbbf24' : '#f0abfc') + ';border-radius:10px;overflow:hidden;min-width:134px;flex:1;max-width:200px;' + (oro3 ? 'box-shadow:0 0 10px rgba(251,191,36,0.35);' : '') + '">';
+                html += '<div style="display:flex;justify-content:center;align-items:center;padding:3px 9px;background:rgba(0,0,0,0.3);border-bottom:1px solid ' + (oro3 ? '#fbbf24' : 'rgba(240,171,252,0.5)') + ';">';
+                html += '<span style="font-size:10px;font-weight:bold;color:' + (oro3 ? '#fde68a' : '#f5d0fe') + ';white-space:nowrap;">' + (ix === 0 ? '🥇' : ix === 1 ? '🥈' : ix === 2 ? '🥉' : (ix + 1) + '°') + ' ' + rj.lot + '</span>';
                 html += '</div>';
+                html += '<div style="display:flex;justify-content:space-around;align-items:center;padding:6px 8px;gap:8px;">';
+                rj.top.slice(0, 2).forEach(function(j2) {
+                    html += '<span title="' + j2.num + ' en ' + rj.lot + ': ' + j2.tipos.join(' · ').replace(/"/g, '') + '" style="text-align:center;cursor:help;">';
+                    html += '<span style="display:block;font-family:monospace;font-size:23px;font-weight:bold;color:#fff;line-height:1;text-shadow:0 0 8px rgba(240,171,252,0.6);">' + j2.num + '</span>';
+                    html += '<span style="display:block;font-size:9px;color:#fbbf24;font-weight:bold;margin-top:2px;">' + j2.score + ' señ.</span>';
+                    html += '</span>';
+                });
+                html += '</div></div>';
             });
             html += '</div>';
             html += '<div style="font-size:8px;color:#64748b;margin-top:4px;">La fuerza compara cuánta señal acumulada tiene cada lotería en este momento — sirve para priorizar dónde mirar. Cada sorteo es independiente: más señales no cambia la probabilidad matemática.</div>';
