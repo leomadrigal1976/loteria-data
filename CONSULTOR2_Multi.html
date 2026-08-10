@@ -28835,6 +28835,60 @@ function senalesDe(nn) {
                         return out;
                     } catch (e) { return []; }
                 }
+                // V46.9.204 (pedido de Leo): DESPUÉS-DE de un número específico en una
+                // lotería — cuenta qué números siguieron históricamente al indicado en
+                // el sorteo inmediato siguiente de ESA lotería (top N).
+                function _ngpDespuesDeNum(L, num, topN) {
+                    try {
+                        var key = L + '|' + num + '|' + ((capturedResults || []).length);
+                        if (!window._ngpDespNumCache) window._ngpDespNumCache = {};
+                        if (window._ngpDespNumCache[key]) return window._ngpDespNumCache[key];
+                        var _minD = function(t) {
+                            try {
+                                var p = ((typeof _horaNorm24 === 'function') ? _horaNorm24(t) : ('' + (t || ''))).split(':');
+                                var hh = parseInt(p[0], 10);
+                                return isNaN(hh) ? 0 : hh * 60 + (parseInt(p[1] || '0', 10) || 0);
+                            } catch (e2) { return 0; }
+                        };
+                        var arr = [];
+                        (capturedResults || []).forEach(function(r) {
+                            if (!r || r.lottery !== L || !r.date || !r.number) return;
+                            arr.push({ n: _efvNorm(r.number), d: r.date, m: _minD(r.time) });
+                        });
+                        arr.sort(function(a, b) { return a.d !== b.d ? (a.d < b.d ? -1 : 1) : a.m - b.m; });
+                        var cnt = {};
+                        for (var i = 0; i < arr.length - 1; i++) {
+                            if (arr[i].n === num) { var sig = arr[i + 1].n; cnt[sig] = (cnt[sig] || 0) + 1; }
+                        }
+                        var lista = Object.keys(cnt).map(function(n0) { return { n: n0, c: cnt[n0] }; })
+                            .sort(function(a, b) { return b.c - a.c; }).slice(0, topN || 10);
+                        window._ngpDespNumCache[key] = lista;
+                        return lista;
+                    } catch (e) { return []; }
+                }
+                // V46.9.204: último número capturado de una lotería (fecha + hora)
+                function _ngpUltimoDeLot(L) {
+                    try {
+                        var key = L + '|' + ((capturedResults || []).length);
+                        if (!window._ngpUltLotCache) window._ngpUltLotCache = {};
+                        if (window._ngpUltLotCache[key] !== undefined) return window._ngpUltLotCache[key];
+                        var _minU = function(t) {
+                            try {
+                                var p = ((typeof _horaNorm24 === 'function') ? _horaNorm24(t) : ('' + (t || ''))).split(':');
+                                var hh = parseInt(p[0], 10);
+                                return isNaN(hh) ? 0 : hh * 60 + (parseInt(p[1] || '0', 10) || 0);
+                            } catch (e2) { return 0; }
+                        };
+                        var mejor = null;
+                        (capturedResults || []).forEach(function(r) {
+                            if (!r || r.lottery !== L || !r.date || !r.number) return;
+                            var kk = r.date + '|' + ('0000' + _minU(r.time)).slice(-4);
+                            if (!mejor || kk > mejor.k) mejor = { k: kk, n: _efvNorm(r.number), date: r.date, time: _jaleNormHora(r.time) };
+                        });
+                        window._ngpUltLotCache[key] = mejor;
+                        return mejor;
+                    } catch (e) { return null; }
+                }
                 // V46.9.202 (pedido de Leo): CONVERSIÓN INMEDIATA — se toman los
                 // ÚLTIMOS 2 sorteos capturados de HOY (todas las loterías de 2 díg);
                 // la conversión (4↔7 / 3↔8 en cualquier dígito) de cada uno es
@@ -29617,7 +29671,7 @@ function senalesDe(nn) {
                     ultPorNumLot: ultPorNumLot, difDias: difDias, hoyStr: hoyStr, porNum: porNum, serie: serie,
                     rankRezagoLot: rankRezagoLot, rankRezagoPrevLot: rankRezagoPrevLot,
                     jaleDe: _jaleDeAyer, decTermHoy: _decTermHoy, efvCalcular: _efvCalcular,
-                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, resultadosDeFecha: _resultadosDeFecha, predominioHoy: _ngpPredominioHoy, topsDia: _ngpTopsDia, esperaDe: _ngpEsperaDe, cierreDia: _ngpCierreDia, gruposPromedio: _ngpGruposPromedio, vibHoy: _vibHoy, propensosHoy: _ngpPropensosHoy, grupoDelDia: _grupoDelDiaNums, candidatosDe: _candidatosDeL
+                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, resultadosDeFecha: _resultadosDeFecha, predominioHoy: _ngpPredominioHoy, topsDia: _ngpTopsDia, esperaDe: _ngpEsperaDe, cierreDia: _ngpCierreDia, gruposPromedio: _ngpGruposPromedio, vibHoy: _vibHoy, propensosHoy: _ngpPropensosHoy, grupoDelDia: _grupoDelDiaNums, despuesDeNum: _ngpDespuesDeNum, ultimoDeLot: _ngpUltimoDeLot, candidatosDe: _candidatosDeL
                 };
                 try { _efvGuardarSnapshotHoy(); } catch (eSnap) {} // V46.9.144: foto diaria del extracto
                 return h;
@@ -31040,6 +31094,46 @@ function senalesDe(nn) {
             if (resAb) { document.querySelectorAll('[id="ngpResumenPanel"]').forEach(function(p) { p.style.display = 'block'; }); try { _ngpResumenRender(); } catch (e2) {} }
             if (extAb) { document.querySelectorAll('[id="ngpExtractoPanel"]').forEach(function(p) { p.style.display = 'block'; }); try { _ngpExtractoRender(); } catch (e3) {} }
         }
+        // V46.9.204 (pedido de Leo): bloque "📌 REFERENCIAS DESPUÉS DE" — aprovecha
+        // el espacio libre de cada lotería: (1) el número de AYER en el horario del
+        // sorteo que viene (jale) con su después-de top 10, y (2) el ÚLTIMO salido
+        // de esa lotería con su después-de top 10.
+        function _ngpRefsDespuesHTML(L) {
+            try {
+                var F0 = window._ngpFiltro;
+                if (!F0 || !F0.despuesDeNum) return '';
+                var fmtF7 = function(d0) { if (!d0) return ''; var p0 = d0.split('-'); return p0[2] + '/' + p0[1]; };
+                var filas = [];
+                var jls = (F0.jaleDe ? (F0.jaleDe(L) || []) : []);
+                jls.slice(0, 2).forEach(function(j7) {
+                    var numJ = ('' + (j7.numAyer || '')).substring(0, 2);
+                    if (numJ.length < 2) return;
+                    filas.push({ icono: '⏰', titulo: 'AYER en el horario que viene (' + (j7.horaFmt || '') + ') salió el ' + numJ, num: numJ });
+                });
+                var ul7 = F0.ultimoDeLot ? F0.ultimoDeLot(L) : null;
+                if (ul7 && ul7.n) {
+                    var hf7 = ul7.time; try { if (typeof convertTo12Hour === 'function' && ul7.time) hf7 = convertTo12Hour(ul7.time); } catch (e7) {}
+                    var esHoy7 = (ul7.date === F0.hoyStr);
+                    filas.push({ icono: '🕐', titulo: 'ÚLTIMO salido acá: el ' + ul7.n + ' (' + (esHoy7 ? 'hoy' : fmtF7(ul7.date)) + (hf7 ? ' ' + hf7 : '') + ')', num: ul7.n });
+                }
+                if (!filas.length) return '';
+                var h7 = '<div style="margin-top:8px;padding-top:6px;border-top:1px dashed rgba(56,189,248,0.5);">';
+                h7 += '<div style="font-size:9px;font-weight:bold;color:#7dd3fc;margin-bottom:4px;">📌 REFERENCIAS "DESPUÉS DE" de esta lotería:</div>';
+                filas.forEach(function(f7) {
+                    var top10 = F0.despuesDeNum(L, f7.num, 10) || [];
+                    h7 += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:rgba(8,47,73,0.4);border:1px solid rgba(56,189,248,0.4);border-radius:6px;padding:4px 7px;margin-bottom:4px;">';
+                    h7 += '<span style="font-size:9px;color:#bae6fd;min-width:170px;flex:1;">' + f7.icono + ' <strong style="color:#fff;">' + f7.titulo + '</strong><br>→ después del ' + f7.num + ' (top 10):</span>';
+                    h7 += '<span style="display:flex;flex-wrap:wrap;gap:3px;">';
+                    if (!top10.length) h7 += '<span style="font-size:9px;color:#64748b;">sin historial del ' + f7.num + ' acá</span>';
+                    top10.forEach(function(t7, ti7) {
+                        h7 += '<span title="el ' + t7.n + ' siguió ' + t7.c + ' vez/veces al ' + f7.num + ' en ' + L + '" style="font-family:monospace;font-size:13px;font-weight:bold;color:#fff;background:' + (ti7 < 3 ? 'rgba(56,189,248,0.25)' : 'rgba(255,255,255,0.05)') + ';border:1px solid ' + (ti7 < 3 ? '#38bdf8' : 'rgba(148,163,184,0.35)') + ';border-radius:5px;padding:2px 6px;cursor:help;">' + t7.n + '<sup style="font-size:7px;color:#7dd3fc;">' + t7.c + 'x</sup></span>';
+                    });
+                    h7 += '</span></div>';
+                });
+                h7 += '</div>';
+                return h7;
+            } catch (e) { return ''; }
+        }
         // V46.9.201 (pedido de Leo): tarjeta "📅 GRUPO DEL DÍA" — clara y con estado.
         // Muestra el grupo de la fecha de hoy, sus números como fichas (verde ✓ los
         // que ya salieron hoy, con lotería y hora; ámbar los pendientes) y si el
@@ -31374,6 +31468,7 @@ function senalesDe(nn) {
                     html += '<div style="font-size:8px;color:#94a3b8;margin-top:4px;line-height:1.5;">Dorado = líder del grupo · 🎯 rosado = coincide con el top-5 "después-de" · los grupos se ordenan por la fuerza de su mejor número. Pasá el cursor para ver las señales de cada número.</div>';
                     html += '</div>';
                 }
+                html += _ngpRefsDespuesHTML(rk.lot); // V46.9.204 (pedido de Leo): referencias después-de
                 // V46.9.166 (pedido de Leo): si NINGUNO de los 3 coincide con el "después de",
                 // mostrar el top-5 de después-de de esta lotería (mismos datos del sistema).
                 if (!_hayT5 && typeof _ngpSigueTop5 === 'function') {
@@ -31739,6 +31834,7 @@ function senalesDe(nn) {
                 htmlLots += '<div style="font-size:13px;font-weight:bold;color:#fcd34d;margin-bottom:6px;">🎯 ' + L + ' <span style="font-size:9px;color:#94a3b8;font-weight:normal;">— top de cada grupo por rezago + señales, en orden de importancia</span></div>';
                 htmlLots += _ngpEsperaHTML(L); // V46.9.186 (pedido de Leo): EN ESPERA HOY, arriba de los tops
                 htmlLots += _ngpTopsDiaHTML(L); // V46.9.182 (pedido de Leo): tops del día en el encabezado
+                htmlLots += _ngpRefsDespuesHTML(L); // V46.9.204 (pedido de Leo): referencias después-de
                 // V46.9.142/146: alerta con TODOS los jales candidatos
                 if (jales.length) {
                     var _jTxt = jales.map(function(j) { return 'a las ' + j.horaFmt + ' salió el <span style="color:#fde68a;">' + j.numAyer + '</span> (' + j.grupo + ')'; }).join(' · ');
@@ -72766,7 +72862,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r137 · v46.9.203</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r138 · v46.9.204</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
