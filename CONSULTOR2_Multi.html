@@ -28962,7 +28962,7 @@ function senalesDe(nn) {
                             (NUMBER_GROUPS[g0] || []).forEach(function(nn0) { n2gP[nn0] = g0; });
                             gSizeP[g0] = (NUMBER_GROUPS[g0] || []).length;
                         });
-                        var cnt = {}, total = 0, diasSet = {}, ultG = {};
+                        var cnt = {}, cntNum = {}, total = 0, diasSet = {}, ultG = {};
                         (capturedResults || []).forEach(function(r) {
                             if (!r || !r.date || !r.number) return;
                             if (lotsSel && lotsSel.length && lotsSel.indexOf(r.lottery) < 0) return;
@@ -28970,6 +28970,7 @@ function senalesDe(nn) {
                             var g0 = n2gP[nn];
                             if (!g0) return;
                             cnt[g0] = (cnt[g0] || 0) + 1;
+                            cntNum[nn] = (cntNum[nn] || 0) + 1; // V46.9.206: conteo por número
                             total++;
                             diasSet[r.date] = true;
                             if (!ultG[g0] || r.date > ultG[g0]) ultG[g0] = r.date;
@@ -28984,7 +28985,10 @@ function senalesDe(nn) {
                                 indice: esp > 0 ? (pct / esp) : 0,
                                 cadaSorteos: c0 ? (total / c0) : null,
                                 porDia: (c0 && nDias) ? (c0 / nDias) : 0,
-                                ult: ultG[g0] || null
+                                ult: ultG[g0] || null,
+                                // V46.9.206 (pedido de Leo): top 5 más salidores del grupo en la selección
+                                top5: (NUMBER_GROUPS[g0] || []).map(function(nx) { return { n: nx, c: cntNum[nx] || 0 }; })
+                                    .sort(function(a, b) { return b.c - a.c; }).slice(0, 5).filter(function(x5) { return x5.c > 0; })
                             };
                         });
                         lista.sort(function(a, b) { return b.salidas - a.salidas; });
@@ -31241,6 +31245,15 @@ function senalesDe(nn) {
                 html += '<span title="Índice = % real / % esperado por azar. Mayor a 1.00 = pega más de lo esperado." style="font-size:14px;font-weight:bold;color:' + iCol + ';cursor:help;">×' + gp.indice.toFixed(2) + '</span>';
                 html += '</div>';
                 html += '<div style="font-size:10px;color:#cbd5e1;margin-top:3px;line-height:1.5;"><strong style="color:#d9f99d;">' + gp.salidas + '</strong> salidas · <strong style="color:#d9f99d;">' + (100 * gp.pct).toFixed(1) + '%</strong> del total (esperado ' + (100 * gp.esperado).toFixed(0) + '%)' + (gp.cadaSorteos ? '<br>sale cada <strong style="color:#d9f99d;">' + gp.cadaSorteos.toFixed(1) + '</strong> sorteos · promedio <strong style="color:#d9f99d;">' + gp.porDia.toFixed(2) + '</strong>/día' : '') + (gp.ult ? ' · últ: ' + gp.ult.split('-')[2] + '/' + gp.ult.split('-')[1] : '') + '</div>';
+                // V46.9.206 (pedido de Leo): TOP 5 más salidores del grupo en la selección
+                if (gp.top5 && gp.top5.length) {
+                    html += '<div style="font-size:8px;font-weight:bold;color:#a3e635;margin-top:5px;">TOP 5 MÁS SALIDORES DEL GRUPO:</div>';
+                    html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:3px;">';
+                    gp.top5.forEach(function(t5, t5i) {
+                        html += '<span title="' + t5.n + ': salió ' + t5.c + ' veces en la selección — ' + (t5i + 1) + '° más salidor del ' + gp.g + '" style="font-family:monospace;font-size:15px;font-weight:bold;color:#fff;background:' + (t5i === 0 ? 'rgba(132,204,22,0.3)' : 'rgba(255,255,255,0.06)') + ';border:' + (t5i === 0 ? '2px solid #a3e635' : '1px solid rgba(132,204,22,0.4)') + ';border-radius:5px;padding:2px 7px;cursor:help;">' + t5.n + '<sup style="font-size:8px;color:#d9f99d;">' + t5.c + 'x</sup></span>';
+                    });
+                    html += '</div>';
+                }
                 html += '</div>';
             });
             html += '</div>';
@@ -72888,7 +72901,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r139 · v46.9.205</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r140 · v46.9.206</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
