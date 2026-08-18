@@ -29154,6 +29154,7 @@ function senalesDe(nn) {
                         var SUM9F = ['09', '18', '27', '36', '45', '54', '63', '72', '81', '90', '99'];
                         var setS9 = {}; SUM9F.forEach(function(m9) { setS9[m9] = true; });
                         var porDia = {}, cntNum = {}, ultNum = {};
+                        var cntF9 = { 9: {}, 18: {}, 27: {} }; // V46.9.211: conteo por fecha separada
                         (capturedResults || []).forEach(function(r) {
                             if (!r || !r.date || !r.number) return;
                             if (typeof _ngpEsLot3d === 'function' && _ngpEsLot3d(r.lottery)) return;
@@ -29161,11 +29162,12 @@ function senalesDe(nn) {
                             var dd = parseInt(('' + r.date).split('-')[2], 10);
                             if (dd !== 9 && dd !== 18 && dd !== 27) return;
                             var nn = _efvNorm(r.number);
-                            if (!porDia[r.date]) porDia[r.date] = { sorteos: 0, s9: 0 };
+                            if (!porDia[r.date]) porDia[r.date] = { sorteos: 0, s9: 0, dd: dd };
                             porDia[r.date].sorteos++;
                             if (setS9[nn]) {
                                 porDia[r.date].s9++;
                                 cntNum[nn] = (cntNum[nn] || 0) + 1;
+                                cntF9[dd][nn] = (cntF9[dd][nn] || 0) + 1; // V46.9.211
                                 if (!ultNum[nn] || r.date > ultNum[nn].d) ultNum[nn] = { d: r.date, time: _jaleNormHora(r.time), lot: r.lottery };
                             }
                         });
@@ -29186,7 +29188,20 @@ function senalesDe(nn) {
                         var esperadoDia = sorteosDia * 0.11; // 11 sumados-9 entre 100 números
                         var ranking = SUM9F.map(function(n9) { return { n: n9, c: cntNum[n9] || 0, ult: ultNum[n9] || null }; })
                             .sort(function(a, b) { return b.c - a.c; });
-                        var val = { nDias: nDias, totSorteos: totSorteos, totS9: totS9, promDia: promDia, sorteosDia: sorteosDia, esperadoDia: esperadoDia, dist: dist, ranking: ranking };
+                        // V46.9.211 (pedido de Leo): desglose por cada fecha por separado
+                        var porFecha = [9, 18, 27].map(function(dd9) {
+                            var nD9 = 0, tS9 = 0, sor9 = 0;
+                            fechas.forEach(function(f9) {
+                                if (porDia[f9].dd !== dd9) return;
+                                nD9++; sor9 += porDia[f9].sorteos; tS9 += porDia[f9].s9;
+                            });
+                            var prom9 = nD9 ? (tS9 / nD9) : 0;
+                            var esp9 = nD9 ? ((sor9 / nD9) * 0.11) : 0;
+                            var rank9 = Object.keys(cntF9[dd9] || {}).map(function(n9) { return { n: n9, c: cntF9[dd9][n9] }; })
+                                .sort(function(a, b) { return b.c - a.c; }).slice(0, 5);
+                            return { dd: dd9, nDias: nD9, sorteos: sor9, s9: tS9, promDia: prom9, esperadoDia: esp9, indice: esp9 > 0 ? (prom9 / esp9) : 0, top: rank9 };
+                        });
+                        var val = { nDias: nDias, totSorteos: totSorteos, totS9: totS9, promDia: promDia, sorteosDia: sorteosDia, esperadoDia: esperadoDia, dist: dist, ranking: ranking, porFecha: porFecha };
                         window._ngpSum9FCache[key] = val;
                         return val;
                     } catch (e) { return { nDias: 0, totSorteos: 0, totS9: 0, promDia: 0, sorteosDia: 0, esperadoDia: 0, dist: { d0: 0, d1: 0, d2: 0, d3: 0 }, ranking: [] }; }
@@ -31911,7 +31926,39 @@ function senalesDe(nn) {
                 html += '<span title="' + rk9.n + ': salió ' + rk9.c + ' veces en fechas 9/18/27 (' + etqL.replace(/"/g, '') + ') · última: ' + u9t + '" style="text-align:center;font-family:monospace;font-size:18px;font-weight:bold;color:#fff;background:' + (ri9 < 3 && rk9.c > 0 ? 'rgba(167,139,250,0.3)' : 'rgba(255,255,255,0.05)') + ';border:' + (ri9 < 3 && rk9.c > 0 ? '2px solid #a78bfa' : '1px solid rgba(167,139,250,0.4)') + ';border-radius:6px;padding:4px 9px;cursor:help;">' + rk9.n + '<sup style="font-size:9px;color:#ddd6fe;">' + rk9.c + 'x</sup><small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:7px;font-weight:normal;color:#c4b5fd;">últ ' + u9t + '</small></span>';
             });
             html += '</div>';
-            html += '<div style="font-size:8px;color:#64748b;margin-top:6px;">Sumados-9: 09, 18, 27, 36, 45, 54, 63, 72, 81, 90 y el 99 (se considera de la familia). "Azar" = sorteos por día × 11%. Índice arriba de 1.05 (verde) = en esas fechas tiran MÁS sumados-9 de lo esperado.</div>';
+            // V46.9.211 (pedido de Leo): ¿en cuál de las 3 fechas se da con mayor frecuencia?
+            if (r.porFecha && r.porFecha.length) {
+                var _mejorF = null;
+                r.porFecha.forEach(function(pf9) { if (pf9.nDias > 0 && (!_mejorF || pf9.indice > _mejorF.indice)) _mejorF = pf9; });
+                html += '<div style="font-size:10px;font-weight:bold;color:#ddd6fe;margin:9px 0 4px;">POR FECHA SEPARADA — ¿en cuál se da con mayor frecuencia?</div>';
+                html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:6px;">';
+                r.porFecha.forEach(function(pf9) {
+                    var esMejor = (_mejorF && pf9.dd === _mejorF.dd && pf9.nDias > 0);
+                    var iC9 = pf9.indice >= 1.05 ? '#4ade80' : pf9.indice <= 0.95 ? '#f87171' : '#cbd5e1';
+                    html += '<div style="background:rgba(0,0,0,0.3);border:' + (esMejor ? '2px solid #fbbf24' : '1px solid rgba(167,139,250,0.45)') + ';border-radius:8px;padding:7px 10px;' + (esMejor ? 'box-shadow:0 0 8px rgba(251,191,36,0.3);' : '') + '">';
+                    html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+                    html += '<span style="font-size:13px;font-weight:bold;color:' + (esMejor ? '#fde68a' : '#ddd6fe') + ';">' + (esMejor ? '🏆 ' : '') + 'DÍA ' + pf9.dd + '</span>';
+                    html += '<span title="promedio por día / azar de esa fecha" style="font-size:13px;font-weight:bold;color:' + iC9 + ';cursor:help;">×' + pf9.indice.toFixed(2) + '</span>';
+                    html += '</div>';
+                    if (!pf9.nDias) {
+                        html += '<div style="font-size:10px;color:#94a3b8;margin-top:3px;">sin datos en esa fecha</div>';
+                    } else {
+                        html += '<div style="font-size:10px;color:#c4b5fd;margin-top:3px;line-height:1.5;">' + pf9.nDias + ' día(s) · <strong style="color:#ddd6fe;">' + pf9.s9 + '</strong> sumados-9 · <strong style="color:' + iC9 + ';">' + pf9.promDia.toFixed(2) + '/día</strong> (azar ' + pf9.esperadoDia.toFixed(2) + ')</div>';
+                        if (pf9.top.length) {
+                            html += '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;">';
+                            pf9.top.forEach(function(t9f, t9i) {
+                                html += '<span title="' + t9f.n + ': salió ' + t9f.c + ' veces los días ' + pf9.dd + '" style="font-family:monospace;font-size:14px;font-weight:bold;color:#fff;background:' + (t9i === 0 ? 'rgba(167,139,250,0.35)' : 'rgba(255,255,255,0.06)') + ';border:1px solid ' + (t9i === 0 ? '#a78bfa' : 'rgba(167,139,250,0.35)') + ';border-radius:5px;padding:2px 6px;cursor:help;">' + t9f.n + '<sup style="font-size:7px;color:#ddd6fe;">' + t9f.c + 'x</sup></span>';
+                            });
+                            html += '</div>';
+                        } else {
+                            html += '<div style="font-size:9px;color:#94a3b8;margin-top:3px;">ningún sumado-9 ha salido en esa fecha</div>';
+                        }
+                    }
+                    html += '</div>';
+                });
+                html += '</div>';
+            }
+            html += '<div style="font-size:8px;color:#64748b;margin-top:6px;">Sumados-9: 09, 18, 27, 36, 45, 54, 63, 72, 81, 90 y el 99 (se considera de la familia). "Azar" = sorteos por día × 11%. Índice arriba de 1.05 (verde) = en esas fechas tiran MÁS sumados-9 de lo esperado. La tarjeta 🏆 dorada es la fecha donde el patrón se da con mayor frecuencia relativa.</div>';
             conts.forEach(function(x) { x.innerHTML = html; });
         }
         // V46.9.208 (pedido de Leo, punto 6): BACKTEST de terminación repetidora —
@@ -73681,7 +73728,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r144 · v46.9.210</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r145 · v46.9.211</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
