@@ -28305,6 +28305,10 @@ function senalesDe(nn) {
                 h += '<button onclick="_ngpFechaToggle()" style="background:linear-gradient(135deg,#115e59,#14b8a6);border:1px solid #5eead4;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">📅 Resultados por Fecha</button>'; // V46.9.178 (pedido de Leo)
                 h += '<button onclick="_ngpGrpPromToggle()" style="background:linear-gradient(135deg,#365314,#84cc16);border:1px solid #d9f99d;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">📊 Promedio de Grupos</button>'; // V46.9.195 (pedido de Leo)
                 h += '<button onclick="_ngpTermRepToggle()" style="background:linear-gradient(135deg,#7c2d12,#fb923c);border:1px solid #fed7aa;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🔚 Terminación Repite</button>'; // V46.9.208 (pedido de Leo)
+                h += '<button onclick="_ngpSum9FToggle()" style="background:linear-gradient(135deg,#4c1d95,#a78bfa);border:1px solid #ddd6fe;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">9️⃣ Sumados 9 (fechas 9·18·27)</button>'; // V46.9.209 (pedido de Leo)
+                h += '<button onclick="_ngpTopMesToggle()" style="background:linear-gradient(135deg,#0c4a6e,#0ea5e9);border:1px solid #bae6fd;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">📆 Top del Mes</button>'; // V46.9.210 (pedido de Leo)
+                h += '<button onclick="_ngpFriosToggle()" style="background:linear-gradient(135deg,#334155,#64748b);border:1px solid #cbd5e1;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">📉 Fríos por Lotería</button>'; // V46.9.210 (pedido de Leo)
+                h += '<button onclick="_ngpAusToggle()" style="background:linear-gradient(135deg,#155e75,#06b6d4);border:1px solid #a5f3fc;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🔎 Ausencias</button>'; // V46.9.210 (pedido de Leo)
                 h += '</div>';
                 // panel del filtro (oculto por defecto)
                 h += '<div id="ngpFiltroPanel" style="display:none;background:rgba(8,47,73,0.6);border:1px solid #22d3ee;border-radius:9px;padding:10px;margin-top:9px;">';
@@ -28422,6 +28426,49 @@ function senalesDe(nn) {
                 // V46.9.208 (pedido de Leo, punto 6): panel BACKTEST de terminación repetidora
                 h += '<div id="ngpTermRepPanel" style="display:none;background:rgba(67,20,7,0.45);border:1px solid #fb923c;border-radius:9px;padding:10px;margin-top:9px;">';
                 h += '<div id="ngpTermRepResultado"><div style="font-size:11px;color:#94a3b8;padding:6px;">Calculando…</div></div>';
+                h += '</div>';
+                // V46.9.209 (pedido de Leo): panel SUMADOS 9 EN FECHAS 9·18·27
+                h += '<div id="ngpSum9Panel" style="display:none;background:rgba(46,16,101,0.45);border:1px solid #a78bfa;border-radius:9px;padding:10px;margin-top:9px;">';
+                h += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">';
+                h += '<span style="font-size:11px;font-weight:bold;color:#ddd6fe;">9️⃣ Sumados 9 en las FECHAS que suman 9 (días 9, 18 y 27 de cada mes) · Lotería:</span>';
+                h += '<select id="ngpSum9Lot" onchange="_efvSync(this);_ngpSum9FRender()" style="background:#2e1065;color:#fff;border:1px solid #a78bfa;border-radius:6px;padding:4px 8px;font-size:12px;"><option value="__TODAS__" selected>🌎 Todas</option>';
+                lotsActivas.slice().sort().forEach(function(L9s) { h += '<option value="' + L9s + '">' + L9s + '</option>'; });
+                h += '</select>';
+                h += '</div>';
+                h += '<div id="ngpSum9Resultado"><div style="font-size:11px;color:#94a3b8;padding:6px;">Calculando…</div></div>';
+                h += '</div>';
+                // V46.9.210 (pedido de Leo, punto 4): panel TOP DEL MES
+                h += '<div id="ngpTopMesPanel" style="display:none;background:rgba(12,74,110,0.45);border:1px solid #0ea5e9;border-radius:9px;padding:10px;margin-top:9px;">';
+                h += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">';
+                h += '<span style="font-size:11px;font-weight:bold;color:#bae6fd;">📆 Top del Mes — top 10 de números y grupos que más salen (todas las loterías de 2 díg) · Mes:</span>';
+                h += '<button onclick="_ngpTopMesShift(-1)" style="background:rgba(148,163,184,0.15);border:1px solid #64748b;color:#e2e8f0;padding:3px 9px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:bold;">◀</button>';
+                h += '<input type="month" id="ngpTopMesInp" onchange="_efvSync(this);_ngpTopMesRender()" style="background:#082f49;color:#fff;border:1px solid #0ea5e9;border-radius:6px;padding:4px 8px;font-size:12px;">';
+                h += '<button onclick="_ngpTopMesShift(1)" style="background:rgba(148,163,184,0.15);border:1px solid #64748b;color:#e2e8f0;padding:3px 9px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:bold;">▶</button>';
+                h += '</div>';
+                h += '<div id="ngpTopMesResultado"><div style="font-size:11px;color:#94a3b8;padding:6px;">Calculando…</div></div>';
+                h += '</div>';
+                // V46.9.210 (pedido de Leo, punto 5): panel FRÍOS POR LOTERÍA
+                h += '<div id="ngpFriosPanel" style="display:none;background:rgba(51,65,85,0.45);border:1px solid #94a3b8;border-radius:9px;padding:10px;margin-top:9px;">';
+                h += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">';
+                h += '<span style="font-size:11px;font-weight:bold;color:#e2e8f0;">📉 Top 10 de los que MENOS salen (más malos) · Lotería:</span>';
+                h += '<select id="ngpFriosLot" onchange="_efvSync(this);_ngpFriosRender()" style="background:#1e293b;color:#fff;border:1px solid #94a3b8;border-radius:6px;padding:4px 8px;font-size:12px;">';
+                lotsActivas.slice().sort().forEach(function(L0f, i0f) { h += '<option value="' + L0f + '"' + (i0f === 0 ? ' selected' : '') + '>' + L0f + '</option>'; });
+                h += '</select>';
+                h += '</div>';
+                h += '<div id="ngpFriosResultado"><div style="font-size:11px;color:#94a3b8;padding:6px;">Calculando…</div></div>';
+                h += '</div>';
+                // V46.9.210 (pedido de Leo, punto 12): panel AUSENCIAS
+                h += '<div id="ngpAusPanel" style="display:none;background:rgba(21,94,117,0.4);border:1px solid #06b6d4;border-radius:9px;padding:10px;margin-top:9px;">';
+                h += '<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px;">';
+                h += '<div style="flex:1;min-width:200px;"><label style="color:#a5f3fc;font-size:10px;font-weight:bold;display:block;margin-bottom:3px;">🔎 Número(s) de 2 dígitos, separados por coma:</label>';
+                h += '<input id="ngpAusInput" type="text" placeholder="Ej: 47, 81" onkeydown="if(event.key===\'Enter\'){_efvSync(this);_ngpAusRender();}" style="width:100%;padding:7px;background:#083344;color:#fff;border:1px solid #22d3ee;border-radius:6px;font-size:14px;font-family:monospace;"></div>';
+                h += '<div><label style="color:#a5f3fc;font-size:10px;font-weight:bold;display:block;margin-bottom:3px;">Lotería:</label>';
+                h += '<select id="ngpAusLot" onchange="_efvSync(this)" style="background:#083344;color:#fff;border:1px solid #22d3ee;border-radius:6px;padding:7px 8px;font-size:12px;"><option value="__TODAS__" selected>🌎 Todas</option>';
+                lotsActivas.slice().sort().forEach(function(L0a) { h += '<option value="' + L0a + '">' + L0a + '</option>'; });
+                h += '</select></div>';
+                h += '<button onclick="_ngpAusRender()" style="background:linear-gradient(135deg,#155e75,#06b6d4);border:1px solid #a5f3fc;color:#fff;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold;">Buscar</button>';
+                h += '</div>';
+                h += '<div id="ngpAusResultado"><div style="font-size:11px;color:#94a3b8;padding:6px;">Escribí uno o varios números y presioná Buscar.</div></div>';
                 h += '</div>';
                 h += '<div style="font-size:10px;color:#bae6fd;margin-top:3px;">Rastrea números que dejaron de salir en <strong>todas</strong> las loterías por ' + DIAS_REZAGO + '+ días y volvieron a aparecer en los últimos ' + DIAS_RECIENTE + ' días. Para cada uno se muestra en qué otras loterías sigue pendiente.</div>';
 
@@ -29095,6 +29142,165 @@ function senalesDe(nn) {
                         window._ngpTermRepCache[key] = val;
                         return val;
                     } catch (e) { return { evaluados: 0, aciertos: 0, rate: 0, base: 0, topRep: {}, topGrp: {}, hoyTerms: [] }; }
+                }
+                // V46.9.209 (pedido de Leo): SUMADOS 9 EN FECHAS 9·18·27 — en los días
+                // del mes que suman 9, ¿qué números sumados-9 salen más y cuántos
+                // sumados-9 se tiran por día? (una lotería específica o todas las de 2 díg)
+                function _ngpSum9Fechas(lotSel) {
+                    try {
+                        var key = (lotSel || '__TODAS__') + '|' + ((capturedResults || []).length);
+                        if (!window._ngpSum9FCache) window._ngpSum9FCache = {};
+                        if (window._ngpSum9FCache[key]) return window._ngpSum9FCache[key];
+                        var SUM9F = ['09', '18', '27', '36', '45', '54', '63', '72', '81', '90', '99'];
+                        var setS9 = {}; SUM9F.forEach(function(m9) { setS9[m9] = true; });
+                        var porDia = {}, cntNum = {}, ultNum = {};
+                        (capturedResults || []).forEach(function(r) {
+                            if (!r || !r.date || !r.number) return;
+                            if (typeof _ngpEsLot3d === 'function' && _ngpEsLot3d(r.lottery)) return;
+                            if (lotSel && r.lottery !== lotSel) return;
+                            var dd = parseInt(('' + r.date).split('-')[2], 10);
+                            if (dd !== 9 && dd !== 18 && dd !== 27) return;
+                            var nn = _efvNorm(r.number);
+                            if (!porDia[r.date]) porDia[r.date] = { sorteos: 0, s9: 0 };
+                            porDia[r.date].sorteos++;
+                            if (setS9[nn]) {
+                                porDia[r.date].s9++;
+                                cntNum[nn] = (cntNum[nn] || 0) + 1;
+                                if (!ultNum[nn] || r.date > ultNum[nn].d) ultNum[nn] = { d: r.date, time: _jaleNormHora(r.time), lot: r.lottery };
+                            }
+                        });
+                        var fechas = Object.keys(porDia);
+                        var nDias = fechas.length, totSorteos = 0, totS9 = 0;
+                        var dist = { d0: 0, d1: 0, d2: 0, d3: 0 };
+                        fechas.forEach(function(f9) {
+                            totSorteos += porDia[f9].sorteos;
+                            totS9 += porDia[f9].s9;
+                            var s9d = porDia[f9].s9;
+                            if (s9d === 0) dist.d0++;
+                            else if (s9d === 1) dist.d1++;
+                            else if (s9d === 2) dist.d2++;
+                            else dist.d3++;
+                        });
+                        var promDia = nDias ? (totS9 / nDias) : 0;
+                        var sorteosDia = nDias ? (totSorteos / nDias) : 0;
+                        var esperadoDia = sorteosDia * 0.11; // 11 sumados-9 entre 100 números
+                        var ranking = SUM9F.map(function(n9) { return { n: n9, c: cntNum[n9] || 0, ult: ultNum[n9] || null }; })
+                            .sort(function(a, b) { return b.c - a.c; });
+                        var val = { nDias: nDias, totSorteos: totSorteos, totS9: totS9, promDia: promDia, sorteosDia: sorteosDia, esperadoDia: esperadoDia, dist: dist, ranking: ranking };
+                        window._ngpSum9FCache[key] = val;
+                        return val;
+                    } catch (e) { return { nDias: 0, totSorteos: 0, totS9: 0, promDia: 0, sorteosDia: 0, esperadoDia: 0, dist: { d0: 0, d1: 0, d2: 0, d3: 0 }, ranking: [] }; }
+                }
+                // V46.9.210 (pedido de Leo, punto 4): TOP DEL MES — top 10 de números
+                // y ranking de grupos que más salen en un mes dado (todas las de 2 díg).
+                function _ngpTopMes(mes) {
+                    try {
+                        var key = mes + '|' + ((capturedResults || []).length);
+                        if (!window._ngpTopMesCache) window._ngpTopMesCache = {};
+                        if (window._ngpTopMesCache[key]) return window._ngpTopMesCache[key];
+                        var n2gM = {}, gSizeM = {};
+                        Object.keys(NUMBER_GROUPS || {}).forEach(function(g0) {
+                            (NUMBER_GROUPS[g0] || []).forEach(function(nn0) { n2gM[nn0] = g0; });
+                            gSizeM[g0] = (NUMBER_GROUPS[g0] || []).length;
+                        });
+                        var cntNum = {}, ultNum = {}, cntGrp = {}, total = 0, diasSet = {};
+                        (capturedResults || []).forEach(function(r) {
+                            if (!r || !r.date || !r.number) return;
+                            if (typeof _ngpEsLot3d === 'function' && _ngpEsLot3d(r.lottery)) return;
+                            if (('' + r.date).substring(0, 7) !== mes) return;
+                            var nn = _efvNorm(r.number);
+                            cntNum[nn] = (cntNum[nn] || 0) + 1;
+                            if (!ultNum[nn] || r.date > ultNum[nn].d) ultNum[nn] = { d: r.date, time: _jaleNormHora(r.time), lot: r.lottery };
+                            var g0 = n2gM[nn];
+                            if (g0) cntGrp[g0] = (cntGrp[g0] || 0) + 1;
+                            total++;
+                            diasSet[r.date] = true;
+                        });
+                        var topNum = Object.keys(cntNum).map(function(n0) { return { n: n0, c: cntNum[n0], ult: ultNum[n0] || null }; })
+                            .sort(function(a, b) { return b.c - a.c; }).slice(0, 10);
+                        var grupos = Object.keys(NUMBER_GROUPS || {}).map(function(g0) {
+                            var c0 = cntGrp[g0] || 0;
+                            var pct = total ? (c0 / total) : 0;
+                            var esp = (gSizeM[g0] || 10) / 100;
+                            return { g: g0, c: c0, pct: pct, esperado: esp, indice: esp > 0 ? (pct / esp) : 0 };
+                        }).sort(function(a, b) { return b.c - a.c; });
+                        var val = { topNum: topNum, grupos: grupos, total: total, nDias: Object.keys(diasSet).length };
+                        window._ngpTopMesCache[key] = val;
+                        return val;
+                    } catch (e) { return { topNum: [], grupos: [], total: 0, nDias: 0 }; }
+                }
+                // V46.9.210 (pedido de Leo, punto 5): FRÍOS — top 10 de los números que
+                // MENOS tienden a salir (más malos) en una lotería (incluye los que nunca).
+                function _ngpFrios(L) {
+                    try {
+                        var key = L + '|' + hoyStr + '|' + ((capturedResults || []).length);
+                        if (!window._ngpFriosCache) window._ngpFriosCache = {};
+                        if (window._ngpFriosCache[key]) return window._ngpFriosCache[key];
+                        var cntF = {}, ultF = {}, total = 0;
+                        (capturedResults || []).forEach(function(r) {
+                            if (!r || r.lottery !== L || !r.date || !r.number) return;
+                            var nn = ('' + r.number);
+                            if (nn.length > 2) return;
+                            nn = nn.length === 1 ? '0' + nn : nn;
+                            cntF[nn] = (cntF[nn] || 0) + 1;
+                            if (!ultF[nn] || r.date > ultF[nn].d) ultF[nn] = { d: r.date, time: _jaleNormHora(r.time) };
+                            total++;
+                        });
+                        var lista = [];
+                        for (var i0 = 0; i0 < 100; i0++) {
+                            var n0 = (i0 < 10 ? '0' + i0 : '' + i0);
+                            var u0 = ultF[n0] || null;
+                            lista.push({ n: n0, c: cntF[n0] || 0, ult: u0, dias: (u0 ? difDias(u0.d, hoyStr) : null) });
+                        }
+                        lista.sort(function(a, b) {
+                            if (a.c !== b.c) return a.c - b.c;
+                            return (b.dias === null ? 99999 : b.dias) - (a.dias === null ? 99999 : a.dias);
+                        });
+                        var val = { lista: lista.slice(0, 10), total: total };
+                        window._ngpFriosCache[key] = val;
+                        return val;
+                    } catch (e) { return { lista: [], total: 0 }; }
+                }
+                // V46.9.210 (pedido de Leo, punto 12): AUSENCIAS — hace cuánto no sale un
+                // número en una lotería: días y sorteos sin salir, cuánto dura desaparecido
+                // en promedio (días entre salidas) y su ausencia máxima registrada.
+                function _ngpAusencia(nn, L) {
+                    try {
+                        var fechas = [], ult = null, veces = 0, sorteosDesde = 0, tuvo = false;
+                        var arrA = [];
+                        (capturedResults || []).forEach(function(r) {
+                            if (!r || r.lottery !== L || !r.date || !r.number) return;
+                            var n0 = ('' + r.number);
+                            if (n0.length > 2) return;
+                            n0 = n0.length === 1 ? '0' + n0 : n0;
+                            arrA.push({ n: n0, d: r.date, time: _jaleNormHora(r.time) });
+                        });
+                        arrA.sort(function(a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; });
+                        arrA.forEach(function(e0) {
+                            if (e0.n === nn) {
+                                veces++;
+                                tuvo = true;
+                                sorteosDesde = 0;
+                                fechas.push(e0.d);
+                                ult = { d: e0.d, time: e0.time };
+                            } else if (tuvo) {
+                                sorteosDesde++;
+                            }
+                        });
+                        if (!veces) return { veces: 0, totalSorteos: arrA.length };
+                        var gaps = [];
+                        for (var i1 = 1; i1 < fechas.length; i1++) {
+                            var gp0 = difDias(fechas[i1 - 1], fechas[i1]);
+                            if (gp0 > 0) gaps.push(gp0);
+                        }
+                        var prom = null, maxg = null;
+                        if (gaps.length) {
+                            var sum0 = 0;
+                            gaps.forEach(function(g1) { sum0 += g1; if (maxg === null || g1 > maxg) maxg = g1; });
+                            prom = sum0 / gaps.length;
+                        }
+                        return { veces: veces, ult: ult, dias: difDias(ult.d, hoyStr), sorteos: sorteosDesde, promAusencia: prom, maxAusencia: maxg, totalSorteos: arrA.length };
+                    } catch (e) { return { veces: 0, totalSorteos: 0 }; }
                 }
                 // V46.9.195 (pedido de Leo): PROMEDIO DE GRUPOS — para las loterías
                 // seleccionadas: qué grupos pegan con promedio más alto y cuáles
@@ -29925,7 +30131,7 @@ function senalesDe(nn) {
                     ultPorNumLot: ultPorNumLot, difDias: difDias, hoyStr: hoyStr, porNum: porNum, serie: serie,
                     rankRezagoLot: rankRezagoLot, rankRezagoPrevLot: rankRezagoPrevLot,
                     jaleDe: _jaleDeAyer, decTermHoy: _decTermHoy, efvCalcular: _efvCalcular,
-                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, resultadosDeFecha: _resultadosDeFecha, predominioHoy: _ngpPredominioHoy, topsDia: _ngpTopsDia, esperaDe: _ngpEsperaDe, cierreDia: _ngpCierreDia, gruposPromedio: _ngpGruposPromedio, vibHoy: _vibHoy, vibManana: _vibMan, propensosHoy: _ngpPropensosHoy, grupoDelDia: _grupoDelDiaNums, despuesDeNum: _ngpDespuesDeNum, ultimoDeLot: _ngpUltimoDeLot, crucePegadoDom: _ngpCrucePegadoDom, termRepite: _ngpTermRepite, candidatosDe: _candidatosDeL
+                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, resultadosDeFecha: _resultadosDeFecha, predominioHoy: _ngpPredominioHoy, topsDia: _ngpTopsDia, esperaDe: _ngpEsperaDe, cierreDia: _ngpCierreDia, gruposPromedio: _ngpGruposPromedio, vibHoy: _vibHoy, vibManana: _vibMan, propensosHoy: _ngpPropensosHoy, grupoDelDia: _grupoDelDiaNums, despuesDeNum: _ngpDespuesDeNum, ultimoDeLot: _ngpUltimoDeLot, crucePegadoDom: _ngpCrucePegadoDom, termRepite: _ngpTermRepite, sum9Fechas: _ngpSum9Fechas, topMes: _ngpTopMes, frios: _ngpFrios, ausencia: _ngpAusencia, candidatosDe: _candidatosDeL
                 };
                 try { _efvGuardarSnapshotHoy(); } catch (eSnap) {} // V46.9.144: foto diaria del extracto
                 return h;
@@ -30137,7 +30343,7 @@ function senalesDe(nn) {
             cont.innerHTML = html;
         }
         // V46.9.155: cierre mutuo de los 5 paneles del módulo
-        var _NGP_PANELES = ['ngpFiltroPanel', 'ngpExtractoPanel', 'ngpResumenPanel', 'ngpDespuesPanel', 'ngpBuscarPanel', 'ngpAntesPanel', 'ngpDgPanel', 'ngpDgtPanel', 'ngpFechaPanel', 'ngpGrpPromPanel', 'ngpTermRepPanel'];
+        var _NGP_PANELES = ['ngpFiltroPanel', 'ngpExtractoPanel', 'ngpResumenPanel', 'ngpDespuesPanel', 'ngpBuscarPanel', 'ngpAntesPanel', 'ngpDgPanel', 'ngpDgtPanel', 'ngpFechaPanel', 'ngpGrpPromPanel', 'ngpTermRepPanel', 'ngpSum9Panel', 'ngpTopMesPanel', 'ngpFriosPanel', 'ngpAusPanel'];
         function _ngpCerrarOtros(salvo) {
             _NGP_PANELES.forEach(function(id) {
                 if (id === salvo) return;
@@ -31502,6 +31708,211 @@ function senalesDe(nn) {
                 h6 += '</div>';
                 return h6;
             } catch (e) { return ''; }
+        }
+        // V46.9.210 (pedido de Leo, punto 4): panel TOP DEL MES
+        function _ngpTopMesToggle() {
+            var ps = document.querySelectorAll('[id="ngpTopMesPanel"]');
+            if (!ps.length) return;
+            var abrir = (ps[0].style.display === 'none');
+            _ngpCerrarOtros('ngpTopMesPanel');
+            ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
+            if (abrir) {
+                var ins = document.querySelectorAll('[id="ngpTopMesInp"]');
+                if (ins.length && !ins[0].value) { var m0 = _ngpHoyRealStr().substring(0, 7); ins.forEach(function(i) { i.value = m0; }); }
+                _ngpTopMesRender();
+            }
+        }
+        function _ngpTopMesShift(delta) {
+            var ins = document.querySelectorAll('[id="ngpTopMesInp"]');
+            var v = (ins.length && ins[0].value) ? ins[0].value : _ngpHoyRealStr().substring(0, 7);
+            var p = v.split('-');
+            var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1 + delta, 15);
+            var nv = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+            ins.forEach(function(i) { i.value = nv; });
+            _ngpTopMesRender();
+        }
+        function _ngpTopMesRender() {
+            var conts = document.querySelectorAll('[id="ngpTopMesResultado"]');
+            if (!conts.length) return;
+            var F0 = window._ngpFiltro;
+            if (!F0 || !F0.topMes) { conts.forEach(function(x) { x.innerHTML = '<div style="font-size:11px;color:#f87171;padding:6px;">Módulo no disponible todavía.</div>'; }); return; }
+            var ins = document.querySelector('[id="ngpTopMesInp"]');
+            var mes = (ins && ins.value) ? ins.value : _ngpHoyRealStr().substring(0, 7);
+            var r = F0.topMes(mes);
+            var MES_T = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+            var mNom = MES_T[(parseInt(mes.split('-')[1], 10) || 1) - 1] + ' ' + mes.split('-')[0];
+            var html = '';
+            if (!r.total) {
+                html = '<div style="font-size:11px;color:#94a3b8;padding:6px;">Sin datos capturados en ' + mNom + '.</div>';
+                conts.forEach(function(x) { x.innerHTML = html; });
+                return;
+            }
+            html += '<div style="font-size:11px;color:#bae6fd;margin-bottom:6px;"><strong>' + mNom + '</strong>: ' + r.total + ' sorteos en ' + r.nDias + ' días (todas las loterías de 2 díg).</div>';
+            html += '<div style="font-size:10px;font-weight:bold;color:#7dd3fc;margin-bottom:4px;">🔝 TOP 10 NÚMEROS del mes:</div>';
+            html += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px;">';
+            r.topNum.forEach(function(t0, ti0) {
+                var u0 = '—';
+                try { if (t0.ult) { var h0t = t0.ult.time; if (typeof convertTo12Hour === 'function' && t0.ult.time) h0t = convertTo12Hour(t0.ult.time); u0 = t0.ult.d.split('-')[2] + '/' + t0.ult.d.split('-')[1] + ' · ' + t0.ult.lot + (h0t ? ' ' + h0t : ''); } } catch (e0t) {}
+                html += '<span title="' + t0.n + ': salió ' + t0.c + ' veces en ' + mNom + ' · última: ' + u0.replace(/"/g, '') + '" style="text-align:center;font-family:monospace;font-size:19px;font-weight:bold;color:#fff;background:' + (ti0 < 3 ? 'rgba(14,165,233,0.3)' : 'rgba(255,255,255,0.05)') + ';border:' + (ti0 < 3 ? '2px solid #0ea5e9' : '1px solid rgba(14,165,233,0.4)') + ';border-radius:6px;padding:4px 10px;cursor:help;">' + t0.n + '<sup style="font-size:9px;color:#bae6fd;">' + t0.c + 'x</sup><small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:7px;font-weight:normal;color:#7dd3fc;">últ ' + u0 + '</small></span>';
+            });
+            html += '</div>';
+            html += '<div style="font-size:10px;font-weight:bold;color:#7dd3fc;margin-bottom:4px;">🧩 GRUPOS del mes (de mayor a menor):</div>';
+            html += '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
+            r.grupos.forEach(function(g0, gi0) {
+                var iCol0 = g0.indice >= 1.05 ? '#4ade80' : g0.indice <= 0.95 ? '#f87171' : '#cbd5e1';
+                html += '<span title="' + g0.g + ': ' + g0.c + ' salidas en ' + mNom + ' = ' + (100 * g0.pct).toFixed(1) + '% del total (esperado ' + (100 * g0.esperado).toFixed(0) + '%)" style="background:' + (gi0 < 3 ? 'rgba(14,165,233,0.22)' : 'rgba(255,255,255,0.05)') + ';border:' + (gi0 < 3 ? '1.5px solid #0ea5e9' : '1px solid rgba(148,163,184,0.35)') + ';border-radius:6px;padding:4px 10px;font-size:11px;color:#e0f2fe;cursor:help;font-weight:bold;">' + (gi0 + 1) + '° ' + g0.g.replace('Grupo ', 'G') + ' · ' + g0.c + ' <span style="color:' + iCol0 + ';">×' + g0.indice.toFixed(2) + '</span></span>';
+            });
+            html += '</div>';
+            html += '<div style="font-size:8px;color:#64748b;margin-top:5px;">×índice = % real del mes / % esperado por tamaño del grupo (1.00 = azar). Usá las flechas ◀ ▶ para comparar meses.</div>';
+            conts.forEach(function(x) { x.innerHTML = html; });
+        }
+        // V46.9.210 (pedido de Leo, punto 5): panel FRÍOS POR LOTERÍA
+        function _ngpFriosToggle() {
+            var ps = document.querySelectorAll('[id="ngpFriosPanel"]');
+            if (!ps.length) return;
+            var abrir = (ps[0].style.display === 'none');
+            _ngpCerrarOtros('ngpFriosPanel');
+            ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
+            if (abrir) _ngpFriosRender();
+        }
+        function _ngpFriosRender() {
+            var conts = document.querySelectorAll('[id="ngpFriosResultado"]');
+            if (!conts.length) return;
+            var F0 = window._ngpFiltro;
+            if (!F0 || !F0.frios) { conts.forEach(function(x) { x.innerHTML = '<div style="font-size:11px;color:#f87171;padding:6px;">Módulo no disponible todavía.</div>'; }); return; }
+            var sel = document.querySelector('[id="ngpFriosLot"]');
+            var L0 = sel ? sel.value : null;
+            if (!L0) return;
+            var r = F0.frios(L0);
+            var html = '<div style="font-size:11px;color:#e2e8f0;margin-bottom:6px;">Los 10 números que MENOS salen en <strong>' + L0 + '</strong> (' + r.total + ' sorteos en el historial) — los "más malos" para jugar ahí:</div>';
+            html += '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
+            r.lista.forEach(function(f0, fi0) {
+                var u0 = f0.ult ? (f0.ult.d.split('-')[2] + '/' + f0.ult.d.split('-')[1] + '/' + f0.ult.d.split('-')[0].substring(2)) : null;
+                html += '<span title="' + f0.n + ': salió ' + f0.c + ' vez(ces) en todo el historial de ' + L0 + (u0 ? ' · última: ' + f0.ult.d : ' · NUNCA ha salido') + (f0.dias !== null ? ' · lleva ' + f0.dias + ' días sin salir' : '') + '" style="text-align:center;font-family:monospace;font-size:19px;font-weight:bold;color:' + (f0.c === 0 ? '#f87171' : '#e2e8f0') + ';background:' + (fi0 < 3 ? 'rgba(100,116,139,0.35)' : 'rgba(255,255,255,0.05)') + ';border:' + (f0.c === 0 ? '2px solid #f87171' : '1px solid rgba(148,163,184,0.45)') + ';border-radius:6px;padding:4px 10px;cursor:help;">' + f0.n + '<sup style="font-size:9px;color:#cbd5e1;">' + f0.c + 'x</sup><small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:7px;font-weight:normal;color:#94a3b8;">' + (u0 ? 'últ ' + u0 + (f0.dias !== null ? ' · ' + f0.dias + 'd' : '') : 'NUNCA ha salido') + '</small></span>';
+            });
+            html += '</div>';
+            html += '<div style="font-size:8px;color:#64748b;margin-top:5px;">Ordenados por menos salidas (empate: más días sin salir primero). Rojo = nunca ha salido en esta lotería.</div>';
+            conts.forEach(function(x) { x.innerHTML = html; });
+        }
+        // V46.9.210 (pedido de Leo, punto 12): panel AUSENCIAS
+        function _ngpAusToggle() {
+            var ps = document.querySelectorAll('[id="ngpAusPanel"]');
+            if (!ps.length) return;
+            var abrir = (ps[0].style.display === 'none');
+            _ngpCerrarOtros('ngpAusPanel');
+            ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
+        }
+        function _ngpAusRender() {
+            var conts = document.querySelectorAll('[id="ngpAusResultado"]');
+            if (!conts.length) return;
+            var F0 = window._ngpFiltro;
+            if (!F0 || !F0.ausencia) { conts.forEach(function(x) { x.innerHTML = '<div style="font-size:11px;color:#f87171;padding:6px;">Módulo no disponible todavía.</div>'; }); return; }
+            var inp = document.querySelector('[id="ngpAusInput"]');
+            var sel = document.querySelector('[id="ngpAusLot"]');
+            var nums = [];
+            ('' + ((inp && inp.value) || '')).split(',').forEach(function(t0) {
+                var n0 = t0.replace(/[^0-9]/g, '');
+                if (!n0.length) return;
+                if (n0.length === 1) n0 = '0' + n0;
+                n0 = n0.substring(0, 2);
+                if (nums.indexOf(n0) < 0) nums.push(n0);
+            });
+            if (!nums.length) { conts.forEach(function(x) { x.innerHTML = '<div style="font-size:11px;color:#94a3b8;padding:6px;">Escribí al menos un número de 2 dígitos.</div>'; }); return; }
+            var lotF = (sel && sel.value !== '__TODAS__') ? sel.value : null;
+            var lots = lotF ? [lotF] : (F0.lotsActivas || []).slice().sort();
+            var html = '';
+            nums.slice(0, 6).forEach(function(n0) {
+                html += '<div style="font-size:13px;font-weight:bold;color:#a5f3fc;margin:8px 0 4px;">🔎 Número <span style="font-family:monospace;font-size:17px;color:#fff;">' + n0 + '</span>' + (lotF ? ' en ' + lotF : ' — todas las loterías (ordenado por más días sin salir)') + ':</div>';
+                var filas = [];
+                lots.forEach(function(L1) {
+                    var a1 = F0.ausencia(n0, L1);
+                    filas.push({ l: L1, a: a1 });
+                });
+                filas.sort(function(x1, y1) {
+                    var dx = (x1.a && x1.a.veces) ? x1.a.dias : 99999;
+                    var dy = (y1.a && y1.a.veces) ? y1.a.dias : 99999;
+                    return dy - dx;
+                });
+                html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:5px;">';
+                filas.forEach(function(f1) {
+                    var a1 = f1.a;
+                    html += '<div style="background:rgba(0,0,0,0.3);border:1px solid rgba(34,211,238,0.4);border-radius:7px;padding:6px 9px;">';
+                    if (!a1 || !a1.veces) {
+                        html += '<div style="font-size:11px;font-weight:bold;color:#a5f3fc;">' + f1.l + '</div>';
+                        html += '<div style="font-size:10px;color:#f87171;">NUNCA ha salido acá' + (a1 && a1.totalSorteos ? ' (' + a1.totalSorteos + ' sorteos registrados)' : '') + '</div>';
+                    } else {
+                        var h1t = a1.ult.time; try { if (typeof convertTo12Hour === 'function' && a1.ult.time) h1t = convertTo12Hour(a1.ult.time); } catch (e1t) {}
+                        var exc1 = (a1.promAusencia && a1.promAusencia > 0) ? (a1.dias / a1.promAusencia) : null;
+                        html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+                        html += '<span style="font-size:11px;font-weight:bold;color:#a5f3fc;">' + f1.l + '</span>';
+                        html += '<span style="font-size:13px;font-weight:bold;color:' + (exc1 !== null && exc1 >= 1.5 ? '#f87171' : exc1 !== null && exc1 >= 1 ? '#fbbf24' : '#a5f3fc') + ';">' + a1.dias + 'd sin salir</span>';
+                        html += '</div>';
+                        html += '<div style="font-size:9px;color:#cbd5e1;line-height:1.5;">últ: ' + a1.ult.d + (h1t ? ' ' + h1t : '') + ' · ' + a1.sorteos + ' sorteos sin salir · salió ' + a1.veces + ' veces<br>desaparece en promedio <strong style="color:#a5f3fc;">' + (a1.promAusencia !== null ? a1.promAusencia.toFixed(1) + ' días' : '—') + '</strong> entre salidas · máx: ' + (a1.maxAusencia !== null ? a1.maxAusencia + 'd' : '—') + (exc1 !== null ? ' · ahora va <strong style="color:' + (exc1 >= 1 ? '#f87171' : '#4ade80') + ';">×' + exc1.toFixed(1) + '</strong> de su promedio' : '') + '</div>';
+                    }
+                    html += '</div>';
+                });
+                html += '</div>';
+            });
+            if (nums.length > 6) html += '<div style="font-size:9px;color:#fbbf24;margin-top:4px;">Se muestran los primeros 6 números.</div>';
+            html += '<div style="font-size:8px;color:#64748b;margin-top:5px;">"Desaparece en promedio" = días promedio entre una salida y la siguiente en esa lotería. ×1.0 = va exactamente en su promedio; arriba de ×1.5 (rojo) está muy excedido.</div>';
+            conts.forEach(function(x) { x.innerHTML = html; });
+        }
+        // V46.9.209 (pedido de Leo): panel SUMADOS 9 EN FECHAS 9·18·27
+        function _ngpSum9FToggle() {
+            var ps = document.querySelectorAll('[id="ngpSum9Panel"]');
+            if (!ps.length) return;
+            var abrir = (ps[0].style.display === 'none');
+            _ngpCerrarOtros('ngpSum9Panel');
+            ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
+            if (abrir) _ngpSum9FRender();
+        }
+        function _ngpSum9FRender() {
+            var conts = document.querySelectorAll('[id="ngpSum9Resultado"]');
+            if (!conts.length) return;
+            var F0 = window._ngpFiltro;
+            if (!F0 || !F0.sum9Fechas) { conts.forEach(function(x) { x.innerHTML = '<div style="font-size:11px;color:#f87171;padding:6px;">Módulo no disponible todavía.</div>'; }); return; }
+            var sel = document.querySelector('[id="ngpSum9Lot"]');
+            var lotF = (sel && sel.value !== '__TODAS__') ? sel.value : null;
+            var r = F0.sum9Fechas(lotF);
+            var etqL = lotF || 'TODAS las loterías (2 dígitos)';
+            var html = '';
+            if (!r.nDias) {
+                html = '<div style="font-size:11px;color:#94a3b8;padding:6px;">No hay datos capturados en días 9, 18 o 27 para ' + etqL + '.</div>';
+                conts.forEach(function(x) { x.innerHTML = html; });
+                return;
+            }
+            var indice = r.esperadoDia > 0 ? (r.promDia / r.esperadoDia) : 0;
+            var iCol = indice >= 1.05 ? '#4ade80' : indice <= 0.95 ? '#f87171' : '#cbd5e1';
+            html += '<div style="font-size:11px;color:#ddd6fe;margin-bottom:6px;">Análisis de <strong>' + etqL + '</strong> en <strong>' + r.nDias + '</strong> día(s) con fecha 9, 18 o 27 · ' + r.totSorteos + ' sorteos.</div>';
+            html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">';
+            html += '<div style="flex:1;min-width:170px;text-align:center;padding:7px;background:rgba(0,0,0,0.3);border-radius:8px;">';
+            html += '<div style="font-size:20px;font-weight:bold;color:#ddd6fe;line-height:1.1;">' + r.totS9 + '</div>';
+            html += '<div style="font-size:10px;color:#c4b5fd;">sumados-9 salieron en esas fechas</div>';
+            html += '</div>';
+            html += '<div style="flex:1;min-width:170px;text-align:center;padding:7px;background:rgba(0,0,0,0.3);border-radius:8px;">';
+            html += '<div style="font-size:20px;font-weight:bold;color:' + iCol + ';line-height:1.1;">' + r.promDia.toFixed(2) + '/día</div>';
+            html += '<div style="font-size:10px;color:#c4b5fd;">promedio de sumados-9 que TIRA por día ' + (r.esperadoDia > 0 ? '(azar: ' + r.esperadoDia.toFixed(2) + ' · índice ×' + indice.toFixed(2) + ')' : '') + '</div>';
+            html += '</div>';
+            html += '<div style="flex:1;min-width:170px;text-align:center;padding:7px;background:rgba(0,0,0,0.3);border-radius:8px;">';
+            html += '<div style="font-size:12px;font-weight:bold;color:#ddd6fe;line-height:1.6;">0: ' + r.dist.d0 + ' días · 1: ' + r.dist.d1 + ' · 2: ' + r.dist.d2 + ' · 3+: ' + r.dist.d3 + '</div>';
+            html += '<div style="font-size:10px;color:#c4b5fd;">distribución: cuántos sumados-9 tiró cada día</div>';
+            html += '</div>';
+            html += '</div>';
+            html += '<div style="font-size:10px;font-weight:bold;color:#ddd6fe;margin-bottom:4px;">RANKING — los sumados-9 que MÁS salen en fechas 9·18·27' + (lotF ? ' en ' + lotF : '') + ':</div>';
+            html += '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
+            r.ranking.forEach(function(rk9, ri9) {
+                var u9t = '—';
+                try {
+                    if (rk9.ult && rk9.ult.d) {
+                        var h9t = rk9.ult.time; if (typeof convertTo12Hour === 'function' && rk9.ult.time) h9t = convertTo12Hour(rk9.ult.time);
+                        u9t = rk9.ult.d.split('-')[2] + '/' + rk9.ult.d.split('-')[1] + (lotF ? '' : ' · ' + rk9.ult.lot) + (h9t ? ' ' + h9t : '');
+                    }
+                } catch (e9t) {}
+                html += '<span title="' + rk9.n + ': salió ' + rk9.c + ' veces en fechas 9/18/27 (' + etqL.replace(/"/g, '') + ') · última: ' + u9t + '" style="text-align:center;font-family:monospace;font-size:18px;font-weight:bold;color:#fff;background:' + (ri9 < 3 && rk9.c > 0 ? 'rgba(167,139,250,0.3)' : 'rgba(255,255,255,0.05)') + ';border:' + (ri9 < 3 && rk9.c > 0 ? '2px solid #a78bfa' : '1px solid rgba(167,139,250,0.4)') + ';border-radius:6px;padding:4px 9px;cursor:help;">' + rk9.n + '<sup style="font-size:9px;color:#ddd6fe;">' + rk9.c + 'x</sup><small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:7px;font-weight:normal;color:#c4b5fd;">últ ' + u9t + '</small></span>';
+            });
+            html += '</div>';
+            html += '<div style="font-size:8px;color:#64748b;margin-top:6px;">Sumados-9: 09, 18, 27, 36, 45, 54, 63, 72, 81, 90 y el 99 (se considera de la familia). "Azar" = sorteos por día × 11%. Índice arriba de 1.05 (verde) = en esas fechas tiran MÁS sumados-9 de lo esperado.</div>';
+            conts.forEach(function(x) { x.innerHTML = html; });
         }
         // V46.9.208 (pedido de Leo, punto 6): BACKTEST de terminación repetidora —
         // ordena las loterías de mayor a menor efectividad del patrón "la terminación
@@ -73270,7 +73681,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r142 · v46.9.208</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r144 · v46.9.210</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
