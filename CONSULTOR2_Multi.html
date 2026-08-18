@@ -28309,6 +28309,7 @@ function senalesDe(nn) {
                 h += '<button onclick="_ngpTopMesToggle()" style="background:linear-gradient(135deg,#0c4a6e,#0ea5e9);border:1px solid #bae6fd;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">📆 Top del Mes</button>'; // V46.9.210 (pedido de Leo)
                 h += '<button onclick="_ngpFriosToggle()" style="background:linear-gradient(135deg,#334155,#64748b);border:1px solid #cbd5e1;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">📉 Fríos por Lotería</button>'; // V46.9.210 (pedido de Leo)
                 h += '<button onclick="_ngpAusToggle()" style="background:linear-gradient(135deg,#155e75,#06b6d4);border:1px solid #a5f3fc;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🔎 Ausencias</button>'; // V46.9.210 (pedido de Leo)
+                h += '<button onclick="_ngpF2882Toggle()" style="background:linear-gradient(135deg,#0e7490,#22d3ee);border:1px solid #a5f3fc;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🧲 Backtest 28·82</button>'; // V46.9.217 (pedido de Leo)
                 h += '</div>';
                 // panel del filtro (oculto por defecto)
                 h += '<div id="ngpFiltroPanel" style="display:none;background:rgba(8,47,73,0.6);border:1px solid #22d3ee;border-radius:9px;padding:10px;margin-top:9px;">';
@@ -28474,6 +28475,11 @@ function senalesDe(nn) {
                 h += '<button onclick="_ngpAusRender()" style="background:linear-gradient(135deg,#155e75,#06b6d4);border:1px solid #a5f3fc;color:#fff;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold;">Buscar</button>';
                 h += '</div>';
                 h += '<div id="ngpAusResultado"><div style="font-size:11px;color:#94a3b8;padding:6px;">Escribí uno o varios números y presioná Buscar.</div></div>';
+                h += '</div>';
+                // V46.9.217 (pedido de Leo): panel BACKTEST PAREJA 28·82
+                h += '<div id="ngpF2882Panel" style="display:none;background:rgba(8,145,178,0.25);border:1px solid #22d3ee;border-radius:9px;padding:10px;margin-top:9px;">';
+                h += '<div style="font-size:11px;font-weight:bold;color:#a5f3fc;margin-bottom:6px;">🧲 BACKTEST PAREJA 28·82 — cuando sale el 28 o el 82 (cualquier lotería de 2 díg), ¿vuelve a salir alguno de los dos en los 4 sorteos siguientes del MISMO día?</div>';
+                h += '<div id="ngpF2882Resultado"><div style="font-size:11px;color:#94a3b8;padding:6px;">Calculando…</div></div>';
                 h += '</div>';
                 h += '<div style="font-size:10px;color:#bae6fd;margin-top:3px;">Rastrea números que dejaron de salir en <strong>todas</strong> las loterías por ' + DIAS_REZAGO + '+ días y volvieron a aparecer en los últimos ' + DIAS_RECIENTE + ' días. Para cada uno se muestra en qué otras loterías sigue pendiente.</div>';
 
@@ -28946,6 +28952,100 @@ function senalesDe(nn) {
                 // la conversión (4↔7 / 3↔8 en cualquier dígito) de cada uno es
                 // posibilidad CERCANA. La ventana expira sola: al capturarse 2 sorteos
                 // más, esos orígenes dejan de estar entre los últimos 2.
+                // V46.9.217 (pedido de Leo): BACKTEST de la pareja 28·82 — recorre
+                // TODO el historial: cada salida de 28/82 con al menos 1 sorteo
+                // posterior el mismo día es un caso; es ÉXITO si 28 u 82 vuelve a
+                // salir dentro de los 4 sorteos siguientes (todas las loterías de
+                // 2 díg, orden cronológico del día). Azar por caso: 1 - 0.98^k,
+                // donde k = sorteos realmente disponibles en la ventana (máx 4).
+                function _ngpFam2882Back() {
+                    try {
+                        var key = 'bk|' + ((capturedResults || []).length);
+                        if (window._ngpF2882BkCache && window._ngpF2882BkCache.key === key) return window._ngpF2882BkCache.val;
+                        var _minB = function(t) {
+                            try {
+                                var p = ((typeof _horaNorm24 === 'function') ? _horaNorm24(t) : ('' + (t || ''))).split(':');
+                                var hh = parseInt(p[0], 10);
+                                return isNaN(hh) ? 0 : hh * 60 + (parseInt(p[1] || '0', 10) || 0);
+                            } catch (e2) { return 0; }
+                        };
+                        var porDiaB = {};
+                        (capturedResults || []).forEach(function(r) {
+                            if (!r || !r.date || !r.number) return;
+                            if (typeof _ngpEsLot3d === 'function' && _ngpEsLot3d(r.lottery)) return;
+                            if (!porDiaB[r.date]) porDiaB[r.date] = [];
+                            porDiaB[r.date].push({ n: _efvNorm(r.number), lot: r.lottery, time: _jaleNormHora(r.time), m: _minB(r.time) });
+                        });
+                        var fechasB = Object.keys(porDiaB).sort();
+                        var oport = 0, exitos = 0, espSum = 0;
+                        var dist = { 1: 0, 2: 0, 3: 0, 4: 0 };
+                        var eventos = [];
+                        fechasB.forEach(function(f0) {
+                            var arrB = porDiaB[f0].sort(function(a, b) { return a.m - b.m; });
+                            for (var iB = 0; iB < arrB.length; iB++) {
+                                if (arrB[iB].n !== '28' && arrB[iB].n !== '82') continue;
+                                var kv = Math.min(4, arrB.length - 1 - iB);
+                                if (kv <= 0) continue; // sin ventana (fue el último sorteo del día)
+                                oport++;
+                                espSum += 1 - Math.pow(0.98, kv);
+                                var hitQ = 0, hitN = null;
+                                for (var qB = 1; qB <= kv; qB++) {
+                                    var nx = arrB[iB + qB];
+                                    if (nx.n === '28' || nx.n === '82') { hitQ = qB; hitN = nx; break; }
+                                }
+                                if (hitQ) { exitos++; dist[hitQ]++; }
+                                eventos.push({ d: f0, n: arrB[iB].n, lot: arrB[iB].lot, time: arrB[iB].time, k: kv, hit: hitQ, hn: hitQ ? hitN.n : null, hlot: hitQ ? hitN.lot : null, htime: hitQ ? hitN.time : null });
+                            }
+                        });
+                        var rateB = oport ? (exitos / oport) : 0;
+                        var espB = oport ? (espSum / oport) : 0;
+                        var val = { oport: oport, exitos: exitos, rate: rateB, esperado: espB, indice: espB > 0 ? (rateB / espB) : 0, dist: dist, ultimos: eventos.slice(-12).reverse(), nDias: fechasB.length };
+                        window._ngpF2882BkCache = { key: key, val: val };
+                        return val;
+                    } catch (e) { return { oport: 0, exitos: 0, rate: 0, esperado: 0, indice: 0, dist: { 1: 0, 2: 0, 3: 0, 4: 0 }, ultimos: [], nDias: 0 }; }
+                }
+                // V46.9.216 (pedido de Leo): 🧲 PAREJA 28·82 — si en un sorteo
+                // RECIENTE de hoy (cualquier lotería de 2 díg) salió el 28 o el 82,
+                // ambos quedan como posibilidad durante los 4 sorteos siguientes:
+                // alerta visible + peso (+1) donde estén pendientes.
+                function _ngpFam2882() {
+                    try {
+                        var key = hoyStr + '|' + ((capturedResults || []).length);
+                        if (window._ngpF2882Cache && window._ngpF2882Cache.key === key) return window._ngpF2882Cache.val;
+                        var _min8 = function(t) {
+                            try {
+                                var p = ((typeof _horaNorm24 === 'function') ? _horaNorm24(t) : ('' + (t || ''))).split(':');
+                                var hh = parseInt(p[0], 10);
+                                return isNaN(hh) ? 0 : hh * 60 + (parseInt(p[1] || '0', 10) || 0);
+                            } catch (e2) { return 0; }
+                        };
+                        var hoyA8 = [];
+                        (capturedResults || []).forEach(function(r) {
+                            if (!r || r.date !== hoyStr || !r.number) return;
+                            if (typeof _ngpEsLot3d === 'function' && _ngpEsLot3d(r.lottery)) return;
+                            hoyA8.push({ n: _efvNorm(r.number), lot: r.lottery, time: _jaleNormHora(r.time), m: _min8(r.time) });
+                        });
+                        hoyA8.sort(function(a, b) { return a.m - b.m; });
+                        var iUlt = -1;
+                        for (var i8 = hoyA8.length - 1; i8 >= 0; i8--) {
+                            if (hoyA8[i8].n === '28' || hoyA8[i8].n === '82') { iUlt = i8; break; }
+                        }
+                        var val;
+                        if (iUlt < 0) {
+                            val = { activa: false, despues: 0, restantes: 0, origen: null };
+                        } else {
+                            var desp8 = hoyA8.length - 1 - iUlt; // sorteos capturados DESPUÉS de esa salida
+                            val = {
+                                activa: desp8 < 4,
+                                despues: desp8,
+                                restantes: Math.max(0, 4 - desp8),
+                                origen: { n: hoyA8[iUlt].n, lot: hoyA8[iUlt].lot, time: hoyA8[iUlt].time }
+                            };
+                        }
+                        window._ngpF2882Cache = { key: key, val: val };
+                        return val;
+                    } catch (e) { return { activa: false, despues: 0, restantes: 0, origen: null }; }
+                }
                 function _ngpConvInmediata() {
                     try {
                         var key = hoyStr + '|' + ((capturedResults || []).length);
@@ -29943,6 +30043,14 @@ function senalesDe(nn) {
                                         scoreL += 2;
                                         tiposL.push('📊 MUY EXCEDIDO (+2): el ' + g + ' pega acá cada ~' + Math.round(gX5.cada) + ' sorteos y ya lleva ' + gX5.sinSalir + ' sin pegar (' + gX5.excedido.toFixed(1) + '× su cadencia' + (gX5.ult ? ' · últ. ' + gX5.ult.split('-')[2] + '/' + gX5.ult.split('-')[1] : '') + ') — y el ' + nn + ' es de sus top 5 salidores históricos en esta lotería');
                                     }
+                                    // V46.9.216 (pedido de Leo): 🧲 pareja 28·82 — salió una de
+                                    // las dos en un sorteo reciente (ventana: 4 sorteos siguientes)
+                                    // → el 28 y el 82 pendientes reciben +1.
+                                    var f28C = (typeof _ngpFam2882 === 'function') ? _ngpFam2882() : null;
+                                    if (f28C && f28C.activa && (nn === '28' || nn === '82') && ((ultPorNumLot[nn] || {})[L] !== hoyStr)) {
+                                        scoreL += 1;
+                                        tiposL.push('🧲 PAREJA 28·82: hoy salió el ' + f28C.origen.n + ' en ' + f28C.origen.lot + (f28C.origen.time ? ' (' + f28C.origen.time + ')' : '') + ' — el 28 y el 82 son posibilidad durante los 4 sorteos siguientes (van ' + f28C.despues + ', quedan ' + f28C.restantes + ')');
+                                    }
                                 } catch (eGH3) {}
                                 lista.push({ num: nn, score: scoreL, tipos: tiposL, pos: pos, grupo: g }); // V46.9.173: guarda el grupo del candidato
                             });
@@ -30215,7 +30323,7 @@ function senalesDe(nn) {
                     ultPorNumLot: ultPorNumLot, difDias: difDias, hoyStr: hoyStr, porNum: porNum, serie: serie,
                     rankRezagoLot: rankRezagoLot, rankRezagoPrevLot: rankRezagoPrevLot,
                     jaleDe: _jaleDeAyer, decTermHoy: _decTermHoy, efvCalcular: _efvCalcular,
-                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, resultadosDeFecha: _resultadosDeFecha, predominioHoy: _ngpPredominioHoy, topsDia: _ngpTopsDia, esperaDe: _ngpEsperaDe, cierreDia: _ngpCierreDia, gruposPromedio: _ngpGruposPromedio, grpPromDe: _ngpGrpPromDe, vibHoy: _vibHoy, vibManana: _vibMan, vibAdelanto: _ngpVibAdelanto, propensosHoy: _ngpPropensosHoy, grupoDelDia: _grupoDelDiaNums, despuesDeNum: _ngpDespuesDeNum, ultimoDeLot: _ngpUltimoDeLot, crucePegadoDom: _ngpCrucePegadoDom, termRepite: _ngpTermRepite, sum9Fechas: _ngpSum9Fechas, topMes: _ngpTopMes, frios: _ngpFrios, ausencia: _ngpAusencia, candidatosDe: _candidatosDeL
+                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, resultadosDeFecha: _resultadosDeFecha, predominioHoy: _ngpPredominioHoy, topsDia: _ngpTopsDia, esperaDe: _ngpEsperaDe, cierreDia: _ngpCierreDia, gruposPromedio: _ngpGruposPromedio, grpPromDe: _ngpGrpPromDe, vibHoy: _vibHoy, vibManana: _vibMan, vibAdelanto: _ngpVibAdelanto, propensosHoy: _ngpPropensosHoy, grupoDelDia: _grupoDelDiaNums, despuesDeNum: _ngpDespuesDeNum, ultimoDeLot: _ngpUltimoDeLot, crucePegadoDom: _ngpCrucePegadoDom, termRepite: _ngpTermRepite, sum9Fechas: _ngpSum9Fechas, fam2882: _ngpFam2882, fam2882Back: _ngpFam2882Back, topMes: _ngpTopMes, frios: _ngpFrios, ausencia: _ngpAusencia, candidatosDe: _candidatosDeL
                 };
                 try { _efvGuardarSnapshotHoy(); } catch (eSnap) {} // V46.9.144: foto diaria del extracto
                 return h;
@@ -30427,7 +30535,7 @@ function senalesDe(nn) {
             cont.innerHTML = html;
         }
         // V46.9.155: cierre mutuo de los 5 paneles del módulo
-        var _NGP_PANELES = ['ngpFiltroPanel', 'ngpExtractoPanel', 'ngpResumenPanel', 'ngpDespuesPanel', 'ngpBuscarPanel', 'ngpAntesPanel', 'ngpDgPanel', 'ngpDgtPanel', 'ngpFechaPanel', 'ngpGrpPromPanel', 'ngpTermRepPanel', 'ngpSum9Panel', 'ngpTopMesPanel', 'ngpFriosPanel', 'ngpAusPanel'];
+        var _NGP_PANELES = ['ngpFiltroPanel', 'ngpExtractoPanel', 'ngpResumenPanel', 'ngpDespuesPanel', 'ngpBuscarPanel', 'ngpAntesPanel', 'ngpDgPanel', 'ngpDgtPanel', 'ngpFechaPanel', 'ngpGrpPromPanel', 'ngpTermRepPanel', 'ngpSum9Panel', 'ngpTopMesPanel', 'ngpFriosPanel', 'ngpAusPanel', 'ngpF2882Panel'];
         function _ngpCerrarOtros(salvo) {
             _NGP_PANELES.forEach(function(id) {
                 if (id === salvo) return;
@@ -32152,6 +32260,57 @@ function senalesDe(nn) {
             window._ngpResumenSel = s.length ? s : null;
             _ngpResumenRender();
         }
+        // V46.9.217 (pedido de Leo): panel BACKTEST PAREJA 28·82
+        function _ngpF2882Toggle() {
+            var ps = document.querySelectorAll('[id="ngpF2882Panel"]');
+            if (!ps.length) return;
+            var abrir = (ps[0].style.display === 'none');
+            _ngpCerrarOtros('ngpF2882Panel');
+            ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
+            if (abrir) _ngpF2882Render();
+        }
+        function _ngpF2882Render() {
+            var conts = document.querySelectorAll('[id="ngpF2882Resultado"]');
+            if (!conts.length) return;
+            var F0 = window._ngpFiltro;
+            if (!F0 || !F0.fam2882Back) { conts.forEach(function(x) { x.innerHTML = '<div style="font-size:11px;color:#f87171;padding:6px;">Módulo no disponible todavía.</div>'; }); return; }
+            var r = F0.fam2882Back();
+            var html = '';
+            if (!r.oport) {
+                html = '<div style="font-size:11px;color:#94a3b8;padding:6px;">Todavía no hay casos en el historial (ninguna salida de 28/82 con sorteos posteriores el mismo día).</div>';
+                conts.forEach(function(x) { x.innerHTML = html; });
+                return;
+            }
+            var pR = Math.round(1000 * r.rate) / 10, pE = Math.round(1000 * r.esperado) / 10;
+            var comprueba = (r.indice >= 1.15 && r.oport >= 20);
+            var flojo = (r.indice <= 0.9);
+            var vCol = comprueba ? '#4ade80' : flojo ? '#f87171' : '#fde68a';
+            var vTxt = comprueba ? '✅ EL PATRÓN SE COMPRUEBA: se repite ' + r.indice.toFixed(2) + '× más que el azar' : flojo ? '❌ NO se comprueba: se repite menos o igual que el azar' : '⚠️ Ni claro ni descartado (' + (r.oport < 20 ? 'pocos casos todavía' : 'apenas ' + r.indice.toFixed(2) + '× el azar') + ')';
+            html += '<div style="background:rgba(0,0,0,0.3);border:2px solid ' + vCol + ';border-radius:9px;padding:9px 12px;margin-bottom:8px;">';
+            html += '<div style="font-size:13px;font-weight:bold;color:' + vCol + ';margin-bottom:4px;">' + vTxt + '</div>';
+            html += '<div style="font-size:11px;color:#e0f2fe;">De <strong style="color:#fff;">' + r.oport + '</strong> salidas de 28/82 con ventana (en ' + r.nDias + ' días de historial), en <strong style="color:#fff;">' + r.exitos + '</strong> volvió a salir 28 u 82 dentro de los 4 sorteos siguientes = <strong style="color:' + vCol + ';">' + pR + '%</strong> real vs <strong style="color:#cbd5e1;">' + pE + '%</strong> que daría el puro azar · índice <strong style="color:' + vCol + ';">×' + r.indice.toFixed(2) + '</strong></div>';
+            html += '</div>';
+            html += '<div style="font-size:10px;font-weight:bold;color:#7dd3fc;margin-bottom:4px;">📍 CUANDO REPITE, ¿EN CUÁL SORTEO DE LA VENTANA?</div>';
+            html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px;">';
+            [1, 2, 3, 4].forEach(function(q9) {
+                html += '<span style="background:rgba(34,211,238,0.12);border:1px solid rgba(34,211,238,0.5);border-radius:6px;padding:4px 10px;font-size:11px;color:#cffafe;">' + q9 + '° sorteo después: <strong style="color:#fff;">' + (r.dist[q9] || 0) + '</strong> vez/veces</span>';
+            });
+            html += '</div>';
+            html += '<div style="font-size:10px;font-weight:bold;color:#7dd3fc;margin-bottom:4px;">🕐 ÚLTIMOS CASOS (más reciente primero):</div>';
+            r.ultimos.forEach(function(ev9) {
+                var fF9 = ev9.d.split('-')[2] + '/' + ev9.d.split('-')[1] + '/' + ev9.d.split('-')[0].substring(2);
+                var h1 = ev9.time, h2 = ev9.htime;
+                try { if (typeof convertTo12Hour === 'function') { if (h1) h1 = convertTo12Hour(h1); if (h2) h2 = convertTo12Hour(h2); } } catch (e9h) {}
+                html += '<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;background:' + (ev9.hit ? 'rgba(74,222,128,0.08)' : 'rgba(255,255,255,0.04)') + ';border:1px solid ' + (ev9.hit ? 'rgba(74,222,128,0.45)' : 'rgba(148,163,184,0.3)') + ';border-radius:6px;padding:4px 8px;margin-bottom:4px;font-size:10px;color:#e2e8f0;">';
+                html += '<span style="color:#94a3b8;">' + fF9 + '</span>';
+                html += '<span>salió <strong style="font-family:monospace;font-size:13px;color:#fff;">' + ev9.n + '</strong> en ' + ev9.lot + (h1 ? ' (' + h1 + ')' : '') + '</span>';
+                if (ev9.hit) html += '<span style="color:#86efac;">✔ repitió: <strong style="font-family:monospace;font-size:13px;color:#fff;">' + ev9.hn + '</strong> en ' + ev9.hlot + (h2 ? ' (' + h2 + ')' : '') + ' — ' + ev9.hit + '° sorteo después</span>';
+                else html += '<span style="color:#94a3b8;">✘ no repitió en su ventana (' + ev9.k + ' sorteo' + (ev9.k > 1 ? 's' : '') + ' disponibles)</span>';
+                html += '</div>';
+            });
+            html += '<div style="font-size:8px;color:#64748b;margin-top:5px;">Cada salida de 28/82 con al menos un sorteo posterior el mismo día cuenta como caso; si fue de los últimos del día, su ventana se recorta al tamaño real y el azar se calcula con esa ventana (1 − 0.98^k, ~7.8% con ventana completa de 4). El veredicto exige 20+ casos y superar el azar 15%+ para marcar verde.</div>';
+            conts.forEach(function(x) { x.innerHTML = html; });
+        }
         // V46.9.215 (pedido de Leo): parámetros del FILTRO DE CANDIDATOS —
         // profundidad del top de rezago (default 30) y días de exclusión por
         // salida reciente (default 2). Se guardan en este navegador. NOTA: las
@@ -32326,6 +32485,19 @@ function senalesDe(nn) {
                     html += '</div>';
                 }
             } catch (eVib) {}
+            // V46.9.216 (pedido de Leo): 🧲 alerta PAREJA 28·82 (ventana de 4 sorteos)
+            try {
+                var f28B = (F.fam2882) ? F.fam2882() : null;
+                if (f28B && f28B.activa) {
+                    var _h28 = f28B.origen.time; try { if (typeof convertTo12Hour === 'function' && _h28) _h28 = convertTo12Hour(_h28); } catch (e28h) {}
+                    html += '<div class="ngp-parpadea" title="Regla de Leo: cuando sale el 28 o el 82 en cualquier lotería, el 28 y el 82 quedan como posibilidad durante los 4 sorteos siguientes. Ya pasaron ' + f28B.despues + ' sorteo(s) desde esa salida y quedan ' + f28B.restantes + '. Donde estén pendientes, ambos reciben +1 en las sugerencias." style="background:linear-gradient(90deg,rgba(8,145,178,0.55),rgba(14,116,144,0.35));border:2px solid #22d3ee;border-radius:9px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;cursor:help;">';
+                    html += '<span style="font-size:20px;">🧲</span>';
+                    html += '<span style="font-family:monospace;font-size:22px;font-weight:bold;color:#fff;background:rgba(34,211,238,0.25);border:2px solid #22d3ee;border-radius:7px;padding:3px 10px;text-shadow:0 0 8px rgba(34,211,238,0.8);">28</span>';
+                    html += '<span style="font-family:monospace;font-size:22px;font-weight:bold;color:#fff;background:rgba(34,211,238,0.25);border:2px solid #22d3ee;border-radius:7px;padding:3px 10px;text-shadow:0 0 8px rgba(34,211,238,0.8);">82</span>';
+                    html += '<span style="font-size:11px;line-height:1.5;color:#cffafe;flex:1;"><strong style="color:#fff;">¡PAREJA 28·82 ACTIVA!</strong> Hoy salió el <strong style="color:#fff;">' + f28B.origen.n + '</strong> en ' + f28B.origen.lot + (_h28 ? ' a las ' + _h28 : '') + ' → el 28 y el 82 son posibilidad en los <strong style="color:#fff;">4 sorteos siguientes</strong> · van ' + f28B.despues + ', quedan <strong style="color:#fff;">' + f28B.restantes + '</strong> · donde estén pendientes reciben <strong style="color:#fff;">+1</strong> en las sugerencias</span>';
+                    html += '</div>';
+                }
+            } catch (eF28) {}
             // V46.9.215 (pedido de Leo): ⚙️ FILTRO DE CANDIDATOS parametrizable + nota
             try {
                 var _rzP9 = (window._ngpParamRez ? window._ngpParamRez() : 30);
@@ -73865,7 +74037,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r149 · v46.9.215</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r151 · v46.9.217</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
