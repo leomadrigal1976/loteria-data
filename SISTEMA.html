@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.211</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.212</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6339,7 +6339,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.211</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.212</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -28953,10 +28953,15 @@ function senalesDe(nn) {
                 // V46.9.210 (pedido de Leo, punto 4): panel TOP DEL MES
                 h += '<div id="ngpTopMesPanel" style="display:none;background:rgba(12,74,110,0.45);border:1px solid #0ea5e9;border-radius:9px;padding:10px;margin-top:9px;">';
                 h += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">';
-                h += '<span style="font-size:11px;font-weight:bold;color:#bae6fd;">📆 Top del Mes — top 10 de números y grupos que más salen (todas las loterías de 2 díg) · Mes:</span>';
+                h += '<span style="font-size:11px;font-weight:bold;color:#bae6fd;">📆 Top del Mes — top 10 de números y grupos que más salen · Mes:</span>';
                 h += '<button onclick="_ngpTopMesShift(-1)" style="background:rgba(148,163,184,0.15);border:1px solid #64748b;color:#e2e8f0;padding:3px 9px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:bold;">◀</button>';
                 h += '<input type="month" id="ngpTopMesInp" onchange="_efvSync(this);_ngpTopMesRender()" style="background:#082f49;color:#fff;border:1px solid #0ea5e9;border-radius:6px;padding:4px 8px;font-size:12px;">';
                 h += '<button onclick="_ngpTopMesShift(1)" style="background:rgba(148,163,184,0.15);border:1px solid #64748b;color:#e2e8f0;padding:3px 9px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:bold;">▶</button>';
+                // V46.9.212 (pedido de Leo): selector de lotería en Top del Mes
+                h += '<span style="font-size:11px;font-weight:bold;color:#bae6fd;">· Lotería:</span>';
+                h += '<select id="ngpTopMesLot" onchange="_efvSync(this);_ngpTopMesRender()" style="background:#082f49;color:#fff;border:1px solid #0ea5e9;border-radius:6px;padding:4px 8px;font-size:12px;"><option value="__TODAS__" selected>🌎 Todas</option>';
+                lotsActivas.slice().sort().forEach(function(L0tm) { h += '<option value="' + L0tm + '">' + L0tm + '</option>'; });
+                h += '</select>';
                 h += '</div>';
                 h += '<div id="ngpTopMesResultado"><div style="font-size:11px;color:#94a3b8;padding:6px;">Calculando…</div></div>';
                 h += '</div>';
@@ -29721,9 +29726,9 @@ function senalesDe(nn) {
                 }
                 // V46.9.210 (pedido de Leo, punto 4): TOP DEL MES — top 10 de números
                 // y ranking de grupos que más salen en un mes dado (todas las de 2 díg).
-                function _ngpTopMes(mes) {
+                function _ngpTopMes(mes, lotSel) {
                     try {
-                        var key = mes + '|' + ((capturedResults || []).length);
+                        var key = mes + '|' + (lotSel || '__TODAS__') + '|' + ((capturedResults || []).length);
                         if (!window._ngpTopMesCache) window._ngpTopMesCache = {};
                         if (window._ngpTopMesCache[key]) return window._ngpTopMesCache[key];
                         var n2gM = {}, gSizeM = {};
@@ -29736,6 +29741,7 @@ function senalesDe(nn) {
                             if (!r || !r.date || !r.number) return;
                             if (typeof _ngpEsLot3d === 'function' && _ngpEsLot3d(r.lottery)) return;
                             if (('' + r.date).substring(0, 7) !== mes) return;
+                            if (lotSel && r.lottery !== lotSel) return; // V46.9.212: filtro por lotería
                             var nn = _efvNorm(r.number);
                             cntNum[nn] = (cntNum[nn] || 0) + 1;
                             if (!ultNum[nn] || r.date > ultNum[nn].d) ultNum[nn] = { d: r.date, time: _jaleNormHora(r.time), lot: r.lottery };
@@ -32266,16 +32272,18 @@ function senalesDe(nn) {
             if (!F0 || !F0.topMes) { conts.forEach(function(x) { x.innerHTML = '<div style="font-size:11px;color:#f87171;padding:6px;">Módulo no disponible todavía.</div>'; }); return; }
             var ins = document.querySelector('[id="ngpTopMesInp"]');
             var mes = (ins && ins.value) ? ins.value : _ngpHoyRealStr().substring(0, 7);
-            var r = F0.topMes(mes);
+            var selTM = document.querySelector('[id="ngpTopMesLot"]');
+            var lotTM = (selTM && selTM.value !== '__TODAS__') ? selTM.value : null;
+            var r = F0.topMes(mes, lotTM);
             var MES_T = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
             var mNom = MES_T[(parseInt(mes.split('-')[1], 10) || 1) - 1] + ' ' + mes.split('-')[0];
             var html = '';
             if (!r.total) {
-                html = '<div style="font-size:11px;color:#94a3b8;padding:6px;">Sin datos capturados en ' + mNom + '.</div>';
+                html = '<div style="font-size:11px;color:#94a3b8;padding:6px;">Sin datos capturados en ' + mNom + (lotTM ? ' para ' + lotTM : '') + '.</div>';
                 conts.forEach(function(x) { x.innerHTML = html; });
                 return;
             }
-            html += '<div style="font-size:11px;color:#bae6fd;margin-bottom:6px;"><strong>' + mNom + '</strong>: ' + r.total + ' sorteos en ' + r.nDias + ' días (todas las loterías de 2 díg).</div>';
+            html += '<div style="font-size:11px;color:#bae6fd;margin-bottom:6px;"><strong>' + mNom + '</strong>' + (lotTM ? ' · <strong style="color:#fff;">' + lotTM + '</strong>' : '') + ': ' + r.total + ' sorteos en ' + r.nDias + ' días (' + (lotTM ? 'solo esa lotería' : 'todas las loterías de 2 díg') + ').</div>';
             html += '<div style="font-size:10px;font-weight:bold;color:#7dd3fc;margin-bottom:4px;">🔝 TOP 10 NÚMEROS del mes:</div>';
             html += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px;">';
             r.topNum.forEach(function(t0, ti0) {
