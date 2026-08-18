@@ -29759,8 +29759,10 @@ function senalesDe(nn) {
                                 if (vistos[nn]) return; vistos[nn] = true;
                                 var pos = (rankRezagoLot[L] || {})[nn] || null;
                                 var ultEnL = (ultPorNumLot[nn] || {})[L];
-                                var salioReciente = (ultEnL && difDias(ultEnL, hoyStr) <= 2);
-                                var esRezagoL = (pos !== null && pos <= 30 && !salioReciente);
+                                var _prmEx = (window._ngpParamExcl ? window._ngpParamExcl() : 2); // V46.9.215: parametrizable
+                                var _prmRz = (window._ngpParamRez ? window._ngpParamRez() : 30);
+                                var salioReciente = (ultEnL && difDias(ultEnL, hoyStr) <= _prmEx);
+                                var esRezagoL = (pos !== null && pos <= _prmRz && !salioReciente);
                                 var sn0 = senalesDe(nn);
                                 var tieneSenalesL = false;
                                 (sn0.porLoteria || []).forEach(function(cf) { if (cf.lot === L && cf.score >= 2) tieneSenalesL = true; });
@@ -32150,6 +32152,31 @@ function senalesDe(nn) {
             window._ngpResumenSel = s.length ? s : null;
             _ngpResumenRender();
         }
+        // V46.9.215 (pedido de Leo): parámetros del FILTRO DE CANDIDATOS —
+        // profundidad del top de rezago (default 30) y días de exclusión por
+        // salida reciente (default 2). Se guardan en este navegador. NOTA: las
+        // fotos de efectividad siguen usando 30/2 FIJOS para que la medición
+        // histórica no cambie al mover estos parámetros.
+        window._ngpParamRez = function() {
+            try { var v = parseInt(localStorage.getItem('ngpRezTop') || '30', 10); return (!isNaN(v) && v >= 5 && v <= 100) ? v : 30; } catch (e) { return 30; }
+        };
+        window._ngpParamExcl = function() {
+            try { var v = parseInt(localStorage.getItem('ngpRezExcl') || '2', 10); return (!isNaN(v) && v >= 0 && v <= 30) ? v : 2; } catch (e) { return 2; }
+        };
+        function _ngpRezParamAplicar() {
+            var i1 = document.querySelector('[id="ngpRezTopInp"]');
+            var i2 = document.querySelector('[id="ngpRezExclInp"]');
+            var v1 = parseInt(i1 && i1.value, 10); if (isNaN(v1)) v1 = 30; if (v1 < 5) v1 = 5; if (v1 > 100) v1 = 100;
+            var v2 = parseInt(i2 && i2.value, 10); if (isNaN(v2)) v2 = 2; if (v2 < 0) v2 = 0; if (v2 > 30) v2 = 30;
+            try { localStorage.setItem('ngpRezTop', String(v1)); localStorage.setItem('ngpRezExcl', String(v2)); } catch (e) {}
+            try { _ngpResumenRender(); } catch (e2) {}
+            try { _ngpExtractoRender(); } catch (e3) {}
+        }
+        function _ngpRezParamReset() {
+            try { localStorage.removeItem('ngpRezTop'); localStorage.removeItem('ngpRezExcl'); } catch (e) {}
+            try { _ngpResumenRender(); } catch (e2) {}
+            try { _ngpExtractoRender(); } catch (e3) {}
+        }
         function _ngpResumenRender() {
             window._ngpGrpPendCache = {}; window._ngpHorCache = {}; window._ngpGrpHorCache = {}; // V46.9.169/170: señales con datos frescos
             var conts = document.querySelectorAll('[id="ngpResumenResultado"]');
@@ -32299,6 +32326,23 @@ function senalesDe(nn) {
                     html += '</div>';
                 }
             } catch (eVib) {}
+            // V46.9.215 (pedido de Leo): ⚙️ FILTRO DE CANDIDATOS parametrizable + nota
+            try {
+                var _rzP9 = (window._ngpParamRez ? window._ngpParamRez() : 30);
+                var _exP9 = (window._ngpParamExcl ? window._ngpParamExcl() : 2);
+                var _esDef9 = (_rzP9 === 30 && _exP9 === 2);
+                html += '<div style="background:rgba(30,41,59,0.6);border:1px dashed #94a3b8;border-radius:8px;padding:7px 10px;margin-bottom:10px;">';
+                html += '<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">';
+                html += '<span style="font-size:11px;font-weight:bold;color:#e2e8f0;">⚙️ FILTRO DE CANDIDATOS</span>';
+                html += '<span style="font-size:9px;font-weight:bold;padding:2px 8px;border-radius:9px;' + (_esDef9 ? 'background:rgba(74,222,128,0.15);color:#86efac;border:1px solid rgba(74,222,128,0.5);">DEFAULT (30 y 2)' : 'background:rgba(251,191,36,0.15);color:#fde68a;border:1px solid #fbbf24;">⚠️ PERSONALIZADO') + '</span>';
+                html += '<label style="font-size:10px;color:#cbd5e1;">Top de rezago: <input id="ngpRezTopInp" type="number" min="5" max="100" value="' + _rzP9 + '" onchange="_efvSync(this)" style="width:54px;background:#0f172a;color:#fff;border:1px solid #64748b;border-radius:5px;padding:2px 5px;font-size:11px;"></label>';
+                html += '<label style="font-size:10px;color:#cbd5e1;">Días de exclusión por salida reciente: <input id="ngpRezExclInp" type="number" min="0" max="30" value="' + _exP9 + '" onchange="_efvSync(this)" style="width:46px;background:#0f172a;color:#fff;border:1px solid #64748b;border-radius:5px;padding:2px 5px;font-size:11px;"></label>';
+                html += '<button onclick="_ngpRezParamAplicar()" style="background:linear-gradient(135deg,#334155,#64748b);border:1px solid #cbd5e1;color:#fff;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:10px;font-weight:bold;">Aplicar</button>';
+                html += '<button onclick="_ngpRezParamReset()" style="background:rgba(148,163,184,0.12);border:1px solid #64748b;color:#cbd5e1;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:10px;">Volver al default</button>';
+                html += '</div>';
+                html += '<div style="font-size:9px;color:#94a3b8;line-height:1.55;margin-top:5px;">📝 <b style="color:#cbd5e1;">¿Por qué un grupo muestra solo algunos números?</b> Un número entra como candidato si cumple al menos UNA de estas 3 puertas: ① está en el <b>TOP ' + _rzP9 + '</b> de rezago de esa lotería (medido en <b>sorteos</b> sin salir, no en días calendario) y NO ha salido en los últimos <b>' + _exP9 + '</b> día(s) — si acaba de pegar, se excluye y entra el siguiente más vencido; ② tiene <b>2 o más señales</b> en esa lotería aunque no esté tan rezagado; ③ es del <b>top 10 "después de"</b> del último número salido ahí. Después, cada grupo muestra máximo sus 5 mejores por señales — si un grupo muestra menos de 5, es porque el resto de sus números no pasó ninguna puerta. Subir el top de rezago muestra más números pero menos filtrados; bajarlo deja solo los muy vencidos. Las fotos de efectividad siguen midiendo con el default (30 y 2) para no alterar el histórico.</div>';
+                html += '</div>';
+            } catch (ePrm9) {}
             html += '<div style="margin-bottom:12px;">';
             ranking.forEach(function(rk, ix) {
                 if (_selR && _selR.indexOf(rk.lot) < 0) return; // V46.9.191: filtro del selector
@@ -32725,8 +32769,10 @@ function senalesDe(nn) {
                         var pos = (F.rankRezagoLot[L] || {})[nn] || null;
                         // salvaguarda: si salió hace <=2 días en L, ya no está rezagado ahí
                         var ultEnL = (F.ultPorNumLot[nn] || {})[L];
-                        var salioReciente = (ultEnL && F.difDias(ultEnL, F.hoyStr) <= 2);
-                        var esRezagoL = (pos !== null && pos <= 30 && !salioReciente);
+                        var _prmEx2 = (window._ngpParamExcl ? window._ngpParamExcl() : 2); // V46.9.215: parametrizable
+                        var _prmRz2 = (window._ngpParamRez ? window._ngpParamRez() : 30);
+                        var salioReciente = (ultEnL && F.difDias(ultEnL, F.hoyStr) <= _prmEx2);
+                        var esRezagoL = (pos !== null && pos <= _prmRz2 && !salioReciente);
                         // V46.9.139: también incluir si tiene señales fuertes en L aunque no
                         // esté tan arriba en el rezago (para que el extracto sea útil).
                         var sn0 = F.senalesDe(nn);
@@ -73819,7 +73865,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r148 · v46.9.214</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r149 · v46.9.215</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
