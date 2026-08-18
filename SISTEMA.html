@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.213</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.214</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6339,7 +6339,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.213</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.214</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -30726,7 +30726,7 @@ function senalesDe(nn) {
                     ultPorNumLot: ultPorNumLot, difDias: difDias, hoyStr: hoyStr, porNum: porNum, serie: serie,
                     rankRezagoLot: rankRezagoLot, rankRezagoPrevLot: rankRezagoPrevLot,
                     jaleDe: _jaleDeAyer, decTermHoy: _decTermHoy, efvCalcular: _efvCalcular,
-                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, resultadosDeFecha: _resultadosDeFecha, predominioHoy: _ngpPredominioHoy, topsDia: _ngpTopsDia, esperaDe: _ngpEsperaDe, cierreDia: _ngpCierreDia, gruposPromedio: _ngpGruposPromedio, vibHoy: _vibHoy, vibManana: _vibMan, vibAdelanto: _ngpVibAdelanto, propensosHoy: _ngpPropensosHoy, grupoDelDia: _grupoDelDiaNums, despuesDeNum: _ngpDespuesDeNum, ultimoDeLot: _ngpUltimoDeLot, crucePegadoDom: _ngpCrucePegadoDom, termRepite: _ngpTermRepite, sum9Fechas: _ngpSum9Fechas, topMes: _ngpTopMes, frios: _ngpFrios, ausencia: _ngpAusencia, candidatosDe: _candidatosDeL
+                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, resultadosDeFecha: _resultadosDeFecha, predominioHoy: _ngpPredominioHoy, topsDia: _ngpTopsDia, esperaDe: _ngpEsperaDe, cierreDia: _ngpCierreDia, gruposPromedio: _ngpGruposPromedio, grpPromDe: _ngpGrpPromDe, vibHoy: _vibHoy, vibManana: _vibMan, vibAdelanto: _ngpVibAdelanto, propensosHoy: _ngpPropensosHoy, grupoDelDia: _grupoDelDiaNums, despuesDeNum: _ngpDespuesDeNum, ultimoDeLot: _ngpUltimoDeLot, crucePegadoDom: _ngpCrucePegadoDom, termRepite: _ngpTermRepite, sum9Fechas: _ngpSum9Fechas, topMes: _ngpTopMes, frios: _ngpFrios, ausencia: _ngpAusencia, candidatosDe: _candidatosDeL
                 };
                 try { _efvGuardarSnapshotHoy(); } catch (eSnap) {} // V46.9.144: foto diaria del extracto
                 return h;
@@ -32903,7 +32903,21 @@ function senalesDe(nn) {
                         var _esPeg2 = !!(_cpd8 && _cpd8.pegSet && _cpd8.pegSet[bgR.grupo] !== undefined);
                         var _esCru8 = false;
                         if (_cpd8 && _cpd8.cruces) { for (var cz8 = 0; cz8 < _cpd8.cruces.length; cz8++) { if (_cpd8.cruces[cz8].g === bgR.grupo) { _esCru8 = true; break; } } }
-                        html += '<span ' + (_esCru8 ? 'class="ngp-parpadea" ' : '') + 'title="' + bgR.grupo + ': su mejor candidato tiene ' + bgR.mejor.score + ' señales · el grupo COMPLETO lleva ' + (_gD !== null ? _gD + ' día(s)' : 'sin registro') + ' sin salir en esta lotería' + (_gU ? ' (última salida: ' + _gU + ')' : '') + (_esPeg2 ? ' · 🔴 es de los 2 grupos MÁS PEGADOS de esta lotería' : '') + (_esCru8 ? ' · 💥 y ADEMÁS es de los 2 predominantes de HOY: sus top salidores históricos pendientes reciben +3' : '') + '" style="background:' + (_esCru8 ? 'rgba(153,27,27,0.55)' : _esPeg2 ? 'rgba(127,29,29,0.45)' : 'rgba(168,85,247,0.3)') + ';border:' + (_esCru8 ? '2px solid #ef4444' : _esPeg2 ? '1.5px solid #f87171' : '1px solid #a855f7') + ';color:' + (_esPeg2 ? '#fecaca' : '#e9d5ff') + ';border-radius:5px;padding:2px 7px;font-size:10px;font-weight:bold;min-width:84px;text-align:center;cursor:help;">' + bgR.grupo + '<small style="display:block;font-size:7px;color:' + (_esPeg2 ? '#fca5a5' : '#c4b5fd') + ';font-weight:normal;">mejor: ' + bgR.mejor.score + ' señ.</small><small style="display:block;font-size:7px;color:' + (_esPeg2 ? '#fecaca' : '#e9d5ff') + ';font-weight:normal;">' + _gTxt + '</small>' + (_esPeg2 ? '<small style="display:block;font-size:7px;color:#f87171;font-weight:bold;">🔴 de los 2 MÁS PEGADOS' + (_esCru8 ? ' · 💥 dominante HOY' : '') + '</small>' : '') + '</span>';
+                        // V46.9.214 (pedido de Leo): promedio de salida del grupo (cadencia)
+                        // y cuántas veces está excedido, visibles en el mismo recuadro.
+                        var _gpi9 = null, _gpTxt9 = '', _gpTip9 = '';
+                        try {
+                            var _gpx9i = (F.grpPromDe) ? F.grpPromDe(rk.lot) : {};
+                            _gpi9 = _gpx9i[bgR.grupo] || null;
+                        } catch (eGP9) {}
+                        if (_gpi9 && _gpi9.cada) {
+                            var _exc9 = _gpi9.excedido;
+                            var _excCol9 = (_exc9 !== null && _exc9 >= 1.5) ? '#f87171' : (_exc9 !== null && _exc9 >= 1) ? '#fdba74' : '#86efac';
+                            var _excTxt9 = (_exc9 === null) ? '' : (_exc9 >= 1.5 ? '🚨 ' + _exc9.toFixed(1) + '× MUY EXCEDIDO' : _exc9 >= 1 ? _exc9.toFixed(1) + '× excedido' : 'al día (' + _exc9.toFixed(1) + '×)');
+                            _gpTxt9 = '<small style="display:block;font-size:7px;font-weight:normal;color:#c4b5fd;">⏱ pega cada ~' + Math.round(_gpi9.cada) + ' sort. · lleva ' + _gpi9.sinSalir + '</small>' + (_excTxt9 ? '<small style="display:block;font-size:7px;font-weight:bold;color:' + _excCol9 + ';">' + _excTxt9 + '</small>' : '');
+                            _gpTip9 = ' · en esta lotería el ' + bgR.grupo + ' pega en promedio cada ~' + Math.round(_gpi9.cada) + ' sorteos y lleva ' + _gpi9.sinSalir + ' sorteos sin pegar' + (_exc9 !== null ? ' = ' + _exc9.toFixed(1) + ' veces su cadencia' + (_exc9 >= 1.5 ? ' (MUY EXCEDIDO: sus top-5 históricos pendientes reciben +2)' : _exc9 >= 1 ? ' (excedido)' : ' (al día)') : '');
+                        }
+                        html += '<span ' + (_esCru8 ? 'class="ngp-parpadea" ' : '') + 'title="' + bgR.grupo + ': su mejor candidato tiene ' + bgR.mejor.score + ' señales · el grupo COMPLETO lleva ' + (_gD !== null ? _gD + ' día(s)' : 'sin registro') + ' sin salir en esta lotería' + (_gU ? ' (última salida: ' + _gU + ')' : '') + (_esPeg2 ? ' · 🔴 es de los 2 grupos MÁS PEGADOS de esta lotería' : '') + (_esCru8 ? ' · 💥 y ADEMÁS es de los 2 predominantes de HOY: sus top salidores históricos pendientes reciben +3' : '') + _gpTip9 + '" style="background:' + (_esCru8 ? 'rgba(153,27,27,0.55)' : _esPeg2 ? 'rgba(127,29,29,0.45)' : 'rgba(168,85,247,0.3)') + ';border:' + (_esCru8 ? '2px solid #ef4444' : _esPeg2 ? '1.5px solid #f87171' : '1px solid #a855f7') + ';color:' + (_esPeg2 ? '#fecaca' : '#e9d5ff') + ';border-radius:5px;padding:2px 7px;font-size:10px;font-weight:bold;min-width:84px;text-align:center;cursor:help;">' + bgR.grupo + '<small style="display:block;font-size:7px;color:' + (_esPeg2 ? '#fca5a5' : '#c4b5fd') + ';font-weight:normal;">mejor: ' + bgR.mejor.score + ' señ.</small><small style="display:block;font-size:7px;color:' + (_esPeg2 ? '#fecaca' : '#e9d5ff') + ';font-weight:normal;">' + _gTxt + '</small>' + _gpTxt9 + (_esPeg2 ? '<small style="display:block;font-size:7px;color:#f87171;font-weight:bold;">🔴 de los 2 MÁS PEGADOS' + (_esCru8 ? ' · 💥 dominante HOY' : '') + '</small>' : '') + '</span>';
                         bgR.nums.forEach(function(xg, xi) {
                             var _tgT5 = xg.tipos.some(function(t) { return t.indexOf('(top-5 después-de)') > 0; });
                             var _pdM2 = xg.tipos.some(function(t) { return t.indexOf('📈') === 0; }); // V46.9.181
