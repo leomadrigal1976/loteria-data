@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.223</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.224</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6339,7 +6339,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.223</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.224</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -33415,6 +33415,15 @@ function senalesDe(nn) {
                             _vibKeys2.forEach(function(vk2) {
                                 html += '<span title="' + vk2 + ': vibración del día siguiente — si se está ADELANTANDO hoy (alerta 🚨), sus pendientes reciben +1" style="font-family:monospace;font-size:15px;font-weight:bold;color:#fecdd3;background:rgba(244,63,94,0.15);border:1px dashed #fb7185;border-radius:6px;padding:2px 8px;cursor:help;">' + vk2 + '</span>';
                             });
+                            // V46.9.224 (corrección de Leo): la alerta de MAÑANA va EN ESTE renglón
+                            try {
+                                var vaB = (F.vibAdelanto) ? F.vibAdelanto() : null;
+                                if (vaB && vaB.activa) {
+                                    html += '<span title="Hoy ya salieron ' + vaB.apar + ' números de la vibración de MAÑANA: ' + vaB.salieron.map(function(v8) { return v8.n + ' (' + v8.veces + 'x: ' + v8.salidas.map(function(s8) { return s8.l; }).join(', ') + ')'; }).join(' · ').replace(/"/g, '') + '. Vos decidís si jugás la vibración de mañana desde HOY — los pendientes de esa vibración ya reciben +1 en las sugerencias." style="animation:ngpParpadeo 1.1s infinite;font-size:10px;font-weight:bold;color:#fff;background:linear-gradient(90deg,#be123c,#f43f5e);border:2px solid #fecdd3;border-radius:7px;padding:3px 9px;cursor:help;">🚨 ¡La vibración de MAÑANA se está ADELANTANDO! Hoy ya salieron: ' + vaB.salieron.map(function(v7) { return v7.n + (v7.veces > 1 ? ' ×' + v7.veces : ''); }).join(', ') + ' (' + vaB.apar + ' salidas) → señal +1 activa en sus pendientes</span>';
+                                } else if (vaB && vaB.apar) {
+                                    html += '<span style="font-size:9px;font-weight:bold;color:#fb7185;background:rgba(244,63,94,0.10);border:1px dashed #fb7185;border-radius:5px;padding:2px 7px;">ℹ️ se activa con 2 o más salidas hoy — va ' + vaB.apar + '</span>';
+                                }
+                            } catch (eVa9) {}
                             // V46.9.219 (pedido de Leo): vibración de PASADO MAÑANA — solo informativa
                             try {
                                 var _vibKeys3 = Object.keys(F.vibPasado || {}).sort();
@@ -33434,14 +33443,6 @@ function senalesDe(nn) {
                                     }
                                 }
                             } catch (eVb3) {}
-                            // V46.9.213 (pedido de Leo): alerta si la vibración de MAÑANA se ADELANTA
-                            try {
-                                var vaB = (F.vibAdelanto) ? F.vibAdelanto() : null;
-                                if (vaB && vaB.activa) {
-                                    html += '<span style="flex-basis:100%;height:0;"></span>';
-                                    html += '<span title="Hoy ya salieron ' + vaB.apar + ' números de la vibración de MAÑANA: ' + vaB.salieron.map(function(v8) { return v8.n + ' (' + v8.veces + 'x: ' + v8.salidas.map(function(s8) { return s8.l; }).join(', ') + ')'; }).join(' · ').replace(/"/g, '') + '. Vos decidís si jugás la vibración de mañana desde HOY — los pendientes de esa vibración ya reciben +1 en las sugerencias." style="animation:ngpParpadeo 1.1s infinite;font-size:11px;font-weight:bold;color:#fff;background:linear-gradient(90deg,#be123c,#f43f5e);border:2px solid #fecdd3;border-radius:7px;padding:4px 10px;cursor:help;">🚨 ¡La vibración de MAÑANA se está ADELANTANDO! Hoy ya salieron: ' + vaB.salieron.map(function(v7) { return v7.n + (v7.veces > 1 ? ' ×' + v7.veces : ''); }).join(', ') + ' → señal +1 activa en los pendientes de esa vibración</span>';
-                                }
-                            } catch (eVa9) {}
                         }
                     } catch (eVb2) {}
                     html += '</div>';
