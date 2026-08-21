@@ -29635,6 +29635,30 @@ function senalesDe(nn) {
                         return { lots: outF, excl: exclF };
                     } catch (e) { return { lots: [], excl: 2 }; }
                 }
+                // V46.9.223 (pedido de Leo): ¿la vibración de PASADO MAÑANA se está
+                // adelantando? Con MÁS de 2 salidas hoy (3 o más) se activa la alerta
+                // y la señal (+1) en los pendientes que sean de esa vibración.
+                function _ngpVibAdelantoPas() {
+                    try {
+                        var key = hoyStr + '|' + ((capturedResults || []).length);
+                        if (window._ngpVibAdPCache && window._ngpVibAdPCache.key === key) return window._ngpVibAdPCache.val;
+                        var cntVP = {}, detVP = {};
+                        (capturedResults || []).forEach(function(r) {
+                            if (!r || r.date !== hoyStr || !r.number) return;
+                            if (_ngpEsLot3d(r.lottery)) return;
+                            var nn = _efvNorm(r.number);
+                            if (!_vibPas[nn]) return;
+                            cntVP[nn] = (cntVP[nn] || 0) + 1;
+                            if (!detVP[nn]) detVP[nn] = [];
+                            detVP[nn].push({ l: r.lottery, time: _jaleNormHora(r.time) });
+                        });
+                        var salieronP = Object.keys(cntVP).sort().map(function(n0) { return { n: n0, veces: cntVP[n0], salidas: detVP[n0] }; });
+                        var aparP = 0; salieronP.forEach(function(s0) { aparP += s0.veces; });
+                        var val = { activa: aparP >= 3, apar: aparP, salieron: salieronP, nums: Object.keys(_vibPas || {}).sort() };
+                        window._ngpVibAdPCache = { key: key, val: val };
+                        return val;
+                    } catch (e) { return { activa: false, apar: 0, salieron: [], nums: [] }; }
+                }
                 // V46.9.213 (pedido de Leo, punto 7): ¿la vibración de MAÑANA se está
                 // ADELANTANDO? Cuenta cuántas salidas de HOY (2 díg, todas las loterías)
                 // son números de la vibración del día siguiente. Con 2+ salidas se activa
@@ -30243,6 +30267,13 @@ function senalesDe(nn) {
                                         scoreL += 1;
                                         tiposL.push('🔮 vibración de MAÑANA ADELANTÁNDOSE: hoy ya van ' + vaC.apar + ' salidas de esa vibración (' + vaC.salieron.map(function(v9) { return v9.n + (v9.veces > 1 ? ' ×' + v9.veces : ''); }).join(', ') + ') — el ' + nn + ' también es de la vibración de mañana y acá está pendiente');
                                     }
+                                    // V46.9.223 (pedido de Leo): 🔮🔮 vibración de PASADO MAÑANA
+                                    // adelantándose (3+ salidas hoy) → +1 en sus pendientes.
+                                    var vpC = (typeof _ngpVibAdelantoPas === 'function') ? _ngpVibAdelantoPas() : null;
+                                    if (vpC && vpC.activa && _vibPas[nn] && ((ultPorNumLot[nn] || {})[L] !== hoyStr)) {
+                                        scoreL += 1;
+                                        tiposL.push('🔮🔮 vibración de PASADO MAÑANA ADELANTÁNDOSE: hoy ya van ' + vpC.apar + ' salidas de esa vibración (' + vpC.salieron.map(function(v9p) { return v9p.n + (v9p.veces > 1 ? ' ×' + v9p.veces : ''); }).join(', ') + ') — el ' + nn + ' también es de la vibración de pasado mañana y acá está pendiente');
+                                    }
                                     // V46.9.213 (pedido de Leo, punto 8 — opción 2): 📊 MUY EXCEDIDO
                                     // (+2) — el grupo lleva 1.5× o más su cadencia sin pegar en esta
                                     // lotería Y este número es de sus top 5 salidores históricos acá.
@@ -30532,7 +30563,7 @@ function senalesDe(nn) {
                     ultPorNumLot: ultPorNumLot, difDias: difDias, hoyStr: hoyStr, porNum: porNum, serie: serie,
                     rankRezagoLot: rankRezagoLot, rankRezagoPrevLot: rankRezagoPrevLot,
                     jaleDe: _jaleDeAyer, decTermHoy: _decTermHoy, efvCalcular: _efvCalcular,
-                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, resultadosDeFecha: _resultadosDeFecha, predominioHoy: _ngpPredominioHoy, topsDia: _ngpTopsDia, cadNum: _ngpCadNumDe, esperaDe: _ngpEsperaDe, cierreDia: _ngpCierreDia, gruposPromedio: _ngpGruposPromedio, grpPromDe: _ngpGrpPromDe, vibHoy: _vibHoy, vibManana: _vibMan, vibAdelanto: _ngpVibAdelanto, vibPasado: _vibPas, propensosHoy: _ngpPropensosHoy, grupoDelDia: _grupoDelDiaNums, despuesDeNum: _ngpDespuesDeNum, ultimoDeLot: _ngpUltimoDeLot, crucePegadoDom: _ngpCrucePegadoDom, termRepite: _ngpTermRepite, sum9Fechas: _ngpSum9Fechas, fam2882: _ngpFam2882, fam2882Back: _ngpFam2882Back, flotRez: _ngpFlotRez, grpExcBack: _ngpGrpExcBack, topMes: _ngpTopMes, frios: _ngpFrios, ausencia: _ngpAusencia, candidatosDe: _candidatosDeL
+                    resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, resultadosDeFecha: _resultadosDeFecha, predominioHoy: _ngpPredominioHoy, topsDia: _ngpTopsDia, cadNum: _ngpCadNumDe, esperaDe: _ngpEsperaDe, cierreDia: _ngpCierreDia, gruposPromedio: _ngpGruposPromedio, grpPromDe: _ngpGrpPromDe, vibHoy: _vibHoy, vibManana: _vibMan, vibAdelanto: _ngpVibAdelanto, vibAdelantoPas: _ngpVibAdelantoPas, vibPasado: _vibPas, propensosHoy: _ngpPropensosHoy, grupoDelDia: _grupoDelDiaNums, despuesDeNum: _ngpDespuesDeNum, ultimoDeLot: _ngpUltimoDeLot, crucePegadoDom: _ngpCrucePegadoDom, termRepite: _ngpTermRepite, sum9Fechas: _ngpSum9Fechas, fam2882: _ngpFam2882, fam2882Back: _ngpFam2882Back, flotRez: _ngpFlotRez, grpExcBack: _ngpGrpExcBack, topMes: _ngpTopMes, frios: _ngpFrios, ausencia: _ngpAusencia, candidatosDe: _candidatosDeL
                 };
                 try { _efvGuardarSnapshotHoy(); } catch (eSnap) {} // V46.9.144: foto diaria del extracto
                 return h;
@@ -32879,9 +32910,15 @@ function senalesDe(nn) {
                                     html += '<span style="flex-basis:100%;height:0;"></span>';
                                     html += '<span style="font-size:11px;font-weight:bold;color:#c4b5fd;">🔮 y PASADO MAÑANA — ' + DIAS_V[dV3.getDay()] + ' ' + dV3.getDate() + ' de ' + MES_V[dV3.getMonth()] + ':</span>';
                                     _vibKeys3.forEach(function(vk3) {
-                                        html += '<span title="' + vk3 + ': vibración de PASADO MAÑANA — SOLO informativa, NO suma señal en los candidatos" style="font-family:monospace;font-size:13px;font-weight:bold;color:#ddd6fe;background:rgba(139,92,246,0.10);border:1px dotted #a78bfa;border-radius:6px;padding:2px 7px;cursor:help;opacity:0.85;">' + vk3 + '</span>';
+                                        html += '<span title="' + vk3 + ': vibración de PASADO MAÑANA — suma señal +1 en los pendientes cuando se adelanta (3 o más salidas hoy)" style="font-family:monospace;font-size:13px;font-weight:bold;color:#ddd6fe;background:rgba(139,92,246,0.10);border:1px dotted #a78bfa;border-radius:6px;padding:2px 7px;cursor:help;opacity:0.85;">' + vk3 + '</span>';
                                     });
-                                    html += '<span style="font-size:9px;font-weight:bold;color:#a78bfa;background:rgba(139,92,246,0.12);border:1px dotted #a78bfa;border-radius:5px;padding:2px 7px;">ℹ️ solo informativa — NO suma señal</span>';
+                                    // V46.9.223 (pedido de Leo): ahora es señal — alerta si se adelanta (3+ salidas)
+                                    var vpB = (F.vibAdelantoPas) ? F.vibAdelantoPas() : null;
+                                    if (vpB && vpB.activa) {
+                                        html += '<span title="Hoy ya salieron ' + vpB.apar + ' números de la vibración de PASADO MAÑANA: ' + vpB.salieron.map(function(v8p) { return v8p.n + ' (' + v8p.veces + 'x: ' + v8p.salidas.map(function(s8p) { return s8p.l; }).join(', ') + ')'; }).join(' · ').replace(/"/g, '') + '. Los pendientes de esa vibración reciben +1 en las sugerencias." style="animation:ngpParpadeo 1.1s infinite;font-size:10px;font-weight:bold;color:#fff;background:linear-gradient(90deg,#6d28d9,#a855f7);border:2px solid #ddd6fe;border-radius:7px;padding:3px 9px;cursor:help;">🚨 ¡La vibración de PASADO MAÑANA se está ADELANTANDO! Hoy ya salieron: ' + vpB.salieron.map(function(v7p) { return v7p.n + (v7p.veces > 1 ? ' ×' + v7p.veces : ''); }).join(', ') + ' (' + vpB.apar + ' salidas) → señal +1 activa en sus pendientes</span>';
+                                    } else {
+                                        html += '<span style="font-size:9px;font-weight:bold;color:#a78bfa;background:rgba(139,92,246,0.12);border:1px dotted #a78bfa;border-radius:5px;padding:2px 7px;">ℹ️ suma señal +1 SOLO si se adelanta hoy (3 o más salidas' + ((vpB && vpB.apar) ? ' — van ' + vpB.apar : '') + ')</span>';
+                                    }
                                 }
                             } catch (eVb3) {}
                             // V46.9.213 (pedido de Leo): alerta si la vibración de MAÑANA se ADELANTA
@@ -74449,7 +74486,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r156 · v46.9.222</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r157 · v46.9.223</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
