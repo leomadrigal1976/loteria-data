@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.224</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.225</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -2669,6 +2669,7 @@
                         <button onclick="_ghGuardarYProbar()" style="background:linear-gradient(135deg,#1e40af,#3b82f6);border:1px solid #3b82f6;color:#fff;padding:9px 20px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;">💾 Guardar y probar conexión</button>
                         <button onclick="_ghSubirData(false)" style="background:linear-gradient(135deg,#065f46,#10b981);border:1px solid #10b981;color:#fff;padding:9px 20px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;">☁️ Subir ahora</button>
                         <button onclick="_ghVerificarNube()" style="background:linear-gradient(135deg,#5b21b6,#8b5cf6);border:1px solid #8b5cf6;color:#fff;padding:9px 20px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;">🔍 Verificar nube</button>
+                        <button onclick="_ghBajarAhora()" style="background:linear-gradient(135deg,#0e7490,#22d3ee);border:1px solid #22d3ee;color:#fff;padding:9px 20px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;">🔄 Bajar de la nube ahora</button>
                         <label style="display:flex;align-items:center;gap:6px;color:#cbd5e1;font-size:12px;cursor:pointer;">
                             <input type="checkbox" id="ghSyncActivo" onchange="_ghActivoCambio()" style="cursor:pointer;accent-color:#3b82f6;"> Subida automática al capturar
                         </label>
@@ -6339,7 +6340,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.224</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.225</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -14510,6 +14511,24 @@ ${groups.map((g,i)=>`
                 _ghPill('aviso', 'No se pudo bajar de la nube al abrir: ' + (e && e.message ? e.message : 'error') + ' — se usan los datos locales');
             });
         }
+
+        // V46.9.225 (reporte de Leo): bajar de la nube a demanda y AUTOMÁTICAMENTE.
+        // Antes solo se bajaba UNA vez al abrir: si otra máquina capturaba después,
+        // esta no lo veía hasta recargar la página. Ahora cada 3 minutos se trae y
+        // fusiona lo nuevo de la nube (solo lectura — no sube ni pisa lo local).
+        function _ghBajarAhora() {
+            _ghYaBajoAlAbrir = false;
+            _ghBajarYFusionarAlAbrir();
+        }
+        try {
+            setInterval(function() {
+                try {
+                    if (typeof _ghSyncEnEjecucion !== 'undefined' && _ghSyncEnEjecucion) return; // no chocar con una subida en curso
+                    _ghYaBajoAlAbrir = false;
+                    _ghBajarYFusionarAlAbrir();
+                } catch (eAB) {}
+            }, 180000);
+        } catch (eABI) {}
 
         // Guardar config desde el panel y probar la conexión
         function _ghGuardarYProbar() {
