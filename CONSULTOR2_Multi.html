@@ -28506,12 +28506,21 @@ function senalesDe(nn) {
                 // V46.9.229 (pedido de Leo): panel BACKTEST "DESPUÉS DE"
                 h += '<div id="ngpDdeBackPanel" style="display:none;background:rgba(19,78,74,0.4);border:1px solid #2dd4bf;border-radius:9px;padding:10px;margin-top:9px;">';
                 h += '<div style="font-size:11px;font-weight:bold;color:#99f6e4;margin-bottom:6px;">🎯 BACKTEST "DESPUÉS DE" — ¿el top 10 de "números que salen después" acierta el sorteo SIGUIENTE? Cada sorteo del historial es un trigger; cuenta el cruce último-del-día → primero-del-día-siguiente. El top 10 se calcula con el historial completo actual (decisión de Leo: más rápido, con leve sesgo a favor).</div>';
+                // V46.9.232 (pedido de Leo): selección múltiple de loterías con
+                // checkboxes y fechas que se llenan solas con el rango de datos.
+                h += '<div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;flex-wrap:wrap;">';
+                h += '<span style="font-size:11px;font-weight:bold;color:#99f6e4;">Loterías (una, varias o todas):</span>';
+                h += '<button onclick="_ngpDdeBackTodas(true)" style="background:rgba(45,212,191,0.15);border:1px solid #2dd4bf;color:#99f6e4;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">✓ Todas</button>';
+                h += '<button onclick="_ngpDdeBackTodas(false)" style="background:rgba(148,163,184,0.12);border:1px solid #64748b;color:#cbd5e1;padding:3px 10px;border-radius:5px;cursor:pointer;font-size:10px;font-weight:bold;">✕ Ninguna</button>';
+                h += '</div>';
+                h += '<div style="display:flex;flex-wrap:wrap;gap:5px 12px;margin-bottom:8px;">';
+                lotsActivas.slice().sort().forEach(function(L0db) { h += '<label style="font-size:11px;color:#ccfbf1;cursor:pointer;display:flex;align-items:center;gap:4px;"><input type="checkbox" class="ngpDdeBackLotCk" value="' + L0db + '" checked onchange="_ngpDdeBackCk(this)" style="cursor:pointer;"> ' + L0db + '</label>'; });
+                h += '</div>';
+                h += '<div id="ngpDdeBackRango" style="font-size:10px;color:#5eead4;margin-bottom:6px;"></div>';
                 h += '<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px;">';
-                h += '<div><label style="font-size:10px;font-weight:bold;color:#99f6e4;display:block;margin-bottom:3px;">Lotería:</label><select id="ngpDdeBackLot" onchange="_efvSync(this)" style="background:#042f2e;color:#fff;border:1px solid #2dd4bf;border-radius:6px;padding:6px 8px;font-size:12px;"><option value="__TODAS__" selected>🌎 Todas</option>';
-                lotsActivas.slice().sort().forEach(function(L0db) { h += '<option value="' + L0db + '">' + L0db + '</option>'; });
-                h += '</select></div>';
-                h += '<div><label style="font-size:10px;font-weight:bold;color:#99f6e4;display:block;margin-bottom:3px;">Desde (opcional):</label><input id="ngpDdeBackD1" type="date" onchange="_efvSync(this)" style="background:#042f2e;color:#ccfbf1;border:1px solid #2dd4bf;border-radius:6px;padding:5px 8px;font-size:12px;"></div>';
-                h += '<div><label style="font-size:10px;font-weight:bold;color:#99f6e4;display:block;margin-bottom:3px;">Hasta (opcional):</label><input id="ngpDdeBackD2" type="date" onchange="_efvSync(this)" style="background:#042f2e;color:#ccfbf1;border:1px solid #2dd4bf;border-radius:6px;padding:5px 8px;font-size:12px;"></div>';
+                h += '<div><label style="font-size:10px;font-weight:bold;color:#99f6e4;display:block;margin-bottom:3px;">Desde:</label><input id="ngpDdeBackD1" type="date" onchange="_efvSync(this)" style="background:#042f2e;color:#ccfbf1;border:1px solid #2dd4bf;border-radius:6px;padding:5px 8px;font-size:12px;"></div>';
+                h += '<div><label style="font-size:10px;font-weight:bold;color:#99f6e4;display:block;margin-bottom:3px;">Hasta:</label><input id="ngpDdeBackD2" type="date" onchange="_efvSync(this)" style="background:#042f2e;color:#ccfbf1;border:1px solid #2dd4bf;border-radius:6px;padding:5px 8px;font-size:12px;"></div>';
+                h += '<button onclick="_ngpDdeBackFechas()" title="Volver a llenar las fechas con todo el historial disponible de lo seleccionado" style="background:rgba(45,212,191,0.15);border:1px solid #2dd4bf;color:#99f6e4;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:bold;">🗓 Todo el historial</button>';
                 h += '<button onclick="_ngpDdeBackRender()" style="background:linear-gradient(135deg,#134e4a,#2dd4bf);border:1px solid #99f6e4;color:#fff;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold;">🎯 Ejecutar backtest</button>';
                 h += '</div>';
                 h += '<div id="ngpDdeBackResultado" style="max-height:640px;overflow-y:auto;"><div style="font-size:11px;color:#94a3b8;padding:6px;">Elegí lotería (o Todas), un rango de fechas si querés acotar (vacío = todo el historial), y presioná Ejecutar.</div></div>';
@@ -32699,6 +32708,53 @@ function senalesDe(nn) {
                     html += '</div>';
                 });
             }
+            // V46.9.231 (pedido de Leo): RÉCORD DE "PEGADA" — la racha máxima que
+            // cada grupo estuvo sin salir (sorteos + período + días), cuánto lleva
+            // AHORA, y si está repitiendo su récord (la condición de la señal ⏳ +2).
+            try {
+                if (F0.grpMaxSeq && F0.lotsActivas) {
+                    var fmt31 = function(d0) { if (!d0) return '—'; var p0 = d0.split('-'); return p0[2] + '/' + p0[1] + '/' + p0[0].slice(2); };
+                    var recs31 = [];
+                    F0.lotsActivas.slice().sort().forEach(function(L31) {
+                        var mm31 = F0.grpMaxSeq(L31) || {};
+                        Object.keys(mm31).forEach(function(g31) {
+                            var e31 = mm31[g31];
+                            if (!e31 || e31.salidas < 10) return;
+                            var dd31 = null;
+                            try { if (e31.desde && e31.hasta && F0.difDias) dd31 = F0.difDias(e31.desde, e31.hasta); } catch (eD31) {}
+                            recs31.push({ L: L31, g: g31, max: e31.max, cur: e31.cur, pct: e31.pct, desde: e31.desde, hasta: e31.hasta, dias: dd31, alerta: e31.alerta, igualo: e31.igualo });
+                        });
+                    });
+                    recs31.sort(function(a, b) { return b.pct - a.pct; });
+                    var alertas31 = recs31.filter(function(x0) { return x0.alerta; });
+                    html += '<div style="background:rgba(0,0,0,0.35);border:1.5px solid #fb923c;border-radius:9px;padding:9px 12px;margin-top:10px;">';
+                    html += '<div style="font-size:12px;font-weight:bold;color:#fdba74;margin-bottom:6px;">📛 RÉCORD DE "PEGADA" POR GRUPO — la vez que MÁS sorteos estuvo sin salir cada grupo, cuánto duró, y si AHORA lo está repitiendo</div>';
+                    if (alertas31.length) {
+                        html += '<div style="font-size:10px;font-weight:bold;color:#fecaca;margin-bottom:5px;">🔥 REPITIENDO SU RÉCORD AHORA — estos disparan la señal ⏳ (+2) en sus números pendientes:</div>';
+                        alertas31.forEach(function(x31) {
+                            html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:rgba(69,10,10,0.6);border:1.5px solid ' + (x31.igualo ? '#f87171' : '#fb923c') + ';border-radius:7px;padding:5px 9px;margin-bottom:4px;font-size:10px;color:#fecaca;">';
+                            html += '<b style="color:#fff;font-size:11px;">' + x31.L + '</b>';
+                            html += '<span style="background:rgba(220,38,38,0.35);border:1px solid #f87171;border-radius:5px;padding:1px 8px;color:#fff;font-weight:bold;">' + x31.g + '</span>';
+                            html += '<span>récord: <b style="color:#fff;">' + x31.max + ' sorteos</b>' + (x31.desde ? ' <span style="color:#fda4af;">(' + fmt31(x31.desde) + ' → ' + fmt31(x31.hasta) + (x31.dias !== null ? ' · ' + x31.dias + ' días' : '') + ')</span>' : '') + '</span>';
+                            html += '<span>ahora lleva: <b style="color:#fff;">' + x31.cur + '</b> = <b style="color:' + (x31.pct >= 1 ? '#f87171' : '#fb923c') + ';">' + Math.round(x31.pct * 100) + '% del récord</b></span>';
+                            html += (x31.igualo ? '<span class="ngp-parpadea" style="background:rgba(248,113,113,0.25);border:1.5px solid #f87171;border-radius:6px;padding:2px 8px;font-weight:bold;color:#fecaca;">🔥🔥 IGUALÓ O SUPERÓ el récord — +2</span>' : '<span class="ngp-parpadea" style="background:rgba(251,146,60,0.2);border:1.5px solid #fb923c;border-radius:6px;padding:2px 8px;font-weight:bold;color:#fdba74;">🔥 acercándose — +2</span>');
+                            html += '</div>';
+                        });
+                    } else {
+                        html += '<div style="font-size:10px;color:#94a3b8;margin-bottom:5px;">Ahora mismo ningún grupo alcanza el 80% de su récord (el umbral que dispara la alerta y la señal ⏳ +2).</div>';
+                    }
+                    html += '<div style="font-size:10px;font-weight:bold;color:#fdba74;margin:7px 0 4px;">👀 Los 12 más cercanos a su récord (para vigilar):</div>';
+                    html += '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
+                    recs31.slice(0, 12).forEach(function(x31) {
+                        var c31 = x31.pct >= 0.8 ? '#f87171' : x31.pct >= 0.6 ? '#fb923c' : '#94a3b8';
+                        var tt31 = x31.L + ' · ' + x31.g + ': récord ' + x31.max + ' sorteos sin salir' + (x31.desde ? ' (' + fmt31(x31.desde) + ' → ' + fmt31(x31.hasta) + (x31.dias !== null ? ', ' + x31.dias + ' días' : '') + ')' : '') + ' · ahora lleva ' + x31.cur;
+                        html += '<span title="' + tt31.replace(/"/g, '') + '" style="background:rgba(2,6,23,0.75);border:1px solid ' + c31 + ';border-radius:6px;padding:3px 8px;font-size:10px;color:#e2e8f0;cursor:help;">' + x31.L + ' · <b>' + x31.g + '</b>: ' + x31.cur + '/' + x31.max + ' (<b style="color:' + c31 + ';">' + Math.round(x31.pct * 100) + '%</b>)</span>';
+                    });
+                    html += '</div>';
+                    html += '<div style="font-size:9px;color:#94a3b8;margin-top:6px;line-height:1.5;">El récord se mide en SORTEOS de esa lotería; entre paréntesis, el período que duró esa racha (fechas y días). La alerta 🔥 y la señal ⏳ (+2) se activan al llegar al 80% del récord y suben a 🔥🔥 al igualarlo o superarlo (con mínimo 10 salidas de historial y récord mayor que la cadencia). El mismo detalle por grupo aparece en la ventana flotante 🎯 Grupos Más Rezagados.</div>';
+                    html += '</div>';
+                }
+            } catch (e31) {}
             html += '<div style="font-size:8px;color:#64748b;margin-top:5px;line-height:1.6;">Método honesto: se recorre cada lotería en orden cronológico y la cadencia del grupo se calcula SOLO con lo conocido hasta ese momento (sin ver el futuro). Un evento se abre cuando la sequía cruza 1.5× la cadencia (mismo umbral de la señal 📊 MUY EXCEDIDO) con mínimo 5 salidas de historial, y se cierra cuando el grupo vuelve a salir. El azar de referencia es geométrico (p = tamaño del grupo ÷ 100): si el índice sale ~1.00, el atraso NO predice el momento de salida (cada sorteo es independiente); solo un índice claramente mayor con 30+ eventos respalda darle peso al excedido. Los eventos "abiertos HOY" son grupos que siguen excedidos en este momento.</div>';
             conts.forEach(function(x) { x.innerHTML = html; });
         }
@@ -32831,6 +32887,43 @@ function senalesDe(nn) {
             var abrir = (ps[0].style.display === 'none');
             _ngpCerrarOtros('ngpDdeBackPanel');
             ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
+            if (abrir) _ngpDdeBackFechas(); // V46.9.232: fechas automáticas al abrir
+        }
+        // V46.9.232 (pedido de Leo): selección múltiple + fechas automáticas
+        function _ngpDdeBackTodas(on) {
+            document.querySelectorAll('.ngpDdeBackLotCk').forEach(function(c) { c.checked = !!on; });
+            _ngpDdeBackFechas();
+        }
+        function _ngpDdeBackCk(el) {
+            try {
+                var v = el.value, ck = el.checked;
+                // sincronizar el mismo checkbox en las demás instancias (IDs duplicados)
+                document.querySelectorAll('.ngpDdeBackLotCk').forEach(function(c) { if (c.value === v) c.checked = ck; });
+            } catch (e) {}
+            _ngpDdeBackFechas();
+        }
+        function _ngpDdeBackFechas() {
+            // detecta desde cuándo y hasta cuándo hay datos de lo seleccionado y
+            // llena las fechas SOLO (el usuario puede acotarlas después a mano).
+            try {
+                var selSet = {};
+                document.querySelectorAll('.ngpDdeBackLotCk:checked').forEach(function(c2) { selSet[c2.value] = true; });
+                var min = null, max = null, nTot = 0;
+                (capturedResults || []).forEach(function(r) {
+                    if (!r || !r.date || !r.number || !selSet[r.lottery]) return;
+                    if (('' + r.number).length > 2) return;
+                    nTot++;
+                    if (!min || r.date < min) min = r.date;
+                    if (!max || r.date > max) max = r.date;
+                });
+                document.querySelectorAll('[id="ngpDdeBackD1"]').forEach(function(i1) { i1.value = min || ''; });
+                document.querySelectorAll('[id="ngpDdeBackD2"]').forEach(function(i2) { i2.value = max || ''; });
+                document.querySelectorAll('[id="ngpDdeBackRango"]').forEach(function(s0) {
+                    s0.innerHTML = min
+                        ? '🗓 Hay datos de lo seleccionado desde el <b style="color:#fff;">' + min + '</b> hasta el <b style="color:#fff;">' + max + '</b> (' + nTot.toLocaleString() + ' sorteos) — las fechas de abajo se llenaron solas con ese rango; acotalas si querés analizar un período.'
+                        : 'Sin datos para lo seleccionado — marcá al menos una lotería.';
+                });
+            } catch (e) {}
         }
         function _ngpDdeBackCalc(L, d1, d2) {
             var P = _ngpParesDe(L);
@@ -32862,61 +32955,90 @@ function senalesDe(nn) {
             if (!conts.length) return;
             var F = window._ngpFiltro;
             if (!F) { conts.forEach(function(x) { x.innerHTML = '<div style="font-size:11px;color:#f87171;padding:6px;">Módulo no disponible todavía.</div>'; }); return; }
-            var lot = '__TODAS__', d1 = '', d2 = '';
-            document.querySelectorAll('[id="ngpDdeBackLot"]').forEach(function(s2, i2) { if (i2 === 0) lot = s2.value || '__TODAS__'; });
+            var d1 = '', d2 = '';
+            // V46.9.232 (pedido de Leo): selección múltiple con checkboxes
+            var selSet9 = {};
+            document.querySelectorAll('.ngpDdeBackLotCk:checked').forEach(function(c2) { selSet9[c2.value] = true; });
+            var selLots = Object.keys(selSet9).sort();
             document.querySelectorAll('[id="ngpDdeBackD1"]').forEach(function(s2, i2) { if (i2 === 0) d1 = s2.value || ''; });
             document.querySelectorAll('[id="ngpDdeBackD2"]').forEach(function(s2, i2) { if (i2 === 0) d2 = s2.value || ''; });
             var fmtH = function(t0) { try { return (typeof convertTo12Hour === 'function' && t0) ? convertTo12Hour(t0) : (t0 || ''); } catch (e0) { return t0 || ''; } };
             var html = '';
+            // V46.9.232 (pedido de Leo): % de acierto GRANDE, imposible de no ver
             var resumenCaja = function(tit, r) {
                 if (!r.casos) return '<div style="font-size:11px;color:#94a3b8;padding:6px;">' + tit + ': sin casos suficientes en el rango elegido.</div>';
                 var pH = Math.round(1000 * r.hits / r.casos) / 10;
+                var p5c = Math.round(1000 * r.h5 / r.casos) / 10;
+                var pUc = Math.round(1000 * r.hU / r.casos) / 10;
                 var idx = (r.hits / r.casos) / 0.10;
                 var col = idx >= 1.15 ? '#4ade80' : idx <= 0.9 ? '#f87171' : '#fde68a';
-                var s = '<div style="background:rgba(0,0,0,0.3);border:2px solid ' + col + ';border-radius:9px;padding:9px 12px;margin-bottom:8px;">';
-                s += '<div style="font-size:13px;font-weight:bold;color:' + col + ';margin-bottom:4px;">' + tit + ' — acierta el <b>' + pH + '%</b> de las veces (×' + idx.toFixed(2) + ' vs ~10% del azar de 10 números)</div>';
-                s += '<div style="font-size:11px;color:#e0f2fe;">De <b style="color:#fff;">' + r.casos + '</b> triggers evaluados, el sorteo siguiente estuvo en el top 10 <b style="color:#fff;">' + r.hits + '</b> veces · en los <b style="color:#4ade80;">PRIMEROS 5</b>: ' + r.h5 + ' (' + (r.hits ? Math.round(100 * r.h5 / r.hits) : 0) + '% de los aciertos) · en los <b style="color:#fbbf24;">ÚLTIMOS 5</b>: ' + r.hU + (r.pocos ? ' · <span style="color:#94a3b8;">' + r.pocos + ' triggers sin historial suficiente se omitieron</span>' : '') + '</div>';
-                s += '</div>';
+                var s = '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:rgba(0,0,0,0.35);border:2px solid ' + col + ';border-radius:10px;padding:10px 14px;margin-bottom:8px;">';
+                s += '<div style="text-align:center;min-width:120px;"><div style="font-size:34px;font-weight:bold;line-height:1;color:' + col + ';text-shadow:0 0 12px ' + col + '55;">' + pH + '%</div><div style="font-size:9px;font-weight:bold;color:#99f6e4;letter-spacing:1px;margin-top:3px;">DE ACIERTO</div><div style="font-size:9px;color:#94a3b8;">×' + idx.toFixed(2) + ' vs ~10% azar</div></div>';
+                s += '<div style="flex:1;min-width:240px;">';
+                s += '<div style="font-size:12px;font-weight:bold;color:' + col + ';margin-bottom:5px;">' + tit + '</div>';
+                s += '<div style="font-size:11px;color:#e0f2fe;margin-bottom:5px;">De <b style="color:#fff;">' + r.casos.toLocaleString() + '</b> triggers evaluados, el sorteo siguiente estuvo en el top 10 <b style="color:#fff;">' + r.hits.toLocaleString() + '</b> veces' + (r.pocos ? ' <span style="color:#94a3b8;">(' + r.pocos + ' sin historial suficiente se omitieron)</span>' : '') + '</div>';
+                s += '<div style="display:flex;gap:6px;flex-wrap:wrap;">';
+                s += '<span style="background:rgba(20,83,45,0.7);border:1px solid #4ade80;border-radius:6px;padding:2px 9px;font-size:10px;color:#bbf7d0;">🟢 En los PRIMEROS 5: <b>' + r.h5.toLocaleString() + '</b> = <b>' + p5c + '%</b> de los triggers (' + (r.hits ? Math.round(100 * r.h5 / r.hits) : 0) + '% de los aciertos)</span>';
+                s += '<span style="background:rgba(113,63,18,0.7);border:1px solid #fbbf24;border-radius:6px;padding:2px 9px;font-size:10px;color:#fef3c7;">🟡 En los ÚLTIMOS 5: <b>' + r.hU.toLocaleString() + '</b> = <b>' + pUc + '%</b> de los triggers</span>';
+                s += '</div></div></div>';
                 return s;
             };
-            if (lot === '__TODAS__') {
+            if (!selLots.length) {
+                conts.forEach(function(x) { x.innerHTML = '<div style="font-size:11px;color:#fca5a5;padding:6px;">Marcá al menos una lotería y volvé a ejecutar.</div>'; });
+                return;
+            }
+            if (selLots.length > 1) {
                 var tot = { casos: 0, hits: 0, h5: 0, hU: 0, pocos: 0, det: [] };
                 var filas = [];
-                (F.lotsActivas || []).slice().sort().forEach(function(L9) {
+                selLots.forEach(function(L9) {
                     var r9 = _ngpDdeBackCalc(L9, d1, d2);
                     if (!r9.casos) return;
                     tot.casos += r9.casos; tot.hits += r9.hits; tot.h5 += r9.h5; tot.hU += r9.hU; tot.pocos += r9.pocos;
                     filas.push({ L: L9, r: r9 });
                 });
-                html += resumenCaja('🌎 TODAS las loterías' + (d1 || d2 ? ' (' + (d1 || 'inicio') + ' → ' + (d2 || 'hoy') + ')' : ''), tot);
+                var titSel = (selLots.length === (F.lotsActivas || []).length) ? '🌎 TODAS las loterías (' + selLots.length + ')' : '🌎 ' + selLots.length + ' loterías: ' + (selLots.join(', ').length > 70 ? selLots.slice(0, 5).join(', ') + '…' : selLots.join(', '));
+                html += resumenCaja(titSel + (d1 || d2 ? ' · ' + (d1 || 'inicio') + ' → ' + (d2 || 'hoy') : ''), tot);
                 filas.sort(function(a, b) { return (b.r.hits / b.r.casos) - (a.r.hits / a.r.casos); });
-                html += '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
-                html += '<tr style="color:#99f6e4;text-align:left;"><th style="padding:4px 6px;border-bottom:1px solid #2dd4bf;">Lotería</th><th style="padding:4px 6px;border-bottom:1px solid #2dd4bf;">Triggers</th><th style="padding:4px 6px;border-bottom:1px solid #2dd4bf;">Aciertos</th><th style="padding:4px 6px;border-bottom:1px solid #2dd4bf;">%</th><th style="padding:4px 6px;border-bottom:1px solid #2dd4bf;">En primeros 5</th><th style="padding:4px 6px;border-bottom:1px solid #2dd4bf;">En últimos 5</th></tr>';
-                filas.forEach(function(f9) {
+                // V46.9.231 (reporte de Leo): filas propias con fondo oscuro — las
+                // <table> heredaban el CSS global claro de la app y no se leían.
+                html += '<div style="display:flex;font-size:10px;font-weight:bold;color:#99f6e4;background:rgba(4,47,46,0.97);border:1px solid #2dd4bf;border-radius:7px 7px 0 0;padding:5px 9px;gap:8px;"><span style="flex:2;">Lotería</span><span style="flex:1;text-align:center;">Triggers</span><span style="flex:1;text-align:center;">Aciertos</span><span style="flex:1;text-align:center;">% acierto</span><span style="flex:1.4;text-align:center;color:#4ade80;">En primeros 5</span><span style="flex:1.4;text-align:center;color:#fbbf24;">En últimos 5</span></div>';
+                filas.forEach(function(f9, i9) {
                     var p9 = Math.round(1000 * f9.r.hits / f9.r.casos) / 10;
                     var c9 = p9 >= 11.5 ? '#4ade80' : p9 <= 9 ? '#f87171' : '#fde68a';
-                    html += '<tr style="color:#e2e8f0;"><td style="padding:3px 6px;border-bottom:1px solid rgba(45,212,191,0.2);font-weight:bold;">' + f9.L + '</td><td style="padding:3px 6px;border-bottom:1px solid rgba(45,212,191,0.2);">' + f9.r.casos + '</td><td style="padding:3px 6px;border-bottom:1px solid rgba(45,212,191,0.2);">' + f9.r.hits + '</td><td style="padding:3px 6px;border-bottom:1px solid rgba(45,212,191,0.2);color:' + c9 + ';font-weight:bold;">' + p9 + '%</td><td style="padding:3px 6px;border-bottom:1px solid rgba(45,212,191,0.2);">' + f9.r.h5 + '</td><td style="padding:3px 6px;border-bottom:1px solid rgba(45,212,191,0.2);">' + f9.r.hU + '</td></tr>';
+                    html += '<div style="display:flex;align-items:center;font-size:11px;color:#e0f2fe;background:' + (i9 % 2 ? 'rgba(2,26,25,0.97)' : 'rgba(4,38,36,0.97)') + ';border:1px solid rgba(45,212,191,0.3);border-top:none;padding:4px 9px;gap:8px;"><span style="flex:2;font-weight:bold;color:#fff;">' + f9.L + '</span><span style="flex:1;text-align:center;">' + f9.r.casos + '</span><span style="flex:1;text-align:center;">' + f9.r.hits + '</span><span style="flex:1;text-align:center;font-weight:bold;color:' + c9 + ';">' + p9 + '%</span><span style="flex:1.4;text-align:center;color:#4ade80;font-weight:bold;">' + f9.r.h5 + '</span><span style="flex:1.4;text-align:center;color:#fbbf24;font-weight:bold;">' + f9.r.hU + '</span></div>';
                 });
-                html += '</table>';
-                html += '<div style="font-size:9px;color:#64748b;margin-top:6px;line-height:1.6;">Para ver el detalle trigger por trigger (con el top 10 exacto de cada caso), elegí UNA lotería específica y volvé a ejecutar.</div>';
+                html += '<div style="font-size:9px;color:#64748b;margin-top:6px;line-height:1.6;">Para ver el detalle trigger por trigger (con el top 10 exacto de cada caso), dejá marcada UNA sola lotería y volvé a ejecutar.</div>';
             } else {
+                var lot = selLots[0];
                 var r = _ngpDdeBackCalc(lot, d1, d2);
                 html += resumenCaja('🎯 ' + lot + (d1 || d2 ? ' (' + (d1 || 'inicio') + ' → ' + (d2 || 'hoy') + ')' : ''), r);
                 if (r.det.length) {
                     html += '<div style="font-size:10px;font-weight:bold;color:#99f6e4;margin:6px 0 4px;">📋 DETALLE trigger por trigger (los ' + Math.min(120, r.det.length) + ' más recientes primero · en el top 10: <span style="color:#4ade80;">verde = primeros 5</span>, <span style="color:#fbbf24;">amarillo = últimos 5</span>, el recuadro = el que salió)</div>';
-                    html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
-                    html += '<tr style="color:#99f6e4;text-align:left;"><th style="padding:3px 5px;border-bottom:1px solid #2dd4bf;">Trigger (cuándo)</th><th style="padding:3px 5px;border-bottom:1px solid #2dd4bf;">Salió</th><th style="padding:3px 5px;border-bottom:1px solid #2dd4bf;">Top 10 que sugería</th><th style="padding:3px 5px;border-bottom:1px solid #2dd4bf;">Siguió</th><th style="padding:3px 5px;border-bottom:1px solid #2dd4bf;">Resultado</th></tr>';
+                    // V46.9.231 (reporte de Leo): filas de tarjeta con fondo oscuro
+                    // propio (las <table> heredaban el CSS global claro y no se leían)
+                    // y rediseño más claro: chips del top 10, acierto resaltado sólido.
                     r.det.slice(-120).reverse().forEach(function(d9) {
                         var topH = d9.top.map(function(x0, j0) {
                             var esHit = (j0 === d9.pos);
-                            var col0 = j0 < 5 ? '#4ade80' : '#fbbf24';
-                            var st0 = 'color:' + col0 + ';font-family:monospace;' + (esHit ? 'background:rgba(255,255,255,0.18);border:1px solid ' + col0 + ';border-radius:4px;padding:0 3px;font-weight:bold;' : '');
-                            return '<span style="' + st0 + '">' + x0.n + '</span>' + (j0 === 4 ? ' <span style="color:#475569;">|</span>' : '');
-                        }).join(' ');
-                        var res9 = d9.pos < 0 ? '<span style="color:#f87171;">✘ no estaba</span>' : (d9.pos < 5 ? '<span style="color:#4ade80;font-weight:bold;">✔ #' + (d9.pos + 1) + ' · primeros 5</span>' : '<span style="color:#fbbf24;font-weight:bold;">✔ #' + (d9.pos + 1) + ' · últimos 5</span>');
-                        html += '<tr style="color:#e2e8f0;"><td style="padding:2px 5px;border-bottom:1px solid rgba(45,212,191,0.15);white-space:nowrap;">' + d9.f + (d9.h ? ' ' + fmtH(d9.h) : '') + '</td><td style="padding:2px 5px;border-bottom:1px solid rgba(45,212,191,0.15);font-family:monospace;font-weight:bold;color:#fff;">' + d9.n + '</td><td style="padding:2px 5px;border-bottom:1px solid rgba(45,212,191,0.15);">' + topH + '</td><td style="padding:2px 5px;border-bottom:1px solid rgba(45,212,191,0.15);font-family:monospace;font-weight:bold;color:#fff;">' + d9.sig + '</td><td style="padding:2px 5px;border-bottom:1px solid rgba(45,212,191,0.15);">' + res9 + '</td></tr>';
+                            var p5c = j0 < 5;
+                            var st0 = esHit
+                                ? 'background:' + (p5c ? '#22c55e' : '#f59e0b') + ';color:#0a0f0a;border:1.5px solid #fff;font-weight:bold;box-shadow:0 0 7px ' + (p5c ? 'rgba(74,222,128,0.9)' : 'rgba(251,191,36,0.9)') + ';'
+                                : 'background:rgba(2,20,19,0.95);color:' + (p5c ? '#4ade80' : '#fbbf24') + ';border:1px solid ' + (p5c ? 'rgba(74,222,128,0.45)' : 'rgba(251,191,36,0.45)') + ';';
+                            return '<span style="display:inline-block;font-family:monospace;font-size:11px;border-radius:5px;padding:1px 5px;margin:1px;' + st0 + '">' + x0.n + '</span>' + (j0 === 4 ? '<span style="color:#155e75;font-weight:bold;margin:0 4px;">┃</span>' : '');
+                        }).join('');
+                        var res9 = d9.pos < 0
+                            ? '<span style="background:rgba(127,29,29,0.85);border:1px solid #f87171;color:#fecaca;border-radius:6px;padding:2px 9px;font-size:10px;font-weight:bold;white-space:nowrap;">✘ no estaba</span>'
+                            : (d9.pos < 5
+                                ? '<span style="background:#14532d;border:1.5px solid #4ade80;color:#bbf7d0;border-radius:6px;padding:2px 9px;font-size:10px;font-weight:bold;white-space:nowrap;">✔ #' + (d9.pos + 1) + ' · PRIMEROS 5</span>'
+                                : '<span style="background:#713f12;border:1.5px solid #fbbf24;color:#fef3c7;border-radius:6px;padding:2px 9px;font-size:10px;font-weight:bold;white-space:nowrap;">✔ #' + (d9.pos + 1) + ' · últimos 5</span>');
+                        html += '<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:' + (d9.pos >= 0 ? 'rgba(6,44,40,0.97)' : 'rgba(10,22,32,0.97)') + ';border:1px solid rgba(45,212,191,0.35);border-radius:8px;padding:5px 9px;margin-bottom:4px;">';
+                        html += '<span style="font-size:10px;color:#7dd3fc;white-space:nowrap;min-width:118px;">' + d9.f + (d9.h ? ' · ' + fmtH(d9.h) : '') + '</span>';
+                        html += '<span style="font-size:10px;color:#99f6e4;white-space:nowrap;">salió <b style="font-family:monospace;font-size:14px;color:#fff;background:rgba(45,212,191,0.25);border:1px solid #2dd4bf;border-radius:5px;padding:0 6px;">' + d9.n + '</b></span>';
+                        html += '<span style="flex:1;min-width:250px;">' + topH + '</span>';
+                        html += '<span style="font-size:10px;color:#99f6e4;white-space:nowrap;">siguió <b style="font-family:monospace;font-size:14px;color:#fff;background:rgba(56,189,248,0.25);border:1px solid #38bdf8;border-radius:5px;padding:0 6px;">' + d9.sig + '</b></span>';
+                        html += res9;
+                        html += '</div>';
                     });
-                    html += '</table>';
                 }
             }
             html += '<div style="font-size:9px;color:#64748b;margin-top:6px;line-height:1.6;">📝 El top 10 de cada trigger se calcula con el historial COMPLETO actual (decisión de Leo): es más rápido pero tiene un leve sesgo a favor, porque el top ya "conoce" los sorteos que se están evaluando. El azar de referencia es ~10% (10 números de 100). La secuencia es cronológica corrida: el último sorteo de un día se empata con el primero del día siguiente.</div>';
@@ -32966,13 +33088,21 @@ function senalesDe(nn) {
             }
             if (!rows.length) html += '<div style="font-size:11px;color:#94a3b8;padding:6px;">Sin datos suficientes (se piden 8+ apariciones con sorteo siguiente).</div>';
             else {
-                html += '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
-                html += '<tr style="color:#fde68a;text-align:left;"><th style="padding:4px 6px;border-bottom:1px solid #f59e0b;">Activador</th><th style="padding:4px 6px;border-bottom:1px solid #f59e0b;">Su grupo</th><th style="padding:4px 6px;border-bottom:1px solid #f59e0b;">Activó / Apariciones</th><th style="padding:4px 6px;border-bottom:1px solid #f59e0b;">Tasa</th><th style="padding:4px 6px;border-bottom:1px solid #f59e0b;">vs azar</th><th style="padding:4px 6px;border-bottom:1px solid #f59e0b;">Señal</th></tr>';
-                rows.slice(0, 15).forEach(function(r0) {
+                // V46.9.231 (reporte de Leo): filas propias con fondo oscuro — las
+                // <table> heredaban el CSS global claro de la app y no se leían.
+                html += '<div style="display:flex;font-size:10px;font-weight:bold;color:#fde68a;background:rgba(48,24,4,0.97);border:1px solid #f59e0b;border-radius:7px 7px 0 0;padding:5px 9px;gap:8px;"><span style="flex:0.9;">Activador</span><span style="flex:1.1;">Su grupo</span><span style="flex:1.6;text-align:center;">Activó / Apariciones</span><span style="flex:0.8;text-align:center;">Tasa</span><span style="flex:0.8;text-align:center;">vs azar</span><span style="flex:2;">Señal</span></div>';
+                rows.slice(0, 15).forEach(function(r0, i0) {
                     var fu = (r0.idx >= 1.5 && r0.a >= 4);
-                    html += '<tr style="color:#e7e5e4;' + (fu ? 'background:rgba(245,158,11,0.10);' : '') + '"><td style="padding:3px 6px;border-bottom:1px solid rgba(245,158,11,0.2);font-family:monospace;font-weight:bold;font-size:14px;color:#fff;">' + r0.n + '</td><td style="padding:3px 6px;border-bottom:1px solid rgba(245,158,11,0.2);">' + r0.g + '</td><td style="padding:3px 6px;border-bottom:1px solid rgba(245,158,11,0.2);">' + r0.a + ' de ' + r0.tot + '</td><td style="padding:3px 6px;border-bottom:1px solid rgba(245,158,11,0.2);font-weight:bold;">' + Math.round(r0.rate * 100) + '%</td><td style="padding:3px 6px;border-bottom:1px solid rgba(245,158,11,0.2);color:' + (r0.idx >= 1.5 ? '#4ade80' : r0.idx >= 1 ? '#fde68a' : '#f87171') + ';font-weight:bold;">×' + r0.idx.toFixed(1) + '</td><td style="padding:3px 6px;border-bottom:1px solid rgba(245,158,11,0.2);">' + (fu ? '🧨 activador FUERTE (da +1)' : '—') + '</td></tr>';
+                    var bg0 = fu ? 'rgba(66,32,6,0.97)' : (i0 % 2 ? 'rgba(20,12,3,0.97)' : 'rgba(30,18,5,0.97)');
+                    html += '<div style="display:flex;align-items:center;font-size:11px;color:#e7e5e4;background:' + bg0 + ';border:1px solid rgba(245,158,11,0.35);border-top:none;padding:4px 9px;gap:8px;">';
+                    html += '<span style="flex:0.9;"><b style="font-family:monospace;font-size:15px;color:#fff;background:rgba(245,158,11,0.22);border:1px solid #f59e0b;border-radius:5px;padding:0 7px;">' + r0.n + '</b></span>';
+                    html += '<span style="flex:1.1;color:#fcd34d;">' + r0.g + '</span>';
+                    html += '<span style="flex:1.6;text-align:center;">' + r0.a + ' de ' + r0.tot + '</span>';
+                    html += '<span style="flex:0.8;text-align:center;font-weight:bold;color:#fff;">' + Math.round(r0.rate * 100) + '%</span>';
+                    html += '<span style="flex:0.8;text-align:center;font-weight:bold;color:' + (r0.idx >= 1.5 ? '#4ade80' : r0.idx >= 1 ? '#fde68a' : '#f87171') + ';">×' + r0.idx.toFixed(1) + '</span>';
+                    html += '<span style="flex:2;">' + (fu ? '<span style="background:rgba(245,158,11,0.2);border:1px solid #fbbf24;border-radius:6px;padding:1px 8px;font-size:10px;font-weight:bold;color:#fde68a;">🧨 activador FUERTE (da +1)</span>' : '<span style="color:#78716c;">—</span>') + '</span>';
+                    html += '</div>';
                 });
-                html += '</table>';
                 var gRows = Object.keys(aggG).filter(function(g0) { return g0 !== '—' && aggG[g0].tot >= 20; })
                     .map(function(g0) { return { g: g0, a: aggG[g0].a, tot: aggG[g0].tot, idx: esp ? (aggG[g0].a / aggG[g0].tot) / esp : 0 }; })
                     .sort(function(a, b) { return b.idx - a.idx; });
@@ -74786,7 +74916,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r163 · v46.9.229</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r166 · v46.9.232</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
