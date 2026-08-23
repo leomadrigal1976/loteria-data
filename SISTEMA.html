@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.225</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.228</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6340,7 +6340,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.225</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.228</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -7469,7 +7469,7 @@
             // V46.9.134 (pedido de Leo): bajar y fusionar con la nube al abrir la app,
             // para arrancar al día con lo cargado desde otros dispositivos. Se hace tras
             // cargar lo local (loadData es asíncrono con IndexedDB, damos un margen).
-            try { setTimeout(function() { _ghBajarYFusionarAlAbrir(); }, 2000); } catch (e) {}
+            try { setTimeout(function() { _ghBajarYFusionarAlAbrir(); }, 3500); } catch (e) {} // V46.9.228: espera a que IndexedDB restaure primero (2s)
             mostrarDashboardInteligente(); // Cargar dashboard al iniciar
             mostrarDashboardEme(); // Cargar dashboard de números Eme
             setEmeEfectividadDate(); // Inicializar fecha de efectividad Eme
@@ -14078,6 +14078,65 @@ ${groups.map((g,i)=>`
                 }
             } catch (e) {}
         }
+        // V46.9.226 (reporte de Leo): banner ROJO PERSISTENTE cuando la subida a la
+        // nube falla — se queda visible hasta que una subida vuelva a ser exitosa.
+        // V46.9.227 (reporte de Leo): aviso visible cuando BAJAN datos nuevos de la
+        // nube — los análisis de botón que ya estaban en pantalla se calcularon con
+        // los datos anteriores y hay que regenerarlos.
+        function _ghAvisoDatosNuevos(n) {
+            try {
+                var b = document.getElementById('ghSyncBannerNuevo');
+                if (!b) {
+                    b = document.createElement('div');
+                    b.id = 'ghSyncBannerNuevo';
+                    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99998;background:linear-gradient(90deg,#0e7490,#0891b2);color:#fff;font-size:13px;font-weight:bold;padding:10px 44px 10px 14px;box-shadow:0 3px 14px rgba(0,0,0,0.6);line-height:1.5;';
+                    var x = document.createElement('span');
+                    x.textContent = '✕';
+                    x.style.cssText = 'position:absolute;right:12px;top:8px;cursor:pointer;font-size:16px;background:rgba(0,0,0,0.25);border-radius:5px;padding:1px 8px;';
+                    x.onclick = function() { b.style.display = 'none'; };
+                    b.appendChild(x);
+                    var t = document.createElement('span');
+                    t.id = 'ghSyncBannerNuevoTxt';
+                    b.appendChild(t);
+                    document.body.appendChild(b);
+                }
+                b.style.display = 'block';
+                var tx = document.getElementById('ghSyncBannerNuevoTxt');
+                if (tx) tx.textContent = '⬇️ Llegaron ' + n + ' resultado(s) nuevos de la nube y ya están en esta máquina. El módulo DDG vs PM se refrescó solo — pero los ANÁLISIS que generaste con botón (🔥 Repeticiones, predicciones, etc.) se calcularon ANTES de que llegaran: presioná de nuevo su botón para recalcularlos con lo nuevo.';
+                if (b._timerN) clearTimeout(b._timerN);
+                b._timerN = setTimeout(function() { b.style.display = 'none'; }, 45000);
+            } catch (e) {}
+        }
+        function _ghBannerError(msg) {
+            try {
+                var m = '' + (msg || 'error desconocido');
+                var pista = '';
+                if (/bad credentials|401/i.test(m)) pista = ' → el TOKEN venció o es inválido: generá uno nuevo en GitHub (Settings → Developer settings → Tokens), pegalo en ⚙️ Sincronización y presioná "💾 Guardar y probar conexión".';
+                else if (/403|rate limit/i.test(m)) pista = ' → GitHub limitó las subidas por unos minutos; reintentá con "☁️ Subir ahora" en un rato.';
+                else if (/network|conexión|failed to fetch/i.test(m)) pista = ' → parece un problema de internet en esta máquina.';
+                var b = document.getElementById('ghSyncBannerErr');
+                if (!b) {
+                    b = document.createElement('div');
+                    b.id = 'ghSyncBannerErr';
+                    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(90deg,#7f1d1d,#dc2626);color:#fff;font-size:13px;font-weight:bold;padding:10px 44px 10px 14px;box-shadow:0 3px 14px rgba(0,0,0,0.6);animation:ngpParpadeo 1.2s infinite;line-height:1.5;';
+                    var x = document.createElement('span');
+                    x.textContent = '✕';
+                    x.style.cssText = 'position:absolute;right:12px;top:8px;cursor:pointer;font-size:16px;background:rgba(0,0,0,0.25);border-radius:5px;padding:1px 8px;';
+                    x.onclick = function() { b.style.display = 'none'; };
+                    b.appendChild(x);
+                    var t = document.createElement('span');
+                    t.id = 'ghSyncBannerErrTxt';
+                    b.appendChild(t);
+                    document.body.appendChild(b);
+                }
+                b.style.display = 'block';
+                var tx = document.getElementById('ghSyncBannerErrTxt');
+                if (tx) tx.textContent = '❌ LA SUBIDA A LA NUBE ESTÁ FALLANDO — las capturas están quedando SOLO en esta máquina y las demás NO las ven. Motivo: ' + m + pista + ' (este aviso se quita solo cuando una subida vuelva a funcionar)';
+            } catch (e) {}
+        }
+        function _ghBannerErrorQuitar() {
+            try { var b = document.getElementById('ghSyncBannerErr'); if (b) b.style.display = 'none'; } catch (e) {}
+        }
         function _ghVerificarNube() {
             var cfg = _ghLeerConfig();
             var repo = (cfg.repo && cfg.repo.indexOf('/') > 0) ? cfg.repo : 'leomadrigal1976/loteria-data';
@@ -14319,6 +14378,7 @@ ${groups.map((g,i)=>`
                         }
                         _ghActualizarEstado('ok', _msgFus);
                         _ghPill('ok', 'Nube sincronizada · ' + new Date().toLocaleTimeString('es-CR') + ' · ' + (capturedResults || []).length + ' reg.'); // V46.9.71
+                        try { _ghBannerErrorQuitar(); } catch (eBQ) {} // V46.9.226
                         try { if (typeof _ghToastOk === 'function') _ghToastOk(_msgFus); } catch (eT) {}
                         // V46.9.70: dejar registro persistente de la subida exitosa
                         try { localStorage.setItem(_GH_LAST_OK_KEY, JSON.stringify({ fecha: new Date().toLocaleString('es-CR'), registros: (capturedResults || []).length })); } catch (ePersist) {}
@@ -14332,6 +14392,7 @@ ${groups.map((g,i)=>`
                         _ghPill('error', ''); // V46.9.71: la píldora se oculta, el toast rojo avisa
                         // V46.9.70: el fallo se avisa SIEMPRE (toast flotante + consola), aunque sea subida automática
                         _ghToastError(msg);
+                        _ghBannerError(msg); // V46.9.226: aviso persistente, no pasajero
                         console.error('[GH-SYNC]', res);
                         // si había una pendiente, intentarla igual (por si esta falló pero la data cambió)
                         if (_ghSyncPendiente) { _ghSyncPendiente = false; setTimeout(function() { _ghSubirData(true); }, 1200); }
@@ -14344,6 +14405,7 @@ ${groups.map((g,i)=>`
                     _ghPill('error', ''); // V46.9.71
                     // V46.9.70: el fallo se avisa SIEMPRE
                     _ghToastError(e.message);
+                    _ghBannerError(e.message); // V46.9.226
                     console.error('[GH-SYNC]', e);
                     return false;
                 });
@@ -14495,6 +14557,8 @@ ${groups.map((g,i)=>`
                     try { updateHistoricalCounts(); } catch (e) {}
                     try { updateRecentResults(); } catch (e) {}
                     try { updateStats(); } catch (e) {}
+                    try { if (typeof _ngpContagioRefrescar === 'function') _ngpContagioRefrescar(); } catch (e) {} // V46.9.227
+                    try { _ghAvisoDatosNuevos(rf.nuevosDeNube); } catch (e) {} // V46.9.227
                     var msg = '✅ Al abrir se trajeron ' + rf.nuevosDeNube + ' registro(s) de la nube (cargados desde otro dispositivo). Ahora tenés ' + rf.total + ' registros, todo al día.';
                     _ghPill('ok', 'Al día con la nube · ' + rf.total + ' reg. (se bajaron ' + rf.nuevosDeNube + ')');
                     try { if (typeof _ghToastOk === 'function') _ghToastOk(msg); } catch (e) {}
@@ -14594,18 +14658,23 @@ ${groups.map((g,i)=>`
                 lastUpdate: new Date().toISOString()
             };
             
-            // 1. IndexedDB (primario, sin límite)
-            IDB.set('lotteryData', dataObj).catch(e => {
+            // 1. IndexedDB (bodega primaria, sin límite práctico)
+            // V46.9.228 (migración aprobada por Leo): se ELIMINA el espejo completo
+            // en localStorage — con 56k+ registros (7.4MB) superaba el límite del
+            // navegador y era una copia redundante. IndexedDB guarda todo; al
+            // confirmar el guardado se libera la copia vieja (una sola vez).
+            IDB.set('lotteryData', dataObj).then(() => {
+                try {
+                    if (localStorage.getItem('lotteryData') !== null) {
+                        localStorage.removeItem('lotteryData');
+                        console.log('🧹 localStorage liberado: los datos viven ahora solo en IndexedDB.');
+                    }
+                } catch (eLS) {}
+            }).catch(e => {
                 console.error('❌ IndexedDB save error:', e);
+                // Emergencia: solo si IndexedDB falla, intentar el espejo viejo
+                try { localStorage.setItem('lotteryData', JSON.stringify(dataObj)); } catch (e2) {}
             });
-            
-            // 2. localStorage (espejo, mismos datos exactos, puede fallar si >5MB)
-            try {
-                localStorage.setItem('lotteryData', JSON.stringify(dataObj));
-            } catch (e) {
-                // Si no cabe, no pasa nada — IndexedDB ya los tiene
-                console.log('💾 localStorage: no cabe. IndexedDB tiene los datos completos.');
-            }
 
             // 3. V46.9.66: sincronizar con GitHub (si está activo). No bloquea ni afecta
             // el guardado local; la data local sigue siendo la fuente de verdad.
@@ -14825,7 +14894,7 @@ ${groups.map((g,i)=>`
             
             const dataStr = JSON.stringify({ capturedResults, alerts });
             const sizeKB = (new Blob([dataStr]).size / 1024).toFixed(2);
-            document.getElementById('storageUsed').textContent = sizeKB + ' KB';
+            document.getElementById('storageUsed').textContent = sizeKB + ' KB (en IndexedDB ✓)'; // V46.9.228
 
             if (capturedResults.length > 0) {
                 const last = capturedResults[capturedResults.length - 1];
@@ -21247,18 +21316,14 @@ ${groups.map((g,i)=>`
             let html = '<div style="background: white; padding: 20px; border-radius: 12px; border: 2px solid #6366f1; margin-top: 10px;">';
             html += '<h4 style="color: #6366f1; margin: 0 0 15px 0;">📋 Estado de Capturas — ' + formatDateDDMMYYYY(localDate) + ' (' + today.getHours() + ':' + String(today.getMinutes()).padStart(2, '0') + ')</h4>';
             
-            // Storage status
-            const rawData = localStorage.getItem('lotteryData');
-            if (rawData) {
-                const sizeMB = (rawData.length / 1024 / 1024).toFixed(2);
-                const pctUsed = Math.min(parseFloat(sizeMB) / 5 * 100, 100).toFixed(0);
-                const barColor = parseFloat(pctUsed) > 80 ? '#dc2626' : parseFloat(pctUsed) > 60 ? '#f59e0b' : '#059669';
-                html += '<div style="background: #f3f4f6; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; font-size: 12px;">';
-                html += '💾 Almacenamiento: <strong>' + sizeMB + 'MB</strong> de ~5MB (' + pctUsed + '%)';
-                html += ' <div style="background: #e5e7eb; height: 6px; border-radius: 3px; margin-top: 4px; width: 200px; display: inline-block; vertical-align: middle;"><div style="background: ' + barColor + '; height: 100%; border-radius: 3px; width: ' + pctUsed + '%;"></div></div>';
+            // V46.9.228: los datos viven en IndexedDB — el tope de ~5MB ya NO aplica.
+            try {
+                const _szMB = (JSON.stringify(capturedResults).length / 1024 / 1024).toFixed(2);
+                html += '<div style="background: #ecfdf5; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; font-size: 12px; border: 1px solid #059669;">';
+                html += '💾 Datos: <strong>' + _szMB + 'MB</strong> · guardados en <strong>IndexedDB</strong> ✓ sin límite práctico (el viejo tope de 5MB ya no aplica)';
                 html += ' | ' + capturedResults.length + ' resultados totales | ' + todayResults.length + ' hoy';
                 html += '</div>';
-            }
+            } catch (eSz) {}
             
             let totalEsperados = 0;
             let totalCapturados = 0;
