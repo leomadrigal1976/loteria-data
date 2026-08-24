@@ -32963,9 +32963,19 @@ function senalesDe(nn) {
                 var posH = -1;
                 for (var j = 0; j < t.length; j++) { if (t[j].n === sg.n) { posH = j; break; } }
                 if (posH >= 0) { hits++; if (posH < 5) h5++; else hU++; }
-                det.push({ f: tr.date, h: tr.time || '', n: tr.n, sig: sg.n, pos: posH, top: t });
+                det.push({ f: tr.date, h: tr.time || '', n: tr.n, sig: sg.n, fs: sg.date, hs: sg.time || '', pos: posH, top: t }); // V46.9.235: fecha/hora del siguió
             }
-            return { casos: casos, hits: hits, h5: h5, hU: hU, pocos: pocos, det: det, d1: d1c, dN: dNc };
+            // V46.9.234 (reporte de Leo): el ÚLTIMO salido no puede ser trigger
+            // evaluado (todavía no existe su "siguiente") — se devuelve aparte
+            // como EN JUEGO, con su top 10 vivo.
+            var pend = null;
+            var uS = serieB.length ? serieB[serieB.length - 1] : null;
+            if (uS && (!d1 || uS.date >= d1) && (!d2 || uS.date <= d2)) {
+                var tP = t10[uS.n] || [];
+                var totPP = 0; tP.forEach(function(x0) { totPP += x0.c; });
+                pend = { f: uS.date, h: uS.time || '', n: uS.n, top: (tP.length === 10 && totPP >= 10) ? tP : null };
+            }
+            return { casos: casos, hits: hits, h5: h5, hU: hU, pocos: pocos, det: det, d1: d1c, dN: dNc, pend: pend };
         }
         function _ngpDdeBackRender(mantener9) {
             if (!mantener9) window._ngpDdeBackVer = 150; // V46.9.233: paginación del detalle
@@ -33045,6 +33055,27 @@ function senalesDe(nn) {
                 var lot = selLots[0];
                 var r = _ngpDdeBackCalc(lot, d1, d2);
                 html += resumenCaja('🎯 ' + lot + (d1 || d2 ? ' (' + (d1 || 'inicio') + ' → ' + (d2 || 'hoy') + ')' : ''), r);
+                // V46.9.234 (reporte de Leo): fila EN JUEGO — el último salido aún no
+                // tiene "sorteo siguiente"; por eso no puede ser trigger del detalle.
+                // Acá se muestra con su top 10 vivo: la sugerencia para el PRÓXIMO sorteo.
+                if (r.pend) {
+                    var fmtHP = function(t0) { try { return (typeof convertTo12Hour === 'function' && t0) ? convertTo12Hour(t0) : (t0 || ''); } catch (e0) { return t0 || ''; } };
+                    html += '<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:rgba(8,51,68,0.95);border:2px solid #38bdf8;border-radius:9px;padding:7px 10px;margin-bottom:8px;">';
+                    html += '<span style="font-size:10px;font-weight:bold;color:#7dd3fc;white-space:nowrap;">⏳ EN JUEGO AHORA</span>';
+                    html += '<span style="font-size:10px;color:#bae6fd;white-space:nowrap;">' + r.pend.f + (r.pend.h ? ' · ' + fmtHP(r.pend.h) : '') + '</span>';
+                    html += '<span style="font-size:10px;color:#99f6e4;white-space:nowrap;">salió <b style="font-family:monospace;font-size:14px;color:#fff;background:rgba(56,189,248,0.25);border:1px solid #38bdf8;border-radius:5px;padding:0 6px;">' + r.pend.n + '</b></span>';
+                    if (r.pend.top) {
+                        var topP = r.pend.top.map(function(x0, j0) {
+                            var p5p = j0 < 5;
+                            return '<span style="display:inline-block;font-family:monospace;font-size:11px;border-radius:5px;padding:1px 5px;margin:1px;background:rgba(2,20,19,0.95);color:' + (p5p ? '#4ade80' : '#fbbf24') + ';border:1px solid ' + (p5p ? 'rgba(74,222,128,0.45)' : 'rgba(251,191,36,0.45)') + ';">' + x0.n + '</span>' + (j0 === 4 ? '<span style="color:#155e75;font-weight:bold;margin:0 4px;">┃</span>' : '');
+                        }).join('');
+                        html += '<span style="flex:1;min-width:250px;">' + topP + '</span>';
+                    } else {
+                        html += '<span style="font-size:10px;color:#94a3b8;">sin historial suficiente para un top 10 confiable</span>';
+                    }
+                    html += '<span style="background:rgba(56,189,248,0.15);border:1px solid #38bdf8;color:#7dd3fc;border-radius:6px;padding:2px 9px;font-size:10px;font-weight:bold;white-space:nowrap;">⏳ esperando el sorteo siguiente</span>';
+                    html += '</div>';
+                }
                 if (r.det.length) {
                     var ver9 = window._ngpDdeBackVer || 150;
                     html += '<div style="font-size:10px;font-weight:bold;color:#99f6e4;margin:6px 0 4px;">📋 DETALLE trigger por trigger — mostrando <b style="color:#fff;">' + Math.min(ver9, r.det.length).toLocaleString() + '</b> de <b style="color:#fff;">' + r.det.length.toLocaleString() + '</b> (los más recientes primero) · <span style="color:#4ade80;">✔ ' + r.hits.toLocaleString() + ' aciertos</span> · <span style="color:#f87171;">✘ ' + (r.casos - r.hits).toLocaleString() + ' fallos</span> · <span style="color:#4ade80;">verde = primeros 5</span>, <span style="color:#fbbf24;">amarillo = últimos 5</span>, el recuadro = el que salió</div>';
@@ -33069,7 +33100,7 @@ function senalesDe(nn) {
                         html += '<span style="font-size:10px;color:#7dd3fc;white-space:nowrap;min-width:118px;">' + d9.f + (d9.h ? ' · ' + fmtH(d9.h) : '') + '</span>';
                         html += '<span style="font-size:10px;color:#99f6e4;white-space:nowrap;">salió <b style="font-family:monospace;font-size:14px;color:#fff;background:rgba(45,212,191,0.25);border:1px solid #2dd4bf;border-radius:5px;padding:0 6px;">' + d9.n + '</b></span>';
                         html += '<span style="flex:1;min-width:250px;">' + topH + '</span>';
-                        html += '<span style="font-size:10px;color:#99f6e4;white-space:nowrap;">siguió <b style="font-family:monospace;font-size:14px;color:#fff;background:rgba(56,189,248,0.25);border:1px solid #38bdf8;border-radius:5px;padding:0 6px;">' + d9.sig + '</b></span>';
+                        html += '<span style="font-size:10px;color:#99f6e4;white-space:nowrap;">siguió <b style="font-family:monospace;font-size:14px;color:#fff;background:rgba(56,189,248,0.25);border:1px solid #38bdf8;border-radius:5px;padding:0 6px;">' + d9.sig + '</b>' + (d9.fs ? ' <span style="color:#7dd3fc;font-size:9px;">(' + (d9.fs === d9.f ? 'mismo día' : d9.fs) + (d9.hs ? ' · ' + fmtH(d9.hs) : '') + ')</span>' : '') + '</span>'; // V46.9.235
                         html += res9;
                         html += '</div>';
                     });
@@ -74955,7 +74986,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r167 · v46.9.233</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r169 · v46.9.235</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
