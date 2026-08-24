@@ -29761,7 +29761,7 @@ function senalesDe(nn) {
                             var pct = mx > 0 ? (cur / mx) : 0;
                             var cadM = cntMS[g0] ? (serieM.length / cntMS[g0]) : null;
                             var alerta = (cntMS[g0] >= 10 && mx > (cadM || 0) && mx >= 5 && pct >= 0.8);
-                            outMS[g0] = { max: mx, cur: cur, pct: pct, salidas: cntMS[g0], desde: maxIni[g0] || null, hasta: maxFin[g0] || null, alerta: alerta, igualo: !!(alerta && cur >= mx) };
+                            outMS[g0] = { max: mx, cur: cur, pct: pct, salidas: cntMS[g0], desde: maxIni[g0] || null, hasta: maxFin[g0] || null, ult: (serieM[lastIx[g0]] ? serieM[lastIx[g0]].date : null), alerta: alerta, igualo: !!(alerta && cur >= mx) }; // V46.9.233: ult = última salida del grupo
                         });
                         window._ngpGrpMaxSeqCache[keyMS] = outMS;
                         return outMS;
@@ -31236,8 +31236,11 @@ function senalesDe(nn) {
             return r.date + ' ' + t;
         }
         function _ngpParesDe(L) {
+            // V46.9.233 (reporte de Leo): la caché ahora se invalida sola al capturar
+            // nuevos resultados (antes quedaba pegada y el backtest no veía lo de HOY).
+            var _kP = L + '|' + ((capturedResults || []).length);
             window._ngpParesCache = window._ngpParesCache || {};
-            if (window._ngpParesCache[L]) return window._ngpParesCache[L];
+            if (window._ngpParesCache[_kP]) return window._ngpParesCache[_kP];
             var serie = [];
             (capturedResults || []).forEach(function(r) {
                 if (!r || r.lottery !== L || !r.number) return;
@@ -31257,7 +31260,7 @@ function senalesDe(nn) {
                 }
             }
             var res = { serie: serie, next: next, prev: prev, ultApar: ultApar, apar: apar };
-            window._ngpParesCache[L] = res;
+            window._ngpParesCache[_kP] = res;
             return res;
         }
         function _ngpGrupoDe(nn) {
@@ -32722,7 +32725,9 @@ function senalesDe(nn) {
                             if (!e31 || e31.salidas < 10) return;
                             var dd31 = null;
                             try { if (e31.desde && e31.hasta && F0.difDias) dd31 = F0.difDias(e31.desde, e31.hasta); } catch (eD31) {}
-                            recs31.push({ L: L31, g: g31, max: e31.max, cur: e31.cur, pct: e31.pct, desde: e31.desde, hasta: e31.hasta, dias: dd31, alerta: e31.alerta, igualo: e31.igualo });
+                            var dAct31 = null;
+                            try { if (e31.ult && F0.difDias && F0.hoyStr) dAct31 = F0.difDias(e31.ult, F0.hoyStr); } catch (eA31) {}
+                            recs31.push({ L: L31, g: g31, max: e31.max, cur: e31.cur, pct: e31.pct, desde: e31.desde, hasta: e31.hasta, dias: dd31, ult: e31.ult || null, diasAct: dAct31, alerta: e31.alerta, igualo: e31.igualo });
                         });
                     });
                     recs31.sort(function(a, b) { return b.pct - a.pct; });
@@ -32736,7 +32741,7 @@ function senalesDe(nn) {
                             html += '<b style="color:#fff;font-size:11px;">' + x31.L + '</b>';
                             html += '<span style="background:rgba(220,38,38,0.35);border:1px solid #f87171;border-radius:5px;padding:1px 8px;color:#fff;font-weight:bold;">' + x31.g + '</span>';
                             html += '<span>récord: <b style="color:#fff;">' + x31.max + ' sorteos</b>' + (x31.desde ? ' <span style="color:#fda4af;">(' + fmt31(x31.desde) + ' → ' + fmt31(x31.hasta) + (x31.dias !== null ? ' · ' + x31.dias + ' días' : '') + ')</span>' : '') + '</span>';
-                            html += '<span>ahora lleva: <b style="color:#fff;">' + x31.cur + '</b> = <b style="color:' + (x31.pct >= 1 ? '#f87171' : '#fb923c') + ';">' + Math.round(x31.pct * 100) + '% del récord</b></span>';
+                            html += '<span>ahora lleva: <b style="color:#fff;">' + x31.cur + ' sorteos</b>' + (x31.diasAct !== null ? ' · <b style="color:#fff;">' + x31.diasAct + ' días</b> sin salir' : '') + ' = <b style="color:' + (x31.pct >= 1 ? '#f87171' : '#fb923c') + ';">' + Math.round(x31.pct * 100) + '% del récord</b></span>';
                             html += (x31.igualo ? '<span class="ngp-parpadea" style="background:rgba(248,113,113,0.25);border:1.5px solid #f87171;border-radius:6px;padding:2px 8px;font-weight:bold;color:#fecaca;">🔥🔥 IGUALÓ O SUPERÓ el récord — +2</span>' : '<span class="ngp-parpadea" style="background:rgba(251,146,60,0.2);border:1.5px solid #fb923c;border-radius:6px;padding:2px 8px;font-weight:bold;color:#fdba74;">🔥 acercándose — +2</span>');
                             html += '</div>';
                         });
@@ -32747,7 +32752,7 @@ function senalesDe(nn) {
                     html += '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
                     recs31.slice(0, 12).forEach(function(x31) {
                         var c31 = x31.pct >= 0.8 ? '#f87171' : x31.pct >= 0.6 ? '#fb923c' : '#94a3b8';
-                        var tt31 = x31.L + ' · ' + x31.g + ': récord ' + x31.max + ' sorteos sin salir' + (x31.desde ? ' (' + fmt31(x31.desde) + ' → ' + fmt31(x31.hasta) + (x31.dias !== null ? ', ' + x31.dias + ' días' : '') + ')' : '') + ' · ahora lleva ' + x31.cur;
+                        var tt31 = x31.L + ' · ' + x31.g + ': récord ' + x31.max + ' sorteos sin salir' + (x31.desde ? ' (' + fmt31(x31.desde) + ' → ' + fmt31(x31.hasta) + (x31.dias !== null ? ', ' + x31.dias + ' días' : '') + ')' : '') + ' · ahora lleva ' + x31.cur + ' sorteos' + (x31.diasAct !== null ? ' y ' + x31.diasAct + ' días' : '');
                         html += '<span title="' + tt31.replace(/"/g, '') + '" style="background:rgba(2,6,23,0.75);border:1px solid ' + c31 + ';border-radius:6px;padding:3px 8px;font-size:10px;color:#e2e8f0;cursor:help;">' + x31.L + ' · <b>' + x31.g + '</b>: ' + x31.cur + '/' + x31.max + ' (<b style="color:' + c31 + ';">' + Math.round(x31.pct * 100) + '%</b>)</span>';
                     });
                     html += '</div>';
@@ -32840,7 +32845,11 @@ function senalesDe(nn) {
                     // más tiempo en el pasado? Récord histórico vs rezago actual + alerta.
                     if (gc.mx && gc.mx.max !== undefined) {
                         html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 0 6px;">';
-                        html += '<span style="font-size:10px;color:#fecaca;line-height:1.5;">📛 Récord histórico sin salir acá: <b style="color:#fff;">' + gc.mx.max + ' sorteos</b>' + (gc.mx.desde ? ' <span style="color:#94a3b8;">(' + fmtF(gc.mx.desde) + ' → ' + fmtF(gc.mx.hasta) + ')</span>' : '') + ' · ahora lleva <b style="color:#fff;">' + gc.mx.cur + '</b> = <b style="color:' + (gc.mx.pct >= 1 ? '#f87171' : gc.mx.pct >= 0.8 ? '#fb923c' : '#86efac') + ';">' + Math.round(gc.mx.pct * 100) + '%</b> del récord</span>';
+                        // V46.9.233 (pedido de Leo): récord y rezago actual también en DÍAS
+                        var dR9 = null, dA9 = null;
+                        try { if (gc.mx.desde && gc.mx.hasta) dR9 = F.difDias(gc.mx.desde, gc.mx.hasta); } catch (eD9) {}
+                        try { if (gc.mx.ult) dA9 = F.difDias(gc.mx.ult, F.hoyStr); } catch (eD8) {}
+                        html += '<span style="font-size:10px;color:#fecaca;line-height:1.5;">📛 Récord histórico sin salir acá: <b style="color:#fff;">' + gc.mx.max + ' sorteos</b>' + (gc.mx.desde ? ' <span style="color:#94a3b8;">(' + fmtF(gc.mx.desde) + ' → ' + fmtF(gc.mx.hasta) + (dR9 !== null ? ' · ' + dR9 + ' días' : '') + ')</span>' : '') + ' · ahora lleva <b style="color:#fff;">' + gc.mx.cur + ' sorteos</b>' + (dA9 !== null ? ' · <b style="color:#fff;">' + dA9 + ' días</b>' : '') + ' = <b style="color:' + (gc.mx.pct >= 1 ? '#f87171' : gc.mx.pct >= 0.8 ? '#fb923c' : '#86efac') + ';">' + Math.round(gc.mx.pct * 100) + '%</b> del récord</span>';
                         if (gc.mx.igualo) html += '<span class="ngp-parpadea" style="font-size:9px;font-weight:bold;border-radius:6px;padding:3px 9px;background:rgba(248,113,113,0.25);border:1.5px solid #f87171;color:#fecaca;">🔥🔥 IGUALÓ O SUPERÓ su récord de rezago — sus pendientes reciben +2</span>';
                         else if (gc.mx.alerta) html += '<span class="ngp-parpadea" style="font-size:9px;font-weight:bold;border-radius:6px;padding:3px 9px;background:rgba(251,146,60,0.2);border:1.5px solid #fb923c;color:#fdba74;">🔥 REPITIENDO SU RÉCORD DE REZAGO (' + gc.mx.cur + ' de ' + gc.mx.max + ') — sus pendientes reciben +2</span>';
                         html += '</div>';
@@ -32925,6 +32934,11 @@ function senalesDe(nn) {
                 });
             } catch (e) {}
         }
+        function _ngpDdeBackMas() {
+            // V46.9.233: cargar 300 filas más del detalle sin perder el resultado
+            window._ngpDdeBackVer = (window._ngpDdeBackVer || 150) + 300;
+            _ngpDdeBackRender(true);
+        }
         function _ngpDdeBackCalc(L, d1, d2) {
             var P = _ngpParesDe(L);
             var serieB = (P && P.serie) || [];
@@ -32935,6 +32949,7 @@ function senalesDe(nn) {
                     .sort(function(a, b) { return b.c !== a.c ? b.c - a.c : (a.n < b.n ? -1 : 1); }).slice(0, 10);
             });
             var casos = 0, hits = 0, h5 = 0, hU = 0, pocos = 0, det = [];
+            var d1c = null, dNc = null; // V46.9.233: rango real de los triggers evaluados
             for (var i = 0; i < serieB.length - 1; i++) {
                 var tr = serieB[i], sg = serieB[i + 1];
                 if (d1 && tr.date < d1) continue;
@@ -32943,14 +32958,17 @@ function senalesDe(nn) {
                 var totP = 0; t.forEach(function(x0) { totP += x0.c; });
                 if (t.length < 10 || totP < 10) { pocos++; continue; }
                 casos++;
+                if (!d1c || tr.date < d1c) d1c = tr.date;
+                if (!dNc || tr.date > dNc) dNc = tr.date;
                 var posH = -1;
                 for (var j = 0; j < t.length; j++) { if (t[j].n === sg.n) { posH = j; break; } }
                 if (posH >= 0) { hits++; if (posH < 5) h5++; else hU++; }
                 det.push({ f: tr.date, h: tr.time || '', n: tr.n, sig: sg.n, pos: posH, top: t });
             }
-            return { casos: casos, hits: hits, h5: h5, hU: hU, pocos: pocos, det: det };
+            return { casos: casos, hits: hits, h5: h5, hU: hU, pocos: pocos, det: det, d1: d1c, dN: dNc };
         }
-        function _ngpDdeBackRender() {
+        function _ngpDdeBackRender(mantener9) {
+            if (!mantener9) window._ngpDdeBackVer = 150; // V46.9.233: paginación del detalle
             var conts = document.querySelectorAll('[id="ngpDdeBackResultado"]');
             if (!conts.length) return;
             var F = window._ngpFiltro;
@@ -32980,7 +32998,20 @@ function senalesDe(nn) {
                 s += '<div style="display:flex;gap:6px;flex-wrap:wrap;">';
                 s += '<span style="background:rgba(20,83,45,0.7);border:1px solid #4ade80;border-radius:6px;padding:2px 9px;font-size:10px;color:#bbf7d0;">🟢 En los PRIMEROS 5: <b>' + r.h5.toLocaleString() + '</b> = <b>' + p5c + '%</b> de los triggers (' + (r.hits ? Math.round(100 * r.h5 / r.hits) : 0) + '% de los aciertos)</span>';
                 s += '<span style="background:rgba(113,63,18,0.7);border:1px solid #fbbf24;border-radius:6px;padding:2px 9px;font-size:10px;color:#fef3c7;">🟡 En los ÚLTIMOS 5: <b>' + r.hU.toLocaleString() + '</b> = <b>' + pUc + '%</b> de los triggers</span>';
-                s += '</div></div></div>';
+                s += '</div>';
+                // V46.9.233 (pedido de Leo): RITMO — cada cuánto tiende a acertar
+                try {
+                    if (r.hits && r.d1 && r.dN && F.difDias) {
+                        var dSpan9 = Math.max(1, F.difDias(r.d1, r.dN));
+                        s += '<div style="font-size:10px;color:#99f6e4;margin-top:5px;">⏱ <b>Ritmo:</b> acierta ~1 de cada <b style="color:#fff;">' + (r.casos / r.hits).toFixed(1) + '</b> triggers ≈ <b style="color:#fff;">un acierto cada ~' + Math.max(1, Math.round(dSpan9 / r.hits)) + ' día(s)</b> en el período analizado (' + dSpan9.toLocaleString() + ' días) · de los primeros 5: uno cada ~' + (r.h5 ? Math.max(1, Math.round(dSpan9 / r.h5)) : '—') + ' día(s)</div>';
+                    }
+                } catch (eR9) {}
+                // V46.9.233 (caso Antioqueñita): con historial corto el top 10 "conoce"
+                // casi todos los seguidores registrados y el % sale inflado — avisar.
+                if (r.pocos > r.casos) {
+                    s += '<div style="font-size:9px;color:#fdba74;background:rgba(120,53,15,0.35);border:1px solid #b45309;border-radius:6px;padding:4px 8px;margin-top:5px;line-height:1.5;">⚠️ <b>Historial corto:</b> se omitieron ' + r.pocos.toLocaleString() + ' triggers sin datos suficientes y solo se evaluaron ' + r.casos.toLocaleString() + '. Con pocos sorteos, el top 10 de cada número cubre casi todos sus seguidores conocidos y el % de acierto sale INFLADO — no lo compares con loterías de historial largo (los fallos ✘ sí están en el detalle de abajo, son pocos por esta misma razón).</div>';
+                }
+                s += '</div></div>';
                 return s;
             };
             if (!selLots.length) {
@@ -32988,12 +33019,14 @@ function senalesDe(nn) {
                 return;
             }
             if (selLots.length > 1) {
-                var tot = { casos: 0, hits: 0, h5: 0, hU: 0, pocos: 0, det: [] };
+                var tot = { casos: 0, hits: 0, h5: 0, hU: 0, pocos: 0, det: [], d1: null, dN: null };
                 var filas = [];
                 selLots.forEach(function(L9) {
                     var r9 = _ngpDdeBackCalc(L9, d1, d2);
                     if (!r9.casos) return;
                     tot.casos += r9.casos; tot.hits += r9.hits; tot.h5 += r9.h5; tot.hU += r9.hU; tot.pocos += r9.pocos;
+                    if (r9.d1 && (!tot.d1 || r9.d1 < tot.d1)) tot.d1 = r9.d1;
+                    if (r9.dN && (!tot.dN || r9.dN > tot.dN)) tot.dN = r9.dN;
                     filas.push({ L: L9, r: r9 });
                 });
                 var titSel = (selLots.length === (F.lotsActivas || []).length) ? '🌎 TODAS las loterías (' + selLots.length + ')' : '🌎 ' + selLots.length + ' loterías: ' + (selLots.join(', ').length > 70 ? selLots.slice(0, 5).join(', ') + '…' : selLots.join(', '));
@@ -33013,11 +33046,12 @@ function senalesDe(nn) {
                 var r = _ngpDdeBackCalc(lot, d1, d2);
                 html += resumenCaja('🎯 ' + lot + (d1 || d2 ? ' (' + (d1 || 'inicio') + ' → ' + (d2 || 'hoy') + ')' : ''), r);
                 if (r.det.length) {
-                    html += '<div style="font-size:10px;font-weight:bold;color:#99f6e4;margin:6px 0 4px;">📋 DETALLE trigger por trigger (los ' + Math.min(120, r.det.length) + ' más recientes primero · en el top 10: <span style="color:#4ade80;">verde = primeros 5</span>, <span style="color:#fbbf24;">amarillo = últimos 5</span>, el recuadro = el que salió)</div>';
+                    var ver9 = window._ngpDdeBackVer || 150;
+                    html += '<div style="font-size:10px;font-weight:bold;color:#99f6e4;margin:6px 0 4px;">📋 DETALLE trigger por trigger — mostrando <b style="color:#fff;">' + Math.min(ver9, r.det.length).toLocaleString() + '</b> de <b style="color:#fff;">' + r.det.length.toLocaleString() + '</b> (los más recientes primero) · <span style="color:#4ade80;">✔ ' + r.hits.toLocaleString() + ' aciertos</span> · <span style="color:#f87171;">✘ ' + (r.casos - r.hits).toLocaleString() + ' fallos</span> · <span style="color:#4ade80;">verde = primeros 5</span>, <span style="color:#fbbf24;">amarillo = últimos 5</span>, el recuadro = el que salió</div>';
                     // V46.9.231 (reporte de Leo): filas de tarjeta con fondo oscuro
                     // propio (las <table> heredaban el CSS global claro y no se leían)
                     // y rediseño más claro: chips del top 10, acierto resaltado sólido.
-                    r.det.slice(-120).reverse().forEach(function(d9) {
+                    r.det.slice(-ver9).reverse().forEach(function(d9) {
                         var topH = d9.top.map(function(x0, j0) {
                             var esHit = (j0 === d9.pos);
                             var p5c = j0 < 5;
@@ -33039,6 +33073,11 @@ function senalesDe(nn) {
                         html += res9;
                         html += '</div>';
                     });
+                    // V46.9.233 (reporte de Leo): antes el detalle se cortaba en 120
+                    // filas — ahora se va cargando de a 300 hasta cubrir TODO el rango.
+                    if (r.det.length > ver9) {
+                        html += '<div style="text-align:center;margin:8px 0;"><button onclick="_ngpDdeBackMas()" style="background:linear-gradient(135deg,#134e4a,#2dd4bf);border:1px solid #99f6e4;color:#fff;padding:8px 18px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:bold;">⤵ Mostrar 300 más (quedan ' + (r.det.length - ver9).toLocaleString() + ' por ver)</button></div>';
+                    }
                 }
             }
             html += '<div style="font-size:9px;color:#64748b;margin-top:6px;line-height:1.6;">📝 El top 10 de cada trigger se calcula con el historial COMPLETO actual (decisión de Leo): es más rápido pero tiene un leve sesgo a favor, porque el top ya "conoce" los sorteos que se están evaluando. El azar de referencia es ~10% (10 números de 100). La secuencia es cronológica corrida: el último sorteo de un día se empata con el primero del día siguiente.</div>';
@@ -74916,7 +74955,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r166 · v46.9.232</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r167 · v46.9.233</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
