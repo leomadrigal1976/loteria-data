@@ -29684,7 +29684,18 @@ function senalesDe(nn) {
                                 return { n: n0, veces: cnt[n0], sinSalir: tot - 1 - ultIdx[n0], ult: ultFecha[n0] };
                             }).sort(function(a, b) { return b.veces !== a.veces ? b.veces - a.veces : b.sinSalir - a.sinSalir; }).slice(0, 5);
                         };
-                        var val = { sem: arma(cSem), dia: arma(cDia), rep: arma(cRep), dow: dowHoy, dom: domHoy, tot: tot };
+                        // V46.9.235 (pedido de Leo): top de VIBRACIÓN de la fecha en
+                        // estudio — sus números ordenados por rezago en esta lotería.
+                        var vibL = [];
+                        try {
+                            Object.keys(_vibHoy || {}).forEach(function(nv) {
+                                if (ultIdx[nv] === undefined) { vibL.push({ n: nv, veces: 0, sinSalir: tot, ult: null }); return; }
+                                vibL.push({ n: nv, veces: cRep[nv] || 0, sinSalir: tot - 1 - ultIdx[nv], ult: ultFecha[nv] });
+                            });
+                            vibL.sort(function(a, b) { return b.sinSalir - a.sinSalir; });
+                            vibL = vibL.slice(0, 5);
+                        } catch (eVb) { vibL = []; }
+                        var val = { sem: arma(cSem), dia: arma(cDia), rep: arma(cRep), vib: vibL, dow: dowHoy, dom: domHoy, tot: tot };
                         window._ngpTopsCache[key] = val;
                         return val;
                     } catch (e) { return { sem: [], dia: [], rep: [], dow: 0, dom: 0, tot: 0 }; }
@@ -30435,7 +30446,8 @@ function senalesDe(nn) {
                 // máximo ≥ 5) el grupo está "repitiendo su récord" → alerta y +2.
                 function _ngpGrpMaxSeqDe(L) {
                     try {
-                        var keyMS = L + '|' + ((capturedResults || []).length);
+                        var umbMS = (window._ngpParamRec ? window._ngpParamRec() : 80) / 100; // V46.9.235: umbral parametrizable
+                        var keyMS = L + '|' + umbMS + '|' + ((capturedResults || []).length);
                         if (!window._ngpGrpMaxSeqCache) window._ngpGrpMaxSeqCache = {};
                         if (window._ngpGrpMaxSeqCache[keyMS]) return window._ngpGrpMaxSeqCache[keyMS];
                         var PMS = (typeof _ngpParesDe === 'function') ? _ngpParesDe(L) : null;
@@ -30461,7 +30473,7 @@ function senalesDe(nn) {
                             var mx = maxGap[g0];
                             var pct = mx > 0 ? (cur / mx) : 0;
                             var cadM = cntMS[g0] ? (serieM.length / cntMS[g0]) : null;
-                            var alerta = (cntMS[g0] >= 10 && mx > (cadM || 0) && mx >= 5 && pct >= 0.8);
+                            var alerta = (cntMS[g0] >= 10 && mx > (cadM || 0) && mx >= 5 && pct >= umbMS);
                             outMS[g0] = { max: mx, cur: cur, pct: pct, salidas: cntMS[g0], desde: maxIni[g0] || null, hasta: maxFin[g0] || null, ult: (serieM[lastIx[g0]] ? serieM[lastIx[g0]].date : null), alerta: alerta, igualo: !!(alerta && cur >= mx) }; // V46.9.233: ult = última salida del grupo
                         });
                         window._ngpGrpMaxSeqCache[keyMS] = outMS;
@@ -32620,6 +32632,9 @@ function senalesDe(nn) {
                 h0 += col('📆', 'Top de ' + _diaCap, td.sem, 'en ' + DIAS_SEM[td.dow], '#38bdf8', 'rgba(8,47,73,0.5)', '#7dd3fc');
                 h0 += col('📅', 'Top de fecha ' + td.dom, td.dia, 'los días ' + td.dom + ' del mes', '#a78bfa', 'rgba(46,16,101,0.5)', '#c4b5fd');
                 h0 += col('🔁', 'Top que más repiten', td.rep, 'en total en esta lotería', '#fbbf24', 'rgba(69,26,3,0.5)', '#fde68a');
+                // V46.9.235 (pedido de Leo): tarjeta de la VIBRACIÓN de la fecha en
+                // estudio — ordenada por rezago (los más vencidos primero).
+                h0 += col('🔮', 'Top de Vibración', td.vib || [], 'siendo de la vibración de la fecha en estudio (ordenado por rezago)', '#fb923c', 'rgba(67,20,7,0.5)', '#fdba74');
                 h0 += '</div>';
                 return h0;
             } catch (e) { return ''; }
@@ -33432,6 +33447,7 @@ function senalesDe(nn) {
                         });
                     });
                     recs31.sort(function(a, b) { return b.pct - a.pct; });
+                    var umb31 = (window._ngpParamRec ? window._ngpParamRec() : 80); // V46.9.235
                     var alertas31 = recs31.filter(function(x0) { return x0.alerta; });
                     html += '<div style="background:rgba(0,0,0,0.35);border:1.5px solid #fb923c;border-radius:9px;padding:9px 12px;margin-top:10px;">';
                     html += '<div style="font-size:12px;font-weight:bold;color:#fdba74;margin-bottom:6px;">📛 RÉCORD DE "PEGADA" POR GRUPO — la vez que MÁS sorteos estuvo sin salir cada grupo, cuánto duró, y si AHORA lo está repitiendo</div>';
@@ -33447,17 +33463,17 @@ function senalesDe(nn) {
                             html += '</div>';
                         });
                     } else {
-                        html += '<div style="font-size:10px;color:#94a3b8;margin-bottom:5px;">Ahora mismo ningún grupo alcanza el 80% de su récord (el umbral que dispara la alerta y la señal ⏳ +2).</div>';
+                        html += '<div style="font-size:10px;color:#94a3b8;margin-bottom:5px;">Ahora mismo ningún grupo alcanza el ' + umb31 + '% de su récord (el umbral configurado que dispara la alerta y la señal ⏳ +2 — se cambia en el FILTRO DE CANDIDATOS).</div>';
                     }
                     html += '<div style="font-size:10px;font-weight:bold;color:#fdba74;margin:7px 0 4px;">👀 Los 12 más cercanos a su récord (para vigilar):</div>';
                     html += '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
                     recs31.slice(0, 12).forEach(function(x31) {
-                        var c31 = x31.pct >= 0.8 ? '#f87171' : x31.pct >= 0.6 ? '#fb923c' : '#94a3b8';
+                        var c31 = (x31.pct * 100) >= umb31 ? '#f87171' : x31.pct >= 0.6 ? '#fb923c' : '#94a3b8';
                         var tt31 = x31.L + ' · ' + x31.g + ': récord ' + x31.max + ' sorteos sin salir' + (x31.desde ? ' (' + fmt31(x31.desde) + ' → ' + fmt31(x31.hasta) + (x31.dias !== null ? ', ' + x31.dias + ' días' : '') + ')' : '') + ' · ahora lleva ' + x31.cur + ' sorteos' + (x31.diasAct !== null ? ' y ' + x31.diasAct + ' días' : '');
                         html += '<span title="' + tt31.replace(/"/g, '') + '" style="background:rgba(2,6,23,0.75);border:1px solid ' + c31 + ';border-radius:6px;padding:3px 8px;font-size:10px;color:#e2e8f0;cursor:help;">' + x31.L + ' · <b>' + x31.g + '</b>: ' + x31.cur + '/' + x31.max + ' (<b style="color:' + c31 + ';">' + Math.round(x31.pct * 100) + '%</b>)</span>';
                     });
                     html += '</div>';
-                    html += '<div style="font-size:9px;color:#94a3b8;margin-top:6px;line-height:1.5;">El récord se mide en SORTEOS de esa lotería; entre paréntesis, el período que duró esa racha (fechas y días). La alerta 🔥 y la señal ⏳ (+2) se activan al llegar al 80% del récord y suben a 🔥🔥 al igualarlo o superarlo (con mínimo 10 salidas de historial y récord mayor que la cadencia). El mismo detalle por grupo aparece en la ventana flotante 🎯 Grupos Más Rezagados.</div>';
+                    html += '<div style="font-size:9px;color:#94a3b8;margin-top:6px;line-height:1.5;">El récord se mide en SORTEOS de esa lotería; entre paréntesis, el período que duró esa racha (fechas y días). La alerta 🔥 y la señal ⏳ (+2) se activan al llegar al ' + umb31 + '% del récord (umbral configurable en el FILTRO DE CANDIDATOS) y suben a 🔥🔥 al igualarlo o superarlo (con mínimo 10 salidas de historial y récord mayor que la cadencia). El mismo detalle por grupo aparece en la ventana flotante 🎯 Grupos Más Rezagados.</div>';
                     html += '</div>';
                 }
             } catch (e31) {}
@@ -33550,7 +33566,7 @@ function senalesDe(nn) {
                         var dR9 = null, dA9 = null;
                         try { if (gc.mx.desde && gc.mx.hasta) dR9 = F.difDias(gc.mx.desde, gc.mx.hasta); } catch (eD9) {}
                         try { if (gc.mx.ult) dA9 = F.difDias(gc.mx.ult, F.hoyStr); } catch (eD8) {}
-                        html += '<span style="font-size:10px;color:#fecaca;line-height:1.5;">📛 Récord histórico sin salir acá: <b style="color:#fff;">' + gc.mx.max + ' sorteos</b>' + (gc.mx.desde ? ' <span style="color:#94a3b8;">(' + fmtF(gc.mx.desde) + ' → ' + fmtF(gc.mx.hasta) + (dR9 !== null ? ' · ' + dR9 + ' días' : '') + ')</span>' : '') + ' · ahora lleva <b style="color:#fff;">' + gc.mx.cur + ' sorteos</b>' + (dA9 !== null ? ' · <b style="color:#fff;">' + dA9 + ' días</b>' : '') + ' = <b style="color:' + (gc.mx.pct >= 1 ? '#f87171' : gc.mx.pct >= 0.8 ? '#fb923c' : '#86efac') + ';">' + Math.round(gc.mx.pct * 100) + '%</b> del récord</span>';
+                        html += '<span style="font-size:10px;color:#fecaca;line-height:1.5;">📛 Récord histórico sin salir acá: <b style="color:#fff;">' + gc.mx.max + ' sorteos</b>' + (gc.mx.desde ? ' <span style="color:#94a3b8;">(' + fmtF(gc.mx.desde) + ' → ' + fmtF(gc.mx.hasta) + (dR9 !== null ? ' · ' + dR9 + ' días' : '') + ')</span>' : '') + ' · ahora lleva <b style="color:#fff;">' + gc.mx.cur + ' sorteos</b>' + (dA9 !== null ? ' · <b style="color:#fff;">' + dA9 + ' días</b>' : '') + ' = <b style="color:' + (gc.mx.pct >= 1 ? '#f87171' : gc.mx.alerta ? '#fb923c' : '#86efac') + ';">' + Math.round(gc.mx.pct * 100) + '%</b> del récord</span>'; // V46.9.235: color según el umbral configurado
                         if (gc.mx.igualo) html += '<span class="ngp-parpadea" style="font-size:9px;font-weight:bold;border-radius:6px;padding:3px 9px;background:rgba(248,113,113,0.25);border:1.5px solid #f87171;color:#fecaca;">🔥🔥 IGUALÓ O SUPERÓ su récord de rezago — sus pendientes reciben +2</span>';
                         else if (gc.mx.alerta) html += '<span class="ngp-parpadea" style="font-size:9px;font-weight:bold;border-radius:6px;padding:3px 9px;background:rgba(251,146,60,0.2);border:1.5px solid #fb923c;color:#fdba74;">🔥 REPITIENDO SU RÉCORD DE REZAGO (' + gc.mx.cur + ' de ' + gc.mx.max + ') — sus pendientes reciben +2</span>';
                         html += '</div>';
@@ -33952,17 +33968,26 @@ function senalesDe(nn) {
         window._ngpParamExcl = function() {
             try { var v = parseInt(localStorage.getItem('ngpRezExcl') || '2', 10); return (!isNaN(v) && v >= 0 && v <= 30) ? v : 2; } catch (e) { return 2; }
         };
+        // V46.9.235 (pedido de Leo): umbral del RÉCORD DE REZAGO (alerta 🔥 y
+        // señal ⏳ +2) — % del récord histórico al que se enciende. Default 80.
+        window._ngpParamRec = function() {
+            try { var v = parseInt(localStorage.getItem('ngpRecPct') || '80', 10); return (!isNaN(v) && v >= 50 && v <= 100) ? v : 80; } catch (e) { return 80; }
+        };
         function _ngpRezParamAplicar() {
             var i1 = document.querySelector('[id="ngpRezTopInp"]');
             var i2 = document.querySelector('[id="ngpRezExclInp"]');
             var v1 = parseInt(i1 && i1.value, 10); if (isNaN(v1)) v1 = 30; if (v1 < 5) v1 = 5; if (v1 > 100) v1 = 100;
             var v2 = parseInt(i2 && i2.value, 10); if (isNaN(v2)) v2 = 2; if (v2 < 0) v2 = 0; if (v2 > 30) v2 = 30;
-            try { localStorage.setItem('ngpRezTop', String(v1)); localStorage.setItem('ngpRezExcl', String(v2)); } catch (e) {}
+            var i3 = document.querySelector('[id="ngpRecPctInp"]'); // V46.9.235
+            var v3 = parseInt(i3 && i3.value, 10); if (isNaN(v3)) v3 = 80; if (v3 < 50) v3 = 50; if (v3 > 100) v3 = 100;
+            try { localStorage.setItem('ngpRezTop', String(v1)); localStorage.setItem('ngpRezExcl', String(v2)); localStorage.setItem('ngpRecPct', String(v3)); } catch (e) {}
+            window._ngpGrpMaxSeqCache = {}; // V46.9.235: el récord se recalcula con el nuevo umbral
             try { _ngpResumenRender(); } catch (e2) {}
             try { _ngpExtractoRender(); } catch (e3) {}
         }
         function _ngpRezParamReset() {
-            try { localStorage.removeItem('ngpRezTop'); localStorage.removeItem('ngpRezExcl'); } catch (e) {}
+            try { localStorage.removeItem('ngpRezTop'); localStorage.removeItem('ngpRezExcl'); localStorage.removeItem('ngpRecPct'); } catch (e) {}
+            window._ngpGrpMaxSeqCache = {}; // V46.9.235
             try { _ngpResumenRender(); } catch (e2) {}
             try { _ngpExtractoRender(); } catch (e3) {}
         }
@@ -34152,17 +34177,19 @@ function senalesDe(nn) {
             try {
                 var _rzP9 = (window._ngpParamRez ? window._ngpParamRez() : 30);
                 var _exP9 = (window._ngpParamExcl ? window._ngpParamExcl() : 2);
-                var _esDef9 = (_rzP9 === 30 && _exP9 === 2);
+                var _rcP9 = (window._ngpParamRec ? window._ngpParamRec() : 80); // V46.9.235
+                var _esDef9 = (_rzP9 === 30 && _exP9 === 2 && _rcP9 === 80);
                 html += '<div style="background:rgba(30,41,59,0.6);border:1px dashed #94a3b8;border-radius:8px;padding:7px 10px;margin-bottom:10px;">';
                 html += '<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">';
                 html += '<span style="font-size:11px;font-weight:bold;color:#e2e8f0;">⚙️ FILTRO DE CANDIDATOS</span>';
-                html += '<span style="font-size:9px;font-weight:bold;padding:2px 8px;border-radius:9px;' + (_esDef9 ? 'background:rgba(74,222,128,0.15);color:#86efac;border:1px solid rgba(74,222,128,0.5);">DEFAULT (30 y 2)' : 'background:rgba(251,191,36,0.15);color:#fde68a;border:1px solid #fbbf24;">⚠️ PERSONALIZADO') + '</span>';
+                html += '<span style="font-size:9px;font-weight:bold;padding:2px 8px;border-radius:9px;' + (_esDef9 ? 'background:rgba(74,222,128,0.15);color:#86efac;border:1px solid rgba(74,222,128,0.5);">DEFAULT (30, 2 y 80%)' : 'background:rgba(251,191,36,0.15);color:#fde68a;border:1px solid #fbbf24;">⚠️ PERSONALIZADO') + '</span>';
                 html += '<label style="font-size:10px;color:#cbd5e1;">Top de rezago: <input id="ngpRezTopInp" type="number" min="5" max="100" value="' + _rzP9 + '" onchange="_efvSync(this)" style="width:54px;background:#0f172a;color:#fff;border:1px solid #64748b;border-radius:5px;padding:2px 5px;font-size:11px;"></label>';
                 html += '<label style="font-size:10px;color:#cbd5e1;">Días de exclusión por salida reciente: <input id="ngpRezExclInp" type="number" min="0" max="30" value="' + _exP9 + '" onchange="_efvSync(this)" style="width:46px;background:#0f172a;color:#fff;border:1px solid #64748b;border-radius:5px;padding:2px 5px;font-size:11px;"></label>';
+                html += '<label title="Señal ⏳ RÉCORD DE REZAGO (+2): se enciende cuando el rezago actual de un grupo alcanza este % de su récord histórico sin salir." style="font-size:10px;color:#cbd5e1;">Umbral del récord de rezago (%): <input id="ngpRecPctInp" type="number" min="50" max="100" value="' + _rcP9 + '" onchange="_efvSync(this)" style="width:50px;background:#0f172a;color:#fff;border:1px solid #64748b;border-radius:5px;padding:2px 5px;font-size:11px;"></label>'; // V46.9.235
                 html += '<button onclick="_ngpRezParamAplicar()" style="background:linear-gradient(135deg,#334155,#64748b);border:1px solid #cbd5e1;color:#fff;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:10px;font-weight:bold;">Aplicar</button>';
                 html += '<button onclick="_ngpRezParamReset()" style="background:rgba(148,163,184,0.12);border:1px solid #64748b;color:#cbd5e1;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:10px;">Volver al default</button>';
                 html += '</div>';
-                html += '<div style="font-size:9px;color:#94a3b8;line-height:1.55;margin-top:5px;">📝 <b style="color:#cbd5e1;">¿Por qué un grupo muestra solo algunos números?</b> Un número entra como candidato si cumple al menos UNA de estas 3 puertas: ① está en el <b>TOP ' + _rzP9 + '</b> de rezago de esa lotería (medido en <b>sorteos</b> sin salir, no en días calendario) y NO ha salido en los últimos <b>' + _exP9 + '</b> día(s) — si acaba de pegar, se excluye y entra el siguiente más vencido; ② tiene <b>2 o más señales</b> en esa lotería aunque no esté tan rezagado; ③ es del <b>top 10 "después de"</b> del último número salido ahí. Después, cada grupo muestra máximo sus 5 mejores por señales — si un grupo muestra menos de 5, es porque el resto de sus números no pasó ninguna puerta. Subir el top de rezago muestra más números pero menos filtrados; bajarlo deja solo los muy vencidos. Las fotos de efectividad siguen midiendo con el default (30 y 2) para no alterar el histórico.</div>';
+                html += '<div style="font-size:9px;color:#94a3b8;line-height:1.55;margin-top:5px;">📝 <b style="color:#cbd5e1;">¿Por qué un grupo muestra solo algunos números?</b> Un número entra como candidato si cumple al menos UNA de estas 3 puertas: ① está en el <b>TOP ' + _rzP9 + '</b> de rezago de esa lotería (medido en <b>sorteos</b> sin salir, no en días calendario) y NO ha salido en los últimos <b>' + _exP9 + '</b> día(s) — si acaba de pegar, se excluye y entra el siguiente más vencido; ② tiene <b>2 o más señales</b> en esa lotería aunque no esté tan rezagado; ③ es del <b>top 10 "después de"</b> del último número salido ahí. Después, cada grupo muestra máximo sus 5 mejores por señales — si un grupo muestra menos de 5, es porque el resto de sus números no pasó ninguna puerta. Subir el top de rezago muestra más números pero menos filtrados; bajarlo deja solo los muy vencidos. Las fotos de efectividad siguen midiendo con el default (30 y 2) para no alterar el histórico. El <b>umbral del récord de rezago</b> (default 80%) define cuándo se enciende la señal ⏳ (+2): al llegar el rezago actual de un grupo a ese % de su récord histórico — bajarlo alerta más temprano, subirlo la vuelve más exigente.</div>';
                 html += '</div>';
             } catch (ePrm9) {}
             html += '<div style="margin-bottom:12px;">';
