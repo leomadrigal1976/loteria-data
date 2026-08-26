@@ -7009,7 +7009,7 @@
             { name: 'Anguila', times: ['05:55', '06:55', '07:55', '08:55', '09:55', '10:55', '11:55', '12:55', '13:55', '14:55', '15:55', '16:55', '17:55', '18:55', '19:55'], hasReventado: false },
             { name: 'Antioqueñita', times: ['08:55', '14:55'], hasReventado: false },
             { name: 'Dominicana', times: ['12:30', '15:50', '18:50'], hasReventado: false },
-            { name: 'El Salvador', times: ['11:00', '21:00'], hasReventado: false },
+            { name: 'El Salvador', times: ['11:00', '18:00', '21:00'], hasReventado: false }, // V46.9.236: agregaron el sorteo de las 6:00 PM
             { name: 'Florida', times: ['11:25', '19:30'], hasReventado: false },
             { name: 'Honduras', times: ['11:00', '15:00', '21:00'], hasReventado: false },
             { name: 'King Lotery', times: ['10:30', '17:30'], hasReventado: false },
@@ -7125,6 +7125,10 @@
             
             // ── El Salvador ──
             'SALVADOREÑA 11 AM': { lottery: 'El Salvador', time: '11:00' },
+            'SALVADOREÑA 6 PM':  { lottery: 'El Salvador', time: '18:00' }, // V46.9.236
+            'SALVADOREÑA 6PM':   { lottery: 'El Salvador', time: '18:00' }, // V46.9.236
+            'SALVADORENA 6 PM':  { lottery: 'El Salvador', time: '18:00' }, // V46.9.236 (sin ñ)
+            'EL SALVADOR 6 PM':  { lottery: 'El Salvador', time: '18:00' }, // V46.9.236
             'SALVADOREÑA 9 PM':  { lottery: 'El Salvador', time: '21:00' },
             
             // ── Dominicana (tomar primer número de 3) ──
@@ -10509,7 +10513,7 @@
                 'Honduras': ['11:00', '21:00'],   // Solo 11AM y 9PM (3PM NO está disponible)
                 'New York': ['12:25'],             // Día sí está en loteriascr, noche a veces
                 'Tica': ['12:00', '19:30'],
-                'El Salvador': ['11:00', '21:00'],
+                'El Salvador': ['11:00', '18:00', '21:00'], // V46.9.236: nuevo sorteo 6 PM
                 'Florida': ['12:15', '19:30'],
                 'Dominicana': ['12:30', '18:50'],
                 'La Primera': ['10:00', '17:00'],
@@ -68176,7 +68180,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#065f46,#0d9488);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83c\udfa9 An\u00e1lisis Predictivo \u2014 Consulta Don Jorge <span style="font-size:10px;opacity:0.75;">r163 · v46.9.235</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#a7f3d0;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83c\udfa9 An\u00e1lisis Predictivo \u2014 Consulta Don Jorge <span style="font-size:10px;opacity:0.75;">r164 · v46.9.236</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#a7f3d0;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {

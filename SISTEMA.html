@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.235</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.236</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6350,7 +6350,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.235</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.236</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -7147,7 +7147,7 @@
             { name: 'Anguila', times: ['05:55', '06:55', '07:55', '08:55', '09:55', '10:55', '11:55', '12:55', '13:55', '14:55', '15:55', '16:55', '17:55', '18:55', '19:55'], hasReventado: false },
             { name: 'Antioqueñita', times: ['08:55', '14:55'], hasReventado: false },
             { name: 'Dominicana', times: ['12:30', '15:50', '18:50'], hasReventado: false },
-            { name: 'El Salvador', times: ['11:00', '21:00'], hasReventado: false },
+            { name: 'El Salvador', times: ['11:00', '18:00', '21:00'], hasReventado: false }, // V46.9.236: agregaron el sorteo de las 6:00 PM
             { name: 'Florida', times: ['11:25', '19:30'], hasReventado: false },
             { name: 'Honduras', times: ['11:00', '15:00', '21:00'], hasReventado: false },
             { name: 'King Lotery', times: ['10:30', '17:30'], hasReventado: false },
@@ -7263,6 +7263,10 @@
             
             // ── El Salvador ──
             'SALVADOREÑA 11 AM': { lottery: 'El Salvador', time: '11:00' },
+            'SALVADOREÑA 6 PM':  { lottery: 'El Salvador', time: '18:00' }, // V46.9.236
+            'SALVADOREÑA 6PM':   { lottery: 'El Salvador', time: '18:00' }, // V46.9.236
+            'SALVADORENA 6 PM':  { lottery: 'El Salvador', time: '18:00' }, // V46.9.236 (sin ñ)
+            'EL SALVADOR 6 PM':  { lottery: 'El Salvador', time: '18:00' }, // V46.9.236
             'SALVADOREÑA 9 PM':  { lottery: 'El Salvador', time: '21:00' },
             
             // ── Dominicana (tomar primer número de 3) ──
@@ -10653,7 +10657,7 @@
                 'Honduras': ['11:00', '21:00'],   // Solo 11AM y 9PM (3PM NO está disponible)
                 'New York': ['12:25'],             // Día sí está en loteriascr, noche a veces
                 'Tica': ['12:00', '19:30'],
-                'El Salvador': ['11:00', '21:00'],
+                'El Salvador': ['11:00', '18:00', '21:00'], // V46.9.236: nuevo sorteo 6 PM
                 'Florida': ['12:15', '19:30'],
                 'Dominicana': ['12:30', '18:50'],
                 'La Primera': ['10:00', '17:00'],
