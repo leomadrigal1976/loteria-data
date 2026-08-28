@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.240</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.242</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6350,7 +6350,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.240</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.242</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -29299,6 +29299,12 @@ function senalesDe(nn) {
                 h += '<input type="file" id="p23File" accept=".xlsx,.xls" style="font-size:10px;color:#d1fae5;">';
                 h += '<button onclick="_p23ImportarExcel()" style="background:linear-gradient(135deg,#065f46,#10b981);border:1px solid #6ee7b7;color:#fff;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:bold;">Importar</button>';
                 h += '</div></div>';
+                // V46.9.241 (pedido de Leo): análisis completo por posición
+                h += '<div style="margin-bottom:9px;">';
+                h += '<button onclick="_p23PosToggle()" style="background:linear-gradient(135deg,#4c1d95,#8b5cf6);border:1.5px solid #c4b5fd;color:#fff;padding:9px 18px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:bold;">🧠 ANÁLISIS COMPLETO del 2º y 3º premio — con todas las señales del sistema</button>';
+                h += '<div style="font-size:9px;color:#a78bfa;margin-top:3px;">Trata cada posición (NY 2º, NY 3º, FL 2º, FL 3º) como una lotería propia y le aplica el mismo análisis del Resumen de Loterías Más Fuertes, con su TOP 5 sugerido.</div>';
+                h += '<div id="p23PosResultado" style="margin-top:8px;"></div>';
+                h += '</div>';
                 h += '<div id="p23Resultado" style="max-height:max(560px,72vh);overflow-y:auto;"><div style="font-size:11px;color:#94a3b8;padding:6px;">Cargando…</div></div>';
                 h += '</div>';
                 // V46.9.221 (pedido de Leo): botones flotantes más pequeños, apilados
@@ -29842,7 +29848,7 @@ function senalesDe(nn) {
                             }
                         } catch (e3) {}
                         var arr = Object.keys(acc).map(function(n0) { return { n: n0, c: acc[n0] }; })
-                            .sort(function(a, b) { return b.c !== a.c ? b.c - a.c : (a.n < b.n ? -1 : 1); });
+                            .sort(function(a, b) { return b.c - a.c; }); // V46.9.242: sin desempate, igual que el motor real
                         window._ngpDdnFullCache[keyDF] = arr;
                         return arr.slice(0, topN || 10);
                     } catch (e) { return []; }
@@ -31513,7 +31519,9 @@ function senalesDe(nn) {
                     jaleDe: _jaleDeAyer, decTermHoy: _decTermHoy, efvCalcular: _efvCalcular,
                     resumenCalc: _resumenCalc, efvTop10Calc: _efvTop10Calc, efvT3Calc: _efvT3Calc, efvG5Calc: _efvG5Calc, resultadosDeFecha: _resultadosDeFecha, predominioHoy: _ngpPredominioHoy, topsDia: _ngpTopsDia, cadNum: _ngpCadNumDe, esperaDe: _ngpEsperaDe, cierreDia: _ngpCierreDia, gruposPromedio: _ngpGruposPromedio, grpPromDe: _ngpGrpPromDe, vibHoy: _vibHoy, vibManana: _vibMan, vibAdelanto: _ngpVibAdelanto, vibAdelantoPas: _ngpVibAdelantoPas, vibPasado: _vibPas, propensosHoy: _ngpPropensosHoy, grupoDelDia: _grupoDelDiaNums, despuesDeNum: _ngpDespuesDeNum, despuesDeNumFull: _ngpDespuesDeNumFull, ultimoDeLot: _ngpUltimoDeLot, crucePegadoDom: _ngpCrucePegadoDom, termRepite: _ngpTermRepite, sum9Fechas: _ngpSum9Fechas, fam2882: _ngpFam2882, fam2882Back: _ngpFam2882Back, flotRez: _ngpFlotRez, grpExcBack: _ngpGrpExcBack, grpMaxSeq: _ngpGrpMaxSeqDe, activadorDe: _ngpActivadorDe, topMes: _ngpTopMes, frios: _ngpFrios, ausencia: _ngpAusencia, candidatosDe: _candidatosDeL
                 };
-                try { _efvGuardarSnapshotHoy(); } catch (eSnap) {} // V46.9.144: foto diaria del extracto
+                // V46.9.241: durante el cálculo del 2º/3º premio (datos ampliados)
+                // NO se guarda la foto, para no contaminar el histórico de efectividad.
+                try { if (!window._p23Calculando) _efvGuardarSnapshotHoy(); } catch (eSnap) {} // V46.9.144
                 return h;
             } catch (e) { console.error('[NGP-CONTAGIO]', e); return ''; }
         }
@@ -33774,7 +33782,7 @@ function senalesDe(nn) {
             Object.keys(P.next || {}).forEach(function(n0) {
                 var nx = P.next[n0], tt = 0;
                 var arr = Object.keys(nx).map(function(k2) { tt += nx[k2]; return { n: k2, c: nx[k2] }; })
-                    .sort(function(a, b) { return b.c !== a.c ? b.c - a.c : (a.n < b.n ? -1 : 1); });
+                    .sort(function(a, b) { return b.c - a.c; }); // V46.9.242: sin desempate, igual que el motor real
                 tAll[n0] = arr; tTot[n0] = tt;
             });
             // top 10 SIN descontar (método anterior), para mostrarlo como referencia
@@ -33795,7 +33803,7 @@ function senalesDe(nn) {
                     var cz = todos[z].c - (todos[z].n === sg.n ? 1 : 0);
                     if (cz > 0) ajust.push({ n: todos[z].n, c: cz });
                 }
-                ajust.sort(function(a, b) { return b.c !== a.c ? b.c - a.c : (a.n < b.n ? -1 : 1); });
+                ajust.sort(function(a, b) { return b.c - a.c; }); // V46.9.242: sin desempate, igual que el motor real
                 var t = ajust.slice(0, 10);
                 if (t.length < 10 || totP < 10) { pocos++; continue; }
                 casos++;
@@ -34291,6 +34299,176 @@ function senalesDe(nn) {
                 window._p23BtCache[key] = out;
                 return out;
             } catch (e) { return { n: 0, filas: [] }; }
+        }
+        // ═══ V46.9.241 (pedido de Leo): ANÁLISIS COMPLETO POR POSICIÓN ═════════
+        // Cada posición (2º y 3º de NY y FL) se trata como una lotería propia y
+        // recibe EXACTAMENTE el mismo análisis que el resto del sistema.
+        // Aislamiento de una sola vía: para calcular, se amplía capturedResults
+        // con estas series (así las demás loterías influyen en ellas) y se
+        // restaura inmediatamente (así ellas no influyen en nadie). Nada se
+        // persiste con los datos ampliados.
+        var _P23_SERIES = ['New York 2º', 'New York 3º', 'Florida 2º', 'Florida 3º'];
+        function _p23Virtuales() {
+            var out = [];
+            try {
+                Object.keys(_P23_LOTS).forEach(function(L) {
+                    var cfg = _P23_LOTS[L];
+                    var w4 = (p23Data && p23Data[L]) ? p23Data[L] : {};
+                    Object.keys(w4).forEach(function(f) {
+                        [['m', cfg.mid], ['e', cfg.eve]].forEach(function(par) {
+                            var v = (w4[f] || {})[par[0]];
+                            if (!v || ('' + v).length !== 4) return;
+                            var ts = f + 'T12:00:00.000Z';
+                            out.push({ lottery: L + ' 2º', date: f, time: par[1], number: ('' + v).substring(0, 2), reventado: false, timestamp: ts });
+                            out.push({ lottery: L + ' 3º', date: f, time: par[1], number: ('' + v).substring(2, 4), reventado: false, timestamp: ts });
+                        });
+                    });
+                });
+            } catch (e) {}
+            return out;
+        }
+        function _p23LimpiarCaches() {
+            ['_ngpParesCache', '_ngpGrpPromLCache', '_ngpGrpMaxSeqCache', '_ngpActivCache', '_ngpUltLotCache',
+             '_ngpGrpExcCache', '_ngpF2882BkCache', '_ngpCadNumLCache', '_ngpGrpPendCache', '_ngpHorCache',
+             '_ngpGrpHorCache', '_ngpVibAdCache', '_ngpVibAdPCache', '_ngpTopsCache', '_ngpPropHoyCache',
+             '_ngpDdnFullCache', '_seqFiltCache', '_djDespuesLots', '_ngpEsperaCache'].forEach(function(k) {
+                try { delete window[k]; } catch (e) {}
+            });
+        }
+        // Ejecuta el motor completo con las series incluidas y extrae, para cada
+        // una, sus candidatos con señales y sus grupos más rezagados.
+        function _p23AnalisisPos() {
+            var orig = capturedResults;
+            var res = { series: {}, err: null };
+            try {
+                var virt = _p23Virtuales();
+                if (!virt.length) { res.err = 'Todavía no hay datos del 2º y 3º premio. Importá el historial o registrá resultados.'; return res; }
+                window._p23Calculando = true;
+                capturedResults = orig.concat(virt);
+                _p23LimpiarCaches();
+                if (typeof _ngpContagioHTML === 'function') _ngpContagioHTML(); // reconstruye window._ngpFiltro con los datos ampliados
+                var F = window._ngpFiltro;
+                if (!F || !F.candidatosDe) { res.err = 'El módulo de análisis no está disponible.'; return res; }
+                _P23_SERIES.forEach(function(L) {
+                    var o = { lot: L, cands: [], grupos: [], ultimo: null, tot: 0 };
+                    try {
+                        o.tot = capturedResults.filter(function(r) { return r.lottery === L; }).length;
+                        if (!o.tot) return;
+                        var jl = (F.jaleDe ? (F.jaleDe(L) || []) : []);
+                        var lista = F.candidatosDe(L, jl) || [];
+                        o.cands = lista.filter(function(c) { return c.score > 0; }).slice(0, 12);
+                        if (F.flotRez) {
+                            var fr = F.flotRez([L]);
+                            if (fr && fr.lots && fr.lots.length) o.grupos = fr.lots[0].grupos || [];
+                        }
+                        if (F.ultimoDeLot) o.ultimo = F.ultimoDeLot(L);
+                        if (F.despuesDeNumFull && o.ultimo && o.ultimo.n) o.despues = F.despuesDeNumFull(L, o.ultimo.n, 10) || [];
+                    } catch (e1) {}
+                    res.series[L] = o;
+                });
+            } catch (e) { res.err = 'Error en el análisis: ' + e.message; }
+            finally {
+                capturedResults = orig;
+                _p23LimpiarCaches();
+                window._p23Calculando = false;
+                try { if (typeof _ngpContagioHTML === 'function') _ngpContagioHTML(); } catch (e2) {} // restaura el estado normal
+            }
+            return res;
+        }
+        function _p23PosToggle() {
+            window._p23PosVer = !window._p23PosVer;
+            if (window._p23PosVer) {
+                var cs = document.querySelectorAll('[id="p23PosResultado"]');
+                cs.forEach(function(x) { x.innerHTML = '<div style="font-size:12px;color:#fbbf24;padding:10px;">⏳ Calculando el análisis completo de las 4 series (2º y 3º de NY y Florida)… puede tardar unos segundos.</div>'; });
+                setTimeout(function() { window._p23PosData = _p23AnalisisPos(); _p23PosRender(); }, 60);
+            } else { _p23PosRender(); }
+        }
+        function _p23PosRender() {
+            var conts = document.querySelectorAll('[id="p23PosResultado"]');
+            if (!conts.length) return;
+            if (!window._p23PosVer) { conts.forEach(function(x) { x.innerHTML = ''; }); return; }
+            var R = window._p23PosData;
+            var h = '';
+            if (!R || R.err) {
+                h = '<div style="font-size:11px;color:#fca5a5;padding:8px;">' + ((R && R.err) || 'Sin datos.') + '</div>';
+                conts.forEach(function(x) { x.innerHTML = h; }); return;
+            }
+            h += '<div style="background:rgba(76,29,149,0.35);border:1.5px solid #a78bfa;border-radius:9px;padding:8px 12px;margin-bottom:9px;font-size:10px;color:#ddd6fe;line-height:1.6;">';
+            h += '🧠 <b>Cada posición se analiza como una lotería propia</b>, con las mismas señales que usás en el resto del sistema: grupo del día, vibraciones, rezago, "después de", grupos excedidos, récord de rezago, activadores, jales y cruces. <b>Las demás loterías SÍ influyen acá</b> (predominio del día, contagios entre loterías); en cambio estas series <b>no influyen en ninguna otra parte</b> del sistema.';
+            h += '</div>';
+            _P23_SERIES.forEach(function(L) {
+                var o = R.series[L];
+                if (!o || !o.tot) {
+                    h += '<div style="background:rgba(30,41,59,0.6);border:1px solid #64748b;border-radius:8px;padding:7px 11px;margin-bottom:8px;font-size:11px;color:#94a3b8;">' + L + ': sin datos todavía.</div>';
+                    return;
+                }
+                var esNY = (L.indexOf('New York') === 0);
+                var col = esNY ? '#38bdf8' : '#fb923c';
+                var bg = esNY ? 'rgba(8,47,73,0.55)' : 'rgba(67,20,7,0.5)';
+                h += '<div style="background:' + bg + ';border:2px solid ' + col + ';border-radius:10px;padding:10px 12px;margin-bottom:10px;">';
+                h += '<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:7px;">';
+                h += '<span style="font-size:14px;font-weight:bold;color:#fff;">🎰 ' + L + '</span>';
+                h += '<span style="font-size:10px;color:#94a3b8;">' + o.tot.toLocaleString() + ' sorteos</span>';
+                if (o.ultimo && o.ultimo.n) {
+                    var hf = o.ultimo.time; try { if (typeof convertTo12Hour === 'function' && hf) hf = convertTo12Hour(hf); } catch (e0) {}
+                    h += '<span style="font-size:10px;color:#cbd5e1;">último: <b style="font-family:monospace;font-size:13px;color:#fff;background:rgba(255,255,255,0.12);border:1px solid ' + col + ';border-radius:5px;padding:0 6px;">' + o.ultimo.n + '</b> ' + _p23FmtF(o.ultimo.date) + (hf ? ' ' + hf : '') + '</span>';
+                }
+                h += '</div>';
+                // TOP 5 SUGERIDO
+                var top5 = (o.cands || []).slice(0, 5);
+                h += '<div style="background:rgba(20,83,45,0.4);border:1.5px solid #4ade80;border-radius:9px;padding:8px 11px;margin-bottom:7px;">';
+                h += '<div style="font-size:12px;font-weight:bold;color:#bbf7d0;margin-bottom:5px;">🎯 TOP 5 SUGERIDO para el ' + L + '</div>';
+                if (!top5.length) h += '<div style="font-size:10px;color:#94a3b8;">Ningún número acumula señales en este momento.</div>';
+                else {
+                    h += '<div style="display:flex;flex-wrap:wrap;gap:7px;">';
+                    top5.forEach(function(c, i) {
+                        var tt = (c.tipos || []).join('\n• ');
+                        h += '<span title="' + ('Señales del ' + c.num + ' (' + c.score + ' puntos):\n• ' + tt).replace(/"/g, '') + '" style="background:rgba(2,44,34,0.92);border:' + (i === 0 ? '2px solid #4ade80' : '1.5px solid rgba(74,222,128,0.55)') + ';border-radius:9px;padding:6px 11px;text-align:center;cursor:help;">';
+                        h += '<div style="font-family:monospace;font-size:20px;font-weight:bold;color:#fff;line-height:1;">' + c.num + '</div>';
+                        h += '<div style="font-size:9px;color:#86efac;margin-top:3px;font-weight:bold;">' + c.score + ' señal' + (c.score === 1 ? '' : 'es') + '</div>';
+                        h += '<div style="font-size:8px;color:#6ee7b7;">' + (c.grupo || '') + '</div>';
+                        h += '</span>';
+                    });
+                    h += '</div>';
+                    // detalle de señales del #1
+                    var c1 = top5[0];
+                    if (c1 && c1.tipos && c1.tipos.length) {
+                        h += '<div style="font-size:9px;color:#a7f3d0;margin-top:6px;line-height:1.5;"><b>Por qué el ' + c1.num + ' encabeza:</b> ' + c1.tipos.slice(0, 4).map(function(t) { return t.length > 90 ? t.substring(0, 90) + '…' : t; }).join(' · ') + (c1.tipos.length > 4 ? ' · <i>(+' + (c1.tipos.length - 4) + ' señales más — pasá el cursor por el número)</i>' : '') + '</div>';
+                    }
+                }
+                h += '</div>';
+                // GRUPOS MÁS REZAGADOS
+                if (o.grupos && o.grupos.length) {
+                    h += '<div style="font-size:11px;font-weight:bold;color:' + col + ';margin-bottom:4px;">📉 Sus 2 grupos más rezagados</div>';
+                    o.grupos.forEach(function(g) {
+                        h += '<div style="background:rgba(0,0,0,0.28);border:1px solid rgba(248,113,113,0.5);border-radius:7px;padding:6px 9px;margin-bottom:5px;">';
+                        h += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:10px;color:#fecaca;">';
+                        h += '<b style="font-size:12px;color:#fff;background:rgba(220,38,38,0.3);border:1px solid #f87171;border-radius:6px;padding:2px 9px;">' + g.g + '</b>';
+                        h += '<span>sale cada ~<b style="color:#fff;">' + (g.cada ? Math.round(g.cada) : '?') + '</b> sorteos · lleva <b style="color:#fff;">' + (g.sin !== null && g.sin !== undefined ? g.sin : '?') + '</b> sin salir</span>';
+                        if (g.exc !== null && g.exc !== undefined) h += '<span style="font-weight:bold;color:' + (g.exc >= 1.5 ? '#f87171' : g.exc >= 1 ? '#fbbf24' : '#86efac') + ';">' + g.exc.toFixed(1) + '×' + (g.exc >= 1.5 ? ' 🚨 MUY EXCEDIDO' : '') + '</span>';
+                        if (g.mx && g.mx.alerta) h += '<span style="background:rgba(251,146,60,0.2);border:1px solid #fb923c;border-radius:5px;padding:1px 7px;font-size:9px;font-weight:bold;color:#fdba74;">' + (g.mx.igualo ? '🔥🔥 igualó su récord' : '🔥 repitiendo su récord') + ' (' + g.mx.cur + '/' + g.mx.max + ')</span>';
+                        h += '</div>';
+                        var pend = (g.pend || []).slice(0, 8);
+                        if (pend.length) {
+                            h += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">';
+                            pend.forEach(function(x) {
+                                h += '<span title="' + (x.n + ': ' + (x.ult ? 'última salida ' + x.ult + ' (' + x.dias + ' días)' : 'nunca ha salido acá') + (x.cad ? ' · pega cada ~' + Math.round(x.cad) + ' sorteos · ' + x.exc.toFixed(1) + '× su cadencia' : '')).replace(/"/g, '') + '" style="background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.6);border-radius:5px;padding:2px 6px;font-family:monospace;font-size:12px;font-weight:bold;color:#fde68a;cursor:help;">' + x.n + (x.top ? '⭐' : '') + (x.vib ? '🔮' : '') + '</span>';
+                            });
+                            h += '</div>';
+                        }
+                        h += '</div>';
+                    });
+                }
+                // DESPUÉS DE
+                if (o.despues && o.despues.length && o.ultimo) {
+                    h += '<div style="font-size:10px;color:#cbd5e1;margin-top:5px;">🔎 <b>Después del ' + o.ultimo.n + '</b> (último salido acá) suelen venir: ';
+                    h += o.despues.slice(0, 8).map(function(x) { return '<b style="font-family:monospace;color:#fff;background:rgba(56,189,248,0.18);border:1px solid rgba(56,189,248,0.5);border-radius:4px;padding:0 5px;">' + x.n + '</b><span style="font-size:8px;color:#94a3b8;">×' + x.c + '</span>'; }).join(' ');
+                    h += '</div>';
+                }
+                h += '</div>';
+            });
+            h += '<div style="font-size:9px;color:#64748b;margin-top:6px;line-height:1.6;">📝 Las señales y su puntaje son los mismos del Resumen de Loterías Más Fuertes. Pasá el cursor por cada número para ver todas sus señales. Recordá que el 1º premio de New York y Florida ya se analiza en el módulo principal (DDG vs PM) junto con las demás loterías.</div>';
+            conts.forEach(function(x) { x.innerHTML = h; });
         }
         function _p23Guardar() {
             try {
