@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.238</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.240</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6350,7 +6350,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.238</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.240</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -34045,6 +34045,8 @@ function senalesDe(nn) {
         //   1º premio = últimos 2 díg. del Pick 3 / Numbers (ya capturado)
         //   2º premio = primeros 2 díg. del Win 4 (NY) / Pick 4 (FL)
         //   3º premio = últimos 2 díg. del Win 4 / Pick 4     (verificado 8/8)
+        // V46.9.240: fechas visibles, aviso de pendientes, sugerencias arriba y
+        // BACKTEST honesto de la estrategia de parejas excedidas.
         // ═══════════════════════════════════════════════════════════════════════
         var _P23_LOTS = {
             'New York': { mid: '12:25', eve: '20:25', juego: 'Win 4' },
@@ -34069,14 +34071,14 @@ function senalesDe(nn) {
                 document.querySelectorAll('[id="p23CapFecha"]').forEach(function(i) { if (!i.value) i.value = hoy; });
             } catch (e) {}
         }
+        function _p23FmtF(d0) { if (!d0) return '—'; var p0 = ('' + d0).split('-'); return p0[2] + '/' + p0[1] + '/' + p0[0].slice(2); }
         // Construye la serie de sorteos con las 3 posiciones, en orden cronológico.
         function _p23Serie(L) {
             try {
                 var cfg = _P23_LOTS[L]; if (!cfg) return [];
-                var key = 'p23|' + L + '|' + ((capturedResults || []).length) + '|' + JSON.stringify((p23Data && p23Data[L]) ? Object.keys(p23Data[L]).length : 0);
+                var key = 'p23|' + L + '|' + ((capturedResults || []).length) + '|' + ((p23Data && p23Data[L]) ? Object.keys(p23Data[L]).length : 0);
                 if (!window._p23SerieCache) window._p23SerieCache = {};
                 if (window._p23SerieCache[key]) return window._p23SerieCache[key];
-                // 1º premio: de las capturas normales
                 var p1 = {};
                 (capturedResults || []).forEach(function(r) {
                     if (!r || r.lottery !== L || !r.date || !r.number) return;
@@ -34088,7 +34090,6 @@ function senalesDe(nn) {
                     if (!p1[r.date]) p1[r.date] = {};
                     p1[r.date][turno] = nn;
                 });
-                // 2º/3º premio: del Win4/Pick4 guardado
                 var w4 = (p23Data && p23Data[L]) ? p23Data[L] : {};
                 var fechas = {};
                 Object.keys(p1).forEach(function(f) { fechas[f] = true; });
@@ -34111,41 +34112,73 @@ function senalesDe(nn) {
                 return out;
             } catch (e) { return []; }
         }
+        // V46.9.240 (pedido de Leo): ¿qué falta registrar? Revisa los últimos días:
+        // sorteos con 1º premio capturado pero SIN el Win 4 / Pick 4.
+        function _p23Pendientes(L, dias) {
+            try {
+                var serie = _p23Serie(L);
+                if (!serie.length) return { faltan: [], ult: null };
+                var hoy = (typeof getLocalDateString === 'function') ? getLocalDateString() : new Date().toISOString().slice(0, 10);
+                var lim = new Date(hoy + 'T12:00:00');
+                lim.setDate(lim.getDate() - (dias || 10));
+                var limStr = lim.toISOString().slice(0, 10);
+                var faltan = [], ult = null;
+                var tieneW4 = {};
+                serie.forEach(function(s) {
+                    if (s.completo || (s.p2 && s.p3)) { if (!ult || s.f >= ult.f) ult = s; }
+                    if (s.p2 && s.p3) tieneW4[s.f + '|' + s.tu] = true;
+                });
+                // V46.9.240: recorrer el CALENDARIO de los últimos días — así avisa
+                // también de los días donde todavía no hay ninguna captura.
+                var cur = new Date(limStr + 'T12:00:00');
+                var fin = new Date(hoy + 'T12:00:00');
+                while (cur <= fin) {
+                    var fc = cur.toISOString().slice(0, 10);
+                    ['m', 'e'].forEach(function(tu) {
+                        if (!tieneW4[fc + '|' + tu]) faltan.push({ f: fc, tu: tu });
+                    });
+                    cur.setDate(cur.getDate() + 1);
+                }
+                faltan.sort(function(a, b) { return a.f < b.f ? 1 : a.f > b.f ? -1 : (a.tu < b.tu ? -1 : 1); });
+                return { faltan: faltan, ult: ult, hoy: hoy };
+            } catch (e) { return { faltan: [], ult: null }; }
+        }
         // Análisis completo: números por posición + PAREJAS con cadencia/excedido/récord.
         function _p23Calc(L, soloCompletos) {
             try {
                 var serie = _p23Serie(L).filter(function(s) { return soloCompletos ? s.completo : true; });
-                var res = { n: serie.length, d1: null, dN: null, pos: {}, pares: [], numTot: [], faltan: 0 };
+                var res = { n: serie.length, d1: null, dN: null, pos: {}, pares: [], numTot: [], faltan: 0, nComp: 0 };
                 if (!serie.length) return res;
                 res.d1 = serie[0].f; res.dN = serie[serie.length - 1].f;
                 var cnt = { p1: {}, p2: {}, p3: {} }, ult = { p1: {}, p2: {}, p3: {} }, tot = { p1: 0, p2: 0, p3: 0 };
                 var cntAll = {}, ultAll = {}, totAll = 0;
-                var parIdx = {}; // "aa-bb" → [índices de sorteo]
-                var nComp = 0;
-                serie.forEach(function(s, ix) {
+                var parIdx = {};
+                var comp = []; // solo los sorteos completos, en orden (para índices de parejas)
+                serie.forEach(function(s) {
                     ['p1', 'p2', 'p3'].forEach(function(k) {
                         var v = s[k];
                         if (!v) return;
-                        cnt[k][v] = (cnt[k][v] || 0) + 1; ult[k][v] = ix; tot[k]++;
-                        cntAll[v] = (cntAll[v] || 0) + 1; ultAll[v] = ix; totAll++;
+                        cnt[k][v] = (cnt[k][v] || 0) + 1; ult[k][v] = tot[k]; tot[k]++;
+                        cntAll[v] = (cntAll[v] || 0) + 1; ultAll[v] = totAll; totAll++;
                     });
                     if (!s.completo) { res.faltan++; return; }
-                    nComp++;
+                    comp.push(s);
+                    var ix = comp.length - 1;
                     var trio = [s.p1, s.p2, s.p3];
                     var vistos = {};
                     for (var a = 0; a < 3; a++) {
                         for (var b = a + 1; b < 3; b++) {
                             var x = trio[a], y = trio[b];
                             var kp = (x <= y) ? (x + '-' + y) : (y + '-' + x);
-                            if (vistos[kp]) continue; // no contar dos veces el mismo par en un sorteo
+                            if (vistos[kp]) continue;
                             vistos[kp] = true;
                             if (!parIdx[kp]) parIdx[kp] = [];
                             parIdx[kp].push(ix);
                         }
                     }
                 });
-                res.nComp = nComp;
-                // ── números por posición ──
+                var nComp = comp.length;
+                res.nComp = nComp; res.comp = comp;
                 ['p1', 'p2', 'p3'].forEach(function(k) {
                     var lst = Object.keys(cnt[k]).map(function(nn) {
                         var c = cnt[k][nn];
@@ -34164,17 +34197,16 @@ function senalesDe(nn) {
                     var c = cntAll[nn], cad = c ? (totAll / c) : null, sin = totAll - 1 - ultAll[nn];
                     return { n: nn, c: c, cad: cad, sin: sin, exc: cad ? (sin / cad) : null };
                 }).sort(function(a, b) { return b.c - a.c; });
-                // ── parejas ──
-                // azar: 2 números distintos entre 3 posiciones = 6/10000; iguales = 3/10000
                 var pares = [];
                 Object.keys(parIdx).forEach(function(kp) {
                     var ids = parIdx[kp];
                     var c = ids.length;
-                    if (c < 2) return; // se necesitan 2+ apariciones para hablar de cadencia
+                    if (c < 2) return;
                     var partes = kp.split('-');
                     var doble = (partes[0] === partes[1]);
                     var cad = nComp / c;
-                    var sin = nComp - 1 - ids[ids.length - 1];
+                    var ultIx = ids[ids.length - 1];
+                    var sin = nComp - 1 - ultIx;
                     var maxGap = 0, gapIni = null, gapFin = null;
                     for (var i = 1; i < ids.length; i++) {
                         var g = ids[i] - ids[i - 1] - 1;
@@ -34185,15 +34217,80 @@ function senalesDe(nn) {
                         k: kp, a: partes[0], b: partes[1], doble: doble, c: c,
                         cad: cad, sin: sin, exc: cad ? (sin / cad) : null,
                         max: maxGap, pctMax: maxGap ? (sin / maxGap) : null,
-                        ultIx: ids[ids.length - 1], ids: ids,
-                        cadEsp: 1 / pEsp, idxAzar: (nComp * pEsp) ? (c / (nComp * pEsp)) : null,
-                        maxIni: gapIni, maxFin: gapFin
+                        ultIx: ultIx, ids: ids,
+                        ultF: (comp[ultIx] ? comp[ultIx].f : null), ultT: (comp[ultIx] ? comp[ultIx].tu : null),
+                        maxF1: (gapIni !== null && comp[gapIni] ? comp[gapIni].f : null),
+                        maxF2: (gapFin !== null && comp[gapFin] ? comp[gapFin].f : null),
+                        cadEsp: 1 / pEsp, idxAzar: (nComp * pEsp) ? (c / (nComp * pEsp)) : null
                     });
                 });
                 res.pares = pares;
                 res.serie = serie;
                 return res;
-            } catch (e) { return { n: 0, pos: {}, pares: [], numTot: [], faltan: 0 }; }
+            } catch (e) { return { n: 0, pos: {}, pares: [], numTot: [], faltan: 0, nComp: 0 }; }
+        }
+        // ═══ V46.9.240 (pedido de Leo): BACKTEST del historial ═══════════════════
+        // ¿Sirve jugar una pareja porque está "excedida"? Método honesto: se recorre
+        // cada pareja en orden cronológico y su cadencia se calcula SOLO con lo visto
+        // hasta ese momento. Cuando la sequía cruza el umbral (1.5×, 2× o 3× esa
+        // cadencia) se abre un evento y se mide cuántos sorteos tarda en volver a
+        // salir, contra lo que daría el azar puro (proceso sin memoria: 1/p).
+        function _p23Backtest(L) {
+            try {
+                var key = 'bt|' + L + '|' + ((capturedResults || []).length) + '|' + ((p23Data && p23Data[L]) ? Object.keys(p23Data[L]).length : 0);
+                if (!window._p23BtCache) window._p23BtCache = {};
+                if (window._p23BtCache[key]) return window._p23BtCache[key];
+                var r = _p23Calc(L, false);
+                var nComp = r.nComp || 0;
+                var umbrales = [1.5, 2, 3];
+                var out = { n: nComp, filas: [] };
+                if (nComp < 500) { window._p23BtCache[key] = out; return out; }
+                umbrales.forEach(function(U) {
+                    var ev = 0, cerr = 0, cens = 0, sumObs = 0, sumEsp = 0, rapidos = 0, espRapidos = 0;
+                    r.pares.forEach(function(p) {
+                        var ids = p.ids;
+                        if (ids.length < 4) return; // se piden 3+ salidas previas para estimar cadencia
+                        for (var i = 3; i <= ids.length; i++) {
+                            var prev = ids[i - 1];                 // última salida conocida
+                            var vistas = i;                        // apariciones conocidas hasta ahí
+                            var cadHist = (prev + 1) / vistas;      // cadencia solo con el pasado
+                            var cruce = prev + Math.round(U * cadHist);
+                            if (cruce >= nComp) break;             // el cruce no llegó a ocurrir
+                            var pEst = vistas / (prev + 1);         // tasa estimada con el pasado
+                            if (!pEst || pEst <= 0) continue;
+                            var espera, cerrado;
+                            if (i < ids.length) {
+                                var sig = ids[i];
+                                if (sig <= cruce) continue;        // salió antes de cruzar el umbral
+                                espera = sig - cruce; cerrado = true;
+                            } else {
+                                espera = nComp - 1 - cruce;        // sigue abierto hoy (censurado)
+                                if (espera < 0) continue;
+                                cerrado = false;
+                            }
+                            ev++;
+                            var espAzar = 1 / pEst;
+                            sumEsp += espAzar;
+                            if (cerrado) {
+                                cerr++; sumObs += espera;
+                                if (espera <= espAzar) rapidos++;
+                            } else { cens++; }
+                            espRapidos += (1 - Math.pow(1 - pEst, Math.round(espAzar)));
+                        }
+                    });
+                    var obsProm = cerr ? (sumObs / cerr) : null;
+                    var espProm = ev ? (sumEsp / ev) : null;
+                    out.filas.push({
+                        u: U, ev: ev, cerr: cerr, cens: cens,
+                        obs: obsProm, esp: espProm,
+                        idx: (obsProm && espProm) ? (espProm / obsProm) : null,
+                        pctRap: cerr ? (rapidos / cerr) : null,
+                        pctRapAzar: ev ? (espRapidos / ev) : null
+                    });
+                });
+                window._p23BtCache[key] = out;
+                return out;
+            } catch (e) { return { n: 0, filas: [] }; }
         }
         function _p23Guardar() {
             try {
@@ -34203,13 +34300,13 @@ function senalesDe(nn) {
                 document.querySelectorAll('[id="p23CapMid"]').forEach(function(i) { if (!m4 && i.value) m4 = i.value.replace(/[^0-9]/g, ''); });
                 document.querySelectorAll('[id="p23CapEve"]').forEach(function(i) { if (!e4 && i.value) e4 = i.value.replace(/[^0-9]/g, ''); });
                 if (!f) { alert('Elegí la fecha.'); return; }
-                if (!m4 && !e4) { alert('Escribí al menos un resultado (4 dígitos del ' + (_P23_LOTS[L] ? _P23_LOTS[L].juego : 'sorteo') + ', o los dos pares seguidos: 2º+3º).'); return; }
+                if (!m4 && !e4) { alert('Escribí al menos un resultado (4 dígitos del ' + (_P23_LOTS[L] ? _P23_LOTS[L].juego : 'sorteo') + ': 2º premio + 3º premio).'); return; }
                 if (m4 && m4.length !== 4) { alert('El del MEDIODÍA debe tener 4 dígitos (2º premio + 3º premio). Ej: 2º=69 y 3º=05 → 6905'); return; }
                 if (e4 && e4.length !== 4) { alert('El de la NOCHE debe tener 4 dígitos (2º premio + 3º premio). Ej: 2º=37 y 3º=60 → 3760'); return; }
                 if (!p23Data[L]) p23Data[L] = {};
                 var prev = p23Data[L][f] || {};
                 p23Data[L][f] = { m: m4 || prev.m || '', e: e4 || prev.e || '' };
-                window._p23SerieCache = {};
+                window._p23SerieCache = {}; window._p23BtCache = {};
                 saveData();
                 var msg = '🎰 ' + L + ' ' + f + ' guardado:' + (m4 ? ' mediodía 2º=' + m4.substring(0, 2) + ' 3º=' + m4.substring(2, 4) : '') + (e4 ? ' · noche 2º=' + e4.substring(0, 2) + ' 3º=' + e4.substring(2, 4) : '');
                 if (typeof showMessage === 'function') showMessage(msg, 'success');
@@ -34248,90 +34345,165 @@ function senalesDe(nn) {
                             p23Data[L][f] = { m: nm, e: ne };
                         }
                     });
-                    window._p23SerieCache = {};
+                    window._p23SerieCache = {}; window._p23BtCache = {};
                     saveData();
-                    var msg = '🎰 Historial 2º/3º importado: ' + add + ' fechas nuevas, ' + upd + ' completadas' + (mal ? ', ' + mal + ' filas ignoradas' : '') + '.';
-                    if (typeof showMessage === 'function') showMessage(msg, 'success');
-                    alert(msg);
                     fileInput.value = '';
                     _p23Render();
+                    var msg = '🎰 Historial 2º/3º importado: ' + add + ' fechas nuevas, ' + upd + ' completadas' + (mal ? ', ' + mal + ' filas ignoradas' : '') + '.';
+                    try {
+                        var _rv = _p23Calc(_p23LotSel(), false);
+                        if (_rv && _rv.nComp) msg += '\n\nAhora hay ' + _rv.nComp.toLocaleString() + ' sorteos con las 3 posiciones completas (de ' + _rv.n.toLocaleString() + ' en total). El análisis ya está abajo.';
+                    } catch (eRv) {}
+                    if (typeof showMessage === 'function') showMessage(msg, 'success');
+                    alert(msg);
                 } catch (er) { alert('Error al leer el Excel: ' + er.message); }
             };
             reader.readAsArrayBuffer(file);
         }
         function _p23Orden(o) { window._p23Ord = o; _p23Render(); }
+        function _p23BtToggle() {
+            window._p23BtVer = !window._p23BtVer;
+            _p23Render();
+        }
         function _p23Render() {
             var conts = document.querySelectorAll('[id="p23Resultado"]');
             if (!conts.length) return;
             var L = _p23LotSel();
             var cfg = _P23_LOTS[L] || { juego: '?' };
             var r = _p23Calc(L, false);
-            var fmtF = function(d0) { if (!d0) return '—'; var p0 = ('' + d0).split('-'); return p0[2] + '/' + p0[1] + '/' + p0[0].slice(2); };
+            var fmtF = _p23FmtF;
             var h = '';
-            // ── estado de datos ──
+            // ── 1) PENDIENTES DE REGISTRAR ──
+            var pend = _p23Pendientes(L, 10);
+            if (r.n) {
+                if (pend.faltan.length) {
+                    var hoyF = pend.hoy;
+                    var deHoy = pend.faltan.filter(function(x) { return x.f === hoyF; });
+                    h += '<div style="background:rgba(120,53,15,0.55);border:2px solid #f59e0b;border-radius:9px;padding:8px 12px;margin-bottom:9px;">';
+                    h += '<div style="font-size:12px;font-weight:bold;color:#fde68a;margin-bottom:4px;">⚠️ FALTA REGISTRAR el ' + cfg.juego + ' de ' + L + '</div>';
+                    if (deHoy.length) {
+                        h += '<div style="font-size:11px;color:#fef3c7;margin-bottom:3px;">📌 <b>HOY (' + fmtF(hoyF) + ')</b>: falta ' + deHoy.map(function(x) { return x.tu === 'm' ? 'el MEDIODÍA' : 'la NOCHE'; }).join(' y ') + '.</div>';
+                    }
+                    var otros = pend.faltan.filter(function(x) { return x.f !== hoyF; });
+                    if (otros.length) {
+                        h += '<div style="font-size:10px;color:#fed7aa;">Días anteriores sin registrar (últimos 10 días): ';
+                        h += otros.slice(0, 14).map(function(x) { return '<b>' + fmtF(x.f) + '</b> ' + (x.tu === 'm' ? 'mediodía' : 'noche'); }).join(' · ');
+                        if (otros.length > 14) h += ' … y ' + (otros.length - 14) + ' más';
+                        h += '</div>';
+                    }
+                    h += '<div style="font-size:9px;color:#fdba74;margin-top:3px;">Registralos arriba: elegí la fecha y escribí los 4 dígitos del turno que falte.</div>';
+                    h += '</div>';
+                } else {
+                    h += '<div style="background:rgba(20,83,45,0.45);border:1px solid #4ade80;border-radius:8px;padding:6px 11px;margin-bottom:9px;font-size:11px;color:#bbf7d0;">✅ <b>Todo al día</b> — no falta ningún ' + cfg.juego + ' de los últimos 10 días' + (pend.ult ? ' · último registrado: <b style="color:#fff;">' + fmtF(pend.ult.f) + ' ' + (pend.ult.tu === 'm' ? 'mediodía' : 'noche') + '</b>' : '') + '.</div>';
+                }
+            }
+            // ── 2) estado de datos ──
             h += '<div style="background:rgba(8,47,73,0.6);border:1px solid #38bdf8;border-radius:8px;padding:8px 11px;margin-bottom:9px;font-size:11px;color:#bae6fd;">';
             if (!r.n) {
-                h += 'Todavía no hay datos de <b>' + L + '</b>. Cargá el historial con el Excel de abajo, o registrá el resultado del día.';
+                h += 'Todavía no hay datos de <b>' + L + '</b>. Cargá el historial con el Excel de arriba, o registrá el resultado del día.';
             } else {
                 h += '📊 <b style="color:#fff;">' + L + '</b>: ' + r.n.toLocaleString() + ' sorteos entre <b style="color:#fff;">' + fmtF(r.d1) + '</b> y <b style="color:#fff;">' + fmtF(r.dN) + '</b> · con las <b style="color:#4ade80;">3 posiciones completas: ' + (r.nComp || 0).toLocaleString() + '</b>';
-                if (r.faltan) h += ' · <span style="color:#fbbf24;">' + r.faltan.toLocaleString() + ' sorteos sin el ' + cfg.juego + ' (solo 1º premio)</span>';
-                h += '<br><span style="font-size:10px;color:#7dd3fc;">El análisis de parejas usa los ' + (r.nComp || 0).toLocaleString() + ' sorteos completos. Azar de una pareja: ~1 vez cada 1.667 sorteos.</span>';
+                if (r.faltan) h += ' · <span style="color:#fbbf24;">' + r.faltan.toLocaleString() + ' sin el ' + cfg.juego + '</span>';
+                h += '<br><span style="font-size:10px;color:#7dd3fc;">Azar de una pareja: ~1 vez cada 1.667 sorteos (2 números distintos entre los 3 premios).</span>';
             }
             h += '</div>';
             if (!r.nComp) { conts.forEach(function(x) { x.innerHTML = h; }); return; }
-            // ── PAREJAS ──
+            // ── 3) SUGERENCIAS (arriba, es lo accionable) ──
+            var sug = r.pares.filter(function(p) { return p.c >= 4 && p.exc !== null && p.exc >= 1.5 && p.pctMax !== null && p.pctMax >= 0.7; })
+                .sort(function(a, b) { return (b.exc + (b.pctMax || 0)) - (a.exc + (a.pctMax || 0)); }).slice(0, 10);
+            h += '<div style="background:linear-gradient(135deg,rgba(20,83,45,0.5),rgba(6,78,59,0.35));border:2px solid #4ade80;border-radius:10px;padding:10px 12px;margin-bottom:10px;">';
+            h += '<div style="font-size:13px;font-weight:bold;color:#bbf7d0;margin-bottom:3px;">🎯 QUÉ JUGAR HOY — parejas doblemente vencidas en ' + L + '</div>';
+            h += '<div style="font-size:9px;color:#86efac;margin-bottom:7px;">Cumplen las DOS condiciones: pasaron 1.5× su promedio de salida Y van al 70%+ de su récord histórico de ausencia (con 4+ salidas de historial). Pasá el cursor por cada una para ver el detalle completo.</div>';
+            if (!sug.length) h += '<div style="font-size:10px;color:#94a3b8;">Ahora mismo ninguna pareja cumple las dos condiciones.</div>';
+            else {
+                h += '<div style="display:flex;flex-wrap:wrap;gap:7px;">';
+                sug.forEach(function(p, i) {
+                    var tt = p.a + '+' + p.b + ': salieron juntas ' + p.c + ' veces (1 cada ~' + Math.round(p.cad) + ' sorteos). Última vez: ' + (p.ultF ? _p23FmtF(p.ultF) + ' ' + (p.ultT === 'm' ? 'mediodía' : 'noche') : '?') + '. Llevan ' + p.sin + ' sorteos sin salir = ' + p.exc.toFixed(1) + ' veces su promedio. Su récord de ausencia fue ' + p.max + ' sorteos (' + (p.maxF1 ? _p23FmtF(p.maxF1) + ' → ' + _p23FmtF(p.maxF2) : '?') + ') y van en el ' + Math.round(p.pctMax * 100) + '% de ese récord. Frecuencia vs azar: ×' + p.idxAzar.toFixed(1);
+                    h += '<span title="' + tt.replace(/"/g, '') + '" style="background:rgba(2,44,34,0.92);border:' + (i === 0 ? '2px solid #4ade80' : '1.5px solid rgba(74,222,128,0.6)') + ';border-radius:9px;padding:6px 10px;font-size:11px;color:#d1fae5;cursor:help;text-align:center;">';
+                    h += '<div style="font-family:monospace;font-size:17px;font-weight:bold;color:#fff;letter-spacing:1px;">' + p.a + ' + ' + p.b + '</div>';
+                    h += '<div style="font-size:9px;color:#86efac;margin-top:2px;">' + p.exc.toFixed(1) + '× prom · ' + Math.round(p.pctMax * 100) + '% récord</div>';
+                    h += '<div style="font-size:8px;color:#6ee7b7;">últ: ' + (p.ultF ? _p23FmtF(p.ultF) : '—') + ' · ' + p.c + ' veces</div>';
+                    h += '</span>';
+                });
+                h += '</div>';
+                h += '<div style="font-size:9px;color:#fbbf24;margin-top:7px;">💡 Antes de jugar, mirá el <b>BACKTEST</b> más abajo: ahí se mide si el criterio "está excedida" realmente adelantó la salida en el pasado, o si es solo casualidad.</div>';
+            }
+            h += '</div>';
+            // ── 4) BACKTEST ──
+            h += '<div style="margin-bottom:10px;">';
+            h += '<button onclick="_p23BtToggle()" style="background:linear-gradient(135deg,#7f1d1d,#dc2626);border:1.5px solid #fca5a5;color:#fff;padding:7px 15px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:bold;">🔬 ' + (window._p23BtVer ? 'Ocultar' : 'Ver') + ' BACKTEST del historial — ¿sirve jugar parejas excedidas?</button>';
+            if (window._p23BtVer) {
+                var bt = _p23Backtest(L);
+                h += '<div style="background:rgba(0,0,0,0.4);border:2px solid #dc2626;border-radius:10px;padding:10px 12px;margin-top:7px;">';
+                if (!bt.filas.length) h += '<div style="font-size:11px;color:#94a3b8;">Hacen falta al menos 500 sorteos completos para el backtest.</div>';
+                else {
+                    h += '<div style="font-size:11px;color:#fecaca;margin-bottom:7px;">Se recorre TODO el historial de ' + L + ' en orden cronológico. Para cada pareja, su cadencia se calcula <b>solo con lo conocido hasta ese momento</b> (sin ver el futuro). Cuando la sequía cruza el umbral, se mide cuántos sorteos tardó realmente en volver a salir, contra lo que daría el <b>azar puro</b>.</div>';
+                    h += '<div style="display:flex;font-size:9px;font-weight:bold;color:#fecaca;background:rgba(69,10,10,0.9);border:1px solid #dc2626;border-radius:6px 6px 0 0;padding:5px 9px;gap:6px;">';
+                    h += '<span style="flex:1;">Umbral</span><span style="flex:1;text-align:center;">Casos</span><span style="flex:1.4;text-align:center;">Tardó (real)</span><span style="flex:1.4;text-align:center;">Tardaría por azar</span><span style="flex:1.2;text-align:center;">Índice</span><span style="flex:2;">Veredicto</span>';
+                    h += '</div>';
+                    bt.filas.forEach(function(f0, i0) {
+                        var idx = f0.idx;
+                        var col = (idx === null) ? '#94a3b8' : (idx >= 1.15) ? '#4ade80' : (idx <= 0.9) ? '#f87171' : '#fde68a';
+                        var ver = (idx === null) ? 'sin datos' : (idx >= 1.15) ? '✅ sale MÁS RÁPIDO que el azar' : (idx <= 0.9) ? '❌ sale más LENTO que el azar' : '➖ igual que el azar (no aporta)';
+                        h += '<div style="display:flex;align-items:center;font-size:11px;color:#fee2e2;background:' + (i0 % 2 ? 'rgba(30,10,10,0.9)' : 'rgba(45,15,15,0.9)') + ';border:1px solid rgba(220,38,38,0.35);border-top:none;padding:5px 9px;gap:6px;">';
+                        h += '<span style="flex:1;font-weight:bold;color:#fff;">' + f0.u + '× su promedio</span>';
+                        h += '<span style="flex:1;text-align:center;">' + f0.ev.toLocaleString() + '<span style="font-size:8px;color:#94a3b8;"> (' + f0.cerr.toLocaleString() + ' cerrados)</span></span>';
+                        h += '<span style="flex:1.4;text-align:center;font-weight:bold;color:#fff;">' + (f0.obs !== null ? Math.round(f0.obs).toLocaleString() + ' sort.' : '—') + '</span>';
+                        h += '<span style="flex:1.4;text-align:center;">' + (f0.esp !== null ? Math.round(f0.esp).toLocaleString() + ' sort.' : '—') + '</span>';
+                        h += '<span style="flex:1.2;text-align:center;font-weight:bold;color:' + col + ';">' + (idx !== null ? '×' + idx.toFixed(2) : '—') + '</span>';
+                        h += '<span style="flex:2;font-weight:bold;color:' + col + ';font-size:10px;">' + ver + '</span>';
+                        h += '</div>';
+                    });
+                    var f15 = bt.filas[0];
+                    if (f15 && f15.idx !== null) {
+                        var buena = f15.idx >= 1.15;
+                        h += '<div style="background:' + (buena ? 'rgba(20,83,45,0.5)' : 'rgba(69,26,3,0.5)') + ';border:1.5px solid ' + (buena ? '#4ade80' : '#fbbf24') + ';border-radius:8px;padding:8px 11px;margin-top:8px;font-size:11px;color:' + (buena ? '#d1fae5' : '#fef3c7') + ';">';
+                        h += '<b>📖 Cómo leerlo:</b> el <b>índice</b> compara lo que tardó de verdad contra lo que tardaría por pura casualidad. <b>×1.00 = el atraso no predice nada</b> (cada sorteo es independiente y la pareja no "debe" salir). Mayor a ×1.15 con muchos casos significa que el criterio sí adelanta la salida; menor a ×0.90, que jugar parejas excedidas es peor que jugar al azar. ';
+                        h += buena ? 'En ' + L + ' el criterio <b>sí muestra ventaja</b> con este historial.' : 'Con este historial, el atraso de una pareja <b>no adelanta</b> su salida de forma clara — usá las sugerencias como una lista de candidatas, no como una certeza.';
+                        h += '</div>';
+                    }
+                }
+                h += '</div>';
+            }
+            h += '</div>';
+            // ── 5) TABLA DE PAREJAS ──
             var ord = window._p23Ord || 'exc';
             var pares = r.pares.slice();
             if (ord === 'exc') pares.sort(function(a, b) { return (b.exc || 0) - (a.exc || 0); });
             else if (ord === 'rec') pares.sort(function(a, b) { return (b.pctMax || 0) - (a.pctMax || 0); });
             else pares.sort(function(a, b) { return b.c - a.c; });
-            var minC = 3;
-            var conHist = pares.filter(function(p) { return p.c >= minC; });
+            var conHist = pares.filter(function(p) { return p.c >= 3; });
             var lista = (ord === 'frec' ? pares : conHist).slice(0, 24);
             h += '<div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:7px;">';
             h += '<span style="font-size:12px;font-weight:bold;color:#fde68a;">🎲 PAREJAS de ' + L + '</span>';
-            h += '<span style="font-size:10px;color:#94a3b8;">(' + r.pares.length.toLocaleString() + ' parejas con 2+ salidas) · ordenar por:</span>';
+            h += '<span style="font-size:10px;color:#94a3b8;">(' + r.pares.length.toLocaleString() + ' con 2+ salidas) · ordenar por:</span>';
             [['exc', '🔥 más excedidas'], ['rec', '📛 % de su récord'], ['frec', '🔁 más frecuentes']].forEach(function(o) {
                 var on = (ord === o[0]);
                 h += '<button onclick="_p23Orden(\'' + o[0] + '\')" style="background:' + (on ? 'linear-gradient(135deg,#b45309,#f59e0b)' : 'rgba(148,163,184,0.12)') + ';border:1px solid ' + (on ? '#fde68a' : '#64748b') + ';color:' + (on ? '#fff' : '#cbd5e1') + ';padding:3px 10px;border-radius:6px;cursor:pointer;font-size:10px;font-weight:bold;">' + o[1] + '</button>';
             });
             h += '</div>';
             h += '<div style="display:flex;font-size:9px;font-weight:bold;color:#fde68a;background:rgba(48,24,4,0.97);border:1px solid #f59e0b;border-radius:7px 7px 0 0;padding:5px 9px;gap:6px;">';
-            h += '<span style="flex:1.3;">Pareja</span><span style="flex:0.8;text-align:center;">Veces</span><span style="flex:1.1;text-align:center;">Cada ~N sorteos</span><span style="flex:1;text-align:center;">Lleva sin salir</span><span style="flex:0.9;text-align:center;">× su promedio</span><span style="flex:1.5;text-align:center;">Récord sin salir</span><span style="flex:0.9;text-align:center;">vs azar</span>';
+            h += '<span style="flex:1.2;">Pareja</span><span style="flex:0.6;text-align:center;">Veces</span><span style="flex:1.4;text-align:center;">ÚLTIMA VEZ</span><span style="flex:0.9;text-align:center;">Cada ~N</span><span style="flex:0.9;text-align:center;">Lleva sin salir</span><span style="flex:0.8;text-align:center;">× prom.</span><span style="flex:1.9;text-align:center;">Récord sin salir (cuándo)</span><span style="flex:0.7;text-align:center;">vs azar</span>';
             h += '</div>';
             lista.forEach(function(p, i) {
                 var alertaExc = (p.exc !== null && p.exc >= 1.5);
                 var alertaRec = (p.pctMax !== null && p.pctMax >= 0.8);
                 var bg = (alertaExc || alertaRec) ? 'rgba(66,32,6,0.97)' : (i % 2 ? 'rgba(20,12,3,0.97)' : 'rgba(30,18,5,0.97)');
                 h += '<div style="display:flex;align-items:center;font-size:11px;color:#e7e5e4;background:' + bg + ';border:1px solid rgba(245,158,11,0.35);border-top:none;padding:4px 9px;gap:6px;">';
-                h += '<span style="flex:1.3;"><b style="font-family:monospace;font-size:15px;color:#fff;background:rgba(245,158,11,0.22);border:1px solid #f59e0b;border-radius:5px;padding:0 6px;">' + p.a + '</b> <span style="color:#78716c;">+</span> <b style="font-family:monospace;font-size:15px;color:#fff;background:rgba(245,158,11,0.22);border:1px solid #f59e0b;border-radius:5px;padding:0 6px;">' + p.b + '</b>' + (p.doble ? ' <span style="font-size:8px;color:#fbbf24;">doble</span>' : '') + '</span>';
-                h += '<span style="flex:0.8;text-align:center;font-weight:bold;color:#fff;">' + p.c + '</span>';
-                h += '<span style="flex:1.1;text-align:center;">' + Math.round(p.cad) + '</span>';
-                h += '<span style="flex:1;text-align:center;font-weight:bold;color:#fff;">' + p.sin + '</span>';
+                h += '<span style="flex:1.2;"><b style="font-family:monospace;font-size:15px;color:#fff;background:rgba(245,158,11,0.22);border:1px solid #f59e0b;border-radius:5px;padding:0 6px;">' + p.a + '</b> <span style="color:#78716c;">+</span> <b style="font-family:monospace;font-size:15px;color:#fff;background:rgba(245,158,11,0.22);border:1px solid #f59e0b;border-radius:5px;padding:0 6px;">' + p.b + '</b>' + (p.doble ? ' <span style="font-size:8px;color:#fbbf24;">doble</span>' : '') + '</span>';
+                h += '<span style="flex:0.6;text-align:center;font-weight:bold;color:#fff;">' + p.c + '</span>';
+                h += '<span style="flex:1.4;text-align:center;color:#fcd34d;">' + (p.ultF ? fmtF(p.ultF) + ' <span style="font-size:8px;color:#a8a29e;">' + (p.ultT === 'm' ? 'med' : 'noc') + '</span>' : '—') + '</span>';
+                h += '<span style="flex:0.9;text-align:center;">' + Math.round(p.cad) + '</span>';
+                h += '<span style="flex:0.9;text-align:center;font-weight:bold;color:#fff;">' + p.sin + '</span>';
                 var cE = (p.exc >= 1.5) ? '#f87171' : (p.exc >= 1) ? '#fbbf24' : '#86efac';
-                h += '<span style="flex:0.9;text-align:center;font-weight:bold;color:' + cE + ';">' + (p.exc !== null ? p.exc.toFixed(1) + '×' : '—') + (p.exc >= 1.5 ? ' 🔥' : '') + '</span>';
+                h += '<span style="flex:0.8;text-align:center;font-weight:bold;color:' + cE + ';">' + (p.exc !== null ? p.exc.toFixed(1) + '×' : '—') + (p.exc >= 1.5 ? ' 🔥' : '') + '</span>';
                 var cR = (p.pctMax >= 1) ? '#f87171' : (p.pctMax >= 0.8) ? '#fb923c' : '#94a3b8';
-                h += '<span style="flex:1.5;text-align:center;">' + p.max + ' <span style="color:#78716c;">→ va en</span> <b style="color:' + cR + ';">' + (p.pctMax !== null ? Math.round(p.pctMax * 100) + '%' : '—') + '</b>' + (p.pctMax >= 1 ? ' 📛' : '') + '</span>';
+                h += '<span style="flex:1.9;text-align:center;font-size:10px;">' + p.max + ' <b style="color:' + cR + ';">(' + (p.pctMax !== null ? Math.round(p.pctMax * 100) + '%' : '—') + ')</b>' + (p.maxF1 ? ' <span style="font-size:8px;color:#a8a29e;">' + fmtF(p.maxF1) + '→' + fmtF(p.maxF2) + '</span>' : '') + '</span>';
                 var cA = (p.idxAzar >= 1.3) ? '#4ade80' : (p.idxAzar >= 0.9) ? '#fde68a' : '#94a3b8';
-                h += '<span style="flex:0.9;text-align:center;font-weight:bold;color:' + cA + ';">' + (p.idxAzar !== null ? '×' + p.idxAzar.toFixed(1) : '—') + '</span>';
+                h += '<span style="flex:0.7;text-align:center;font-weight:bold;color:' + cA + ';">' + (p.idxAzar !== null ? '×' + p.idxAzar.toFixed(1) : '—') + '</span>';
                 h += '</div>';
             });
-            // ── SUGERENCIAS ──
-            var sug = r.pares.filter(function(p) { return p.c >= 4 && p.exc !== null && p.exc >= 1.5 && p.pctMax !== null && p.pctMax >= 0.7; })
-                .sort(function(a, b) { return (b.exc + (b.pctMax || 0)) - (a.exc + (a.pctMax || 0)); }).slice(0, 12);
-            h += '<div style="background:rgba(20,83,45,0.35);border:1.5px solid #4ade80;border-radius:9px;padding:9px 12px;margin-top:11px;">';
-            h += '<div style="font-size:12px;font-weight:bold;color:#bbf7d0;margin-bottom:6px;">✅ SUGERENCIAS — parejas doblemente vencidas (pasaron su promedio Y se acercan a su récord)</div>';
-            if (!sug.length) h += '<div style="font-size:10px;color:#94a3b8;">Ahora mismo ninguna pareja cumple las dos condiciones (4+ salidas, 1.5× su promedio y 70%+ de su récord).</div>';
-            else {
-                h += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
-                sug.forEach(function(p) {
-                    var tt = p.a + '+' + p.b + ': salieron juntas ' + p.c + ' veces (1 cada ~' + Math.round(p.cad) + ' sorteos). Llevan ' + p.sin + ' sorteos sin salir = ' + p.exc.toFixed(1) + ' veces su promedio, y su récord de ausencia fue ' + p.max + ' sorteos (van en el ' + Math.round(p.pctMax * 100) + '%). Frecuencia vs azar: ×' + p.idxAzar.toFixed(1);
-                    h += '<span title="' + tt.replace(/"/g, '') + '" style="background:rgba(2,44,34,0.9);border:1.5px solid #4ade80;border-radius:8px;padding:5px 9px;font-size:11px;color:#d1fae5;cursor:help;"><b style="font-family:monospace;font-size:14px;color:#fff;">' + p.a + '+' + p.b + '</b> <span style="font-size:9px;">· ' + p.exc.toFixed(1) + '× prom · ' + Math.round(p.pctMax * 100) + '% récord · ' + p.c + ' veces</span></span>';
-                });
-                h += '</div>';
-            }
-            h += '</div>';
-            // ── NÚMEROS POR POSICIÓN ──
+            // ── 6) NÚMEROS POR POSICIÓN ──
             var nomPos = { p1: '1º premio', p2: '2º premio', p3: '3º premio' };
             h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:11px;">';
             ['p1', 'p2', 'p3'].forEach(function(k) {
@@ -34350,21 +34522,22 @@ function senalesDe(nn) {
                 h += '</div></div>';
             });
             h += '</div>';
-            // ── últimos sorteos ──
+            // ── 7) últimos sorteos ──
             var ults = (r.serie || []).slice(-8).reverse();
             h += '<div style="margin-top:11px;background:rgba(0,0,0,0.3);border:1px solid #64748b;border-radius:8px;padding:8px 11px;">';
             h += '<div style="font-size:11px;font-weight:bold;color:#cbd5e1;margin-bottom:5px;">🕐 ÚLTIMOS SORTEOS REGISTRADOS</div>';
             ults.forEach(function(s) {
                 h += '<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#e2e8f0;margin-bottom:3px;">';
-                h += '<span style="min-width:120px;color:#94a3b8;">' + fmtF(s.f) + ' · ' + (s.tu === 'm' ? 'mediodía' : 'noche') + '</span>';
+                h += '<span style="min-width:130px;color:#94a3b8;">' + fmtF(s.f) + ' · ' + (s.tu === 'm' ? 'mediodía' : 'noche') + '</span>';
                 ['p1', 'p2', 'p3'].forEach(function(k, ki) {
                     var v = s[k];
                     h += '<span style="font-size:9px;color:#64748b;">' + (ki + 1) + 'º</span> <b style="font-family:monospace;font-size:14px;color:' + (v ? '#fff' : '#475569') + ';background:' + (v ? 'rgba(56,189,248,0.2)' : 'rgba(71,85,105,0.2)') + ';border:1px solid ' + (v ? '#38bdf8' : '#475569') + ';border-radius:5px;padding:0 6px;">' + (v || '··') + '</b> ';
                 });
+                if (!s.p2 || !s.p3) h += '<span style="font-size:9px;color:#fbbf24;">← falta el ' + cfg.juego + '</span>';
                 h += '</div>';
             });
             h += '</div>';
-            h += '<div style="font-size:9px;color:#64748b;margin-top:7px;line-height:1.6;">📝 Este módulo es <b>independiente</b>: los 2º y 3º premios se guardan aparte y NO entran en ningún otro análisis del sistema (DDG vs PM, grupos, rezagos, señales, backtests). Una "pareja" sale cuando sus dos números están entre los 3 premios del mismo sorteo. <b>× su promedio</b> = sorteos sin salir ÷ su cadencia histórica. <b>Récord sin salir</b> = la vez que más tardó en volver, y en qué % de ese récord va ahora. <b>vs azar</b> = cuántas veces más (o menos) apareció respecto a lo esperado por casualidad (~1 cada 1.667 sorteos para dos números distintos).</div>';
+            h += '<div style="font-size:9px;color:#64748b;margin-top:7px;line-height:1.6;">📝 Módulo <b>independiente</b>: los 2º y 3º premios se guardan aparte y no entran en ningún otro análisis del sistema. Una "pareja" sale cuando sus dos números están entre los 3 premios del mismo sorteo. <b>× prom.</b> = sorteos sin salir ÷ su cadencia histórica. <b>Récord sin salir</b> = la vez que más tardó (con las fechas de ese período) y en qué % de ese récord va ahora. <b>vs azar</b> = cuántas veces más apareció respecto a lo esperado por casualidad.</div>';
             conts.forEach(function(x) { x.innerHTML = h; });
         }
         // V46.9.217 (pedido de Leo): panel BACKTEST PAREJA 28·82
