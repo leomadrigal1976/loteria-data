@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.242</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.243</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6350,7 +6350,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.242</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.243</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -34396,6 +34396,9 @@ function senalesDe(nn) {
             h += '<div style="background:rgba(76,29,149,0.35);border:1.5px solid #a78bfa;border-radius:9px;padding:8px 12px;margin-bottom:9px;font-size:10px;color:#ddd6fe;line-height:1.6;">';
             h += '🧠 <b>Cada posición se analiza como una lotería propia</b>, con las mismas señales que usás en el resto del sistema: grupo del día, vibraciones, rezago, "después de", grupos excedidos, récord de rezago, activadores, jales y cruces. <b>Las demás loterías SÍ influyen acá</b> (predominio del día, contagios entre loterías); en cambio estas series <b>no influyen en ninguna otra parte</b> del sistema.';
             h += '</div>';
+            // V46.9.243 (pedido de Leo): backtest del TOP 5 por posición
+            h += '<div style="text-align:center;margin-bottom:9px;"><button onclick="_p23BackPosToggle()" style="background:linear-gradient(135deg,#78350f,#f59e0b);border:1.5px solid #fde68a;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:bold;">⚖️ BACKTEST del TOP 5 por posición — ¿estas señales aciertan más que el azar?</button></div>';
+            h += _p23BackPosHTML();
             _P23_SERIES.forEach(function(L) {
                 var o = R.series[L];
                 if (!o || !o.tot) {
@@ -34469,6 +34472,181 @@ function senalesDe(nn) {
             });
             h += '<div style="font-size:9px;color:#64748b;margin-top:6px;line-height:1.6;">📝 Las señales y su puntaje son los mismos del Resumen de Loterías Más Fuertes. Pasá el cursor por cada número para ver todas sus señales. Recordá que el 1º premio de New York y Florida ya se analiza en el módulo principal (DDG vs PM) junto con las demás loterías.</div>';
             conts.forEach(function(x) { x.innerHTML = h; });
+        }
+        // ═══ V46.9.243 (pedido de Leo): BACKTEST del TOP 5 POR POSICIÓN ════════
+        // Recorre cada serie (NY 2º, NY 3º, FL 2º, FL 3º) en orden cronológico y,
+        // en cada sorteo, arma el top 5 de cada estrategia SOLO con lo conocido
+        // hasta ese momento. Azar puro = 5% (5 números de 100). Las señales del
+        // día (vibración, grupo del día, predominio) no se pueden reconstruir
+        // hacia atrás, así que acá se miden las señales históricas reproducibles.
+        function _p23SeriePos(L) {
+            var base = L.replace(/ [23]º$/, '');
+            var pos = /2º$/.test(L) ? 0 : 2;
+            var w4 = (typeof p23Data !== 'undefined' && p23Data && p23Data[base]) ? p23Data[base] : {};
+            var fechas = Object.keys(w4).sort();
+            var out = [];
+            fechas.forEach(function(f) {
+                ['m', 'e'].forEach(function(t) {
+                    var v = (w4[f] || {})[t];
+                    if (v && ('' + v).length === 4) out.push({ n: ('' + v).substr(pos, 2), date: f });
+                });
+            });
+            return out;
+        }
+        function _p23BackCalc(L) {
+            var S = _p23SeriePos(L);
+            var N = S.length;
+            var res = { lot: L, n: N, d1: N ? S[0].date : '', d2: N ? S[N - 1].date : '', st: null, err: null };
+            if (N < 400) { res.err = 'Necesita al menos 400 sorteos y hay ' + N + '.'; return res; }
+            var WARM = 300;
+            var gOf = {};
+            Object.keys(NUMBER_GROUPS).forEach(function(g) { NUMBER_GROUPS[g].forEach(function(n0) { gOf[n0] = g; }); });
+            var cnt = {}, last = {}, next = {}, nextTot = {}, gCnt = {}, gLast = {};
+            var st = { dde: { c: 0, h: 0 }, exc: { c: 0, h: 0 }, grz: { c: 0, h: 0 }, mix: { c: 0, h: 0 } };
+            // estado inicial con el primer sorteo
+            cnt[S[0].n] = 1; last[S[0].n] = 0;
+            var g00 = gOf[S[0].n]; if (g00) { gCnt[g00] = 1; gLast[g00] = 0; }
+            for (var i = 1; i < N; i++) {
+                var prevN = S[i - 1].n, curN = S[i].n;
+                if (i >= WARM) {
+                    // exceso de cada número con lo conocido hasta i-1 (se usa en 3 estrategias)
+                    var exArr = [];
+                    for (var v = 0; v < 100; v++) {
+                        var n0 = (v < 10 ? '0' : '') + v;
+                        var c0 = cnt[n0] || 0;
+                        if (c0 < 3) continue;
+                        exArr.push({ n: n0, x: (i - 1 - last[n0]) / (i / c0) });
+                    }
+                    exArr.sort(function(a, b) { return b.x - a.x; });
+                    var setA = null, setB = null, setC = null, t5, z;
+                    // A) DESPUÉS-DE: top 5 seguidores del último número
+                    var nx = next[prevN];
+                    if (nx && (nextTot[prevN] || 0) >= 20) {
+                        var arrA = Object.keys(nx).map(function(k) { return { n: k, c: nx[k] }; }).sort(function(a, b) { return b.c - a.c; });
+                        t5 = arrA.slice(0, 5);
+                        if (t5.length === 5) {
+                            st.dde.c++; setA = {};
+                            for (z = 0; z < 5; z++) { setA[t5[z].n] = 1; if (t5[z].n === curN) st.dde.h++; }
+                        }
+                    }
+                    // B) NÚMEROS EXCEDIDOS: top 5 por exceso sobre su cadencia
+                    t5 = exArr.slice(0, 5);
+                    if (t5.length === 5) {
+                        st.exc.c++; setB = {};
+                        for (z = 0; z < 5; z++) { setB[t5[z].n] = 1; if (t5[z].n === curN) st.exc.h++; }
+                    }
+                    // C) GRUPO MÁS REZAGADO: sus 5 números más excedidos
+                    var bestG = null, bestX = -1;
+                    Object.keys(NUMBER_GROUPS).forEach(function(g) {
+                        var cg = gCnt[g] || 0; if (cg < 10) return;
+                        var xg = (i - 1 - (gLast[g] !== undefined ? gLast[g] : -1)) / (i / cg);
+                        if (xg > bestX) { bestX = xg; bestG = g; }
+                    });
+                    if (bestG) {
+                        var arrC = [];
+                        for (z = 0; z < exArr.length; z++) { if (gOf[exArr[z].n] === bestG) arrC.push(exArr[z]); }
+                        t5 = arrC.slice(0, 5);
+                        if (t5.length === 5) {
+                            st.grz.c++; setC = {};
+                            for (z = 0; z < 5; z++) { setC[t5[z].n] = 1; if (t5[z].n === curN) st.grz.h++; }
+                        }
+                    }
+                    // D) COMBINADO: puntos por aparecer en los top 5 anteriores; desempata el exceso
+                    var nSets = (setA ? 1 : 0) + (setB ? 1 : 0) + (setC ? 1 : 0);
+                    if (nSets >= 2) {
+                        var sc = {};
+                        [setA, setB, setC].forEach(function(s0) { if (s0) Object.keys(s0).forEach(function(k) { sc[k] = (sc[k] || 0) + 1; }); });
+                        var xDe = {};
+                        for (z = 0; z < exArr.length; z++) xDe[exArr[z].n] = exArr[z].x;
+                        var arrD = Object.keys(sc).map(function(k) { return { n: k, s: sc[k], x: xDe[k] || 0 }; })
+                            .sort(function(a, b) { return b.s !== a.s ? b.s - a.s : b.x - a.x; });
+                        t5 = arrD.slice(0, 5);
+                        if (t5.length === 5) {
+                            st.mix.c++;
+                            for (z = 0; z < 5; z++) { if (t5[z].n === curN) { st.mix.h++; break; } }
+                        }
+                    }
+                }
+                // actualizar estado con el sorteo i
+                cnt[curN] = (cnt[curN] || 0) + 1;
+                last[curN] = i;
+                if (!next[prevN]) next[prevN] = {};
+                next[prevN][curN] = (next[prevN][curN] || 0) + 1;
+                nextTot[prevN] = (nextTot[prevN] || 0) + 1;
+                var g0 = gOf[curN]; if (g0) { gCnt[g0] = (gCnt[g0] || 0) + 1; gLast[g0] = i; }
+            }
+            res.st = st;
+            return res;
+        }
+        function _p23BackPosToggle() {
+            window._p23BackPosVer = !window._p23BackPosVer;
+            if (window._p23BackPosVer) {
+                window._p23BackPosData = null;
+                _p23PosRender();
+                setTimeout(function() {
+                    try {
+                        var out = [];
+                        _P23_SERIES.forEach(function(L) { out.push(_p23BackCalc(L)); });
+                        window._p23BackPosData = out;
+                    } catch (e) { window._p23BackPosData = { err: 'Error en el backtest: ' + e.message }; }
+                    _p23PosRender();
+                }, 60);
+            } else { _p23PosRender(); }
+        }
+        function _p23BackVered(idx, c) {
+            if (c < 200) return { t: 'pocos casos', col: '#94a3b8' };
+            if (idx >= 1.15) return { t: '✔ SÍ aporta sobre el azar', col: '#4ade80' };
+            if (idx >= 0.9) return { t: '≈ igual que el azar', col: '#fbbf24' };
+            return { t: '✘ peor que el azar', col: '#f87171' };
+        }
+        function _p23BackPosHTML() {
+            if (!window._p23BackPosVer) return '';
+            var D = window._p23BackPosData;
+            var h = '<div style="background:rgba(69,26,3,0.45);border:2px solid #f59e0b;border-radius:10px;padding:10px 12px;margin-bottom:10px;">';
+            h += '<div style="font-size:12px;font-weight:bold;color:#fde68a;margin-bottom:6px;">⚖️ BACKTEST del TOP 5 por posición — recorrido cronológico SIN ver el futuro</div>';
+            if (!D) { h += '<div style="font-size:11px;color:#fbbf24;padding:6px;">⏳ Calculando… recorre los ~12.800 sorteos de cada serie. Unos segundos.</div></div>'; return h; }
+            if (D.err) { h += '<div style="font-size:11px;color:#fca5a5;padding:6px;">' + D.err + '</div></div>'; return h; }
+            h += '<div style="font-size:10px;color:#fcd34d;line-height:1.6;margin-bottom:8px;">Como se sugieren <b>5 números de 100</b>, el azar puro acierta el <b>5%</b> de las veces. El <b>índice</b> compara el acierto real contra ese 5%: <b>×1.00 = igual que el azar</b>; arriba de ×1.15 con muchos casos, la señal sí aporta. OJO: las señales del día (vibración, grupo del día, predominio) no se pueden reconstruir hacia atrás — acá se mide el núcleo histórico reproducible: después-de, excedidos, grupo rezagado y su combinación.</div>';
+            var NOM = { dde: '🔎 Después-de (top 5 seguidores)', exc: '🔥 Números excedidos (top 5)', grz: '📉 Grupo más rezagado (sus 5 más excedidos)', mix: '🧠 Combinado (suma de las 3 señales)' };
+            var tot = { dde: { c: 0, h: 0 }, exc: { c: 0, h: 0 }, grz: { c: 0, h: 0 }, mix: { c: 0, h: 0 } };
+            D.forEach(function(r) {
+                var esNY = (r.lot.indexOf('New York') === 0);
+                var col = esNY ? '#38bdf8' : '#fb923c';
+                h += '<div style="background:rgba(0,0,0,0.3);border:1.5px solid ' + col + ';border-radius:9px;padding:8px 11px;margin-bottom:7px;">';
+                h += '<div style="font-size:12px;font-weight:bold;color:#fff;margin-bottom:5px;">🎰 ' + r.lot + ' <span style="font-size:9px;font-weight:normal;color:#94a3b8;">' + (r.n || 0).toLocaleString() + ' sorteos · ' + _p23FmtF(r.d1) + ' → ' + _p23FmtF(r.d2) + '</span></div>';
+                if (r.err) { h += '<div style="font-size:10px;color:#fca5a5;">' + r.err + '</div></div>'; return; }
+                Object.keys(NOM).forEach(function(k) {
+                    var s = r.st[k]; tot[k].c += s.c; tot[k].h += s.h;
+                    var pct = s.c ? (100 * s.h / s.c) : 0, idx = pct / 5;
+                    var vd = _p23BackVered(idx, s.c);
+                    h += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid rgba(148,163,184,0.15);padding:4px 0;font-size:10px;">';
+                    h += '<span style="flex:1;min-width:200px;color:#e2e8f0;">' + NOM[k] + '</span>';
+                    h += '<span style="color:#94a3b8;">' + s.h.toLocaleString() + ' / ' + s.c.toLocaleString() + '</span>';
+                    h += '<span style="font-weight:bold;color:#fff;min-width:44px;text-align:right;">' + pct.toFixed(2) + '%</span>';
+                    h += '<span style="font-weight:bold;color:' + vd.col + ';min-width:46px;text-align:right;">×' + idx.toFixed(2) + '</span>';
+                    h += '<span style="font-weight:bold;color:' + vd.col + ';min-width:150px;">' + vd.t + '</span>';
+                    h += '</div>';
+                });
+                h += '</div>';
+            });
+            // TOTAL de las 4 series
+            h += '<div style="background:rgba(76,29,149,0.35);border:2px solid #a78bfa;border-radius:9px;padding:8px 11px;">';
+            h += '<div style="font-size:12px;font-weight:bold;color:#ddd6fe;margin-bottom:5px;">Σ TOTAL de las 4 posiciones</div>';
+            Object.keys(NOM).forEach(function(k) {
+                var s = tot[k];
+                var pct = s.c ? (100 * s.h / s.c) : 0, idx = pct / 5;
+                var vd = _p23BackVered(idx, s.c);
+                h += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid rgba(148,163,184,0.15);padding:4px 0;font-size:10px;">';
+                h += '<span style="flex:1;min-width:200px;color:#e9d5ff;">' + NOM[k] + '</span>';
+                h += '<span style="color:#94a3b8;">' + s.h.toLocaleString() + ' / ' + s.c.toLocaleString() + '</span>';
+                h += '<span style="font-weight:bold;color:#fff;min-width:44px;text-align:right;">' + pct.toFixed(2) + '%</span>';
+                h += '<span style="font-weight:bold;color:' + vd.col + ';min-width:46px;text-align:right;">×' + idx.toFixed(2) + '</span>';
+                h += '<span style="font-weight:bold;color:' + vd.col + ';min-width:150px;">' + vd.t + '</span>';
+                h += '</div>';
+            });
+            h += '</div>';
+            h += '</div>';
+            return h;
         }
         function _p23Guardar() {
             try {
