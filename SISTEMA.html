@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.247</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.248</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6350,7 +6350,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.247</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.248</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -35444,12 +35444,13 @@ function senalesDe(nn) {
             // V46.9.191 (pedido de Leo, maqueta aprobada): UNA lotería por fila
             // (se apilan hacia abajo por fuerza) + selector de loterías a mostrar.
             var _selR = window._ngpResumenSel || null;
-            html += '<div style="background:rgba(0,0,0,0.3);border:1px solid rgba(168,85,247,0.5);border-radius:8px;padding:7px 10px;margin-bottom:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">';
-            html += '<span style="font-size:11px;font-weight:bold;color:#d8b4fe;">🎚️ Loterías a mostrar:</span>';
-            html += '<span onclick="_ngpResumenSelTodas()" style="display:inline-flex;align-items:center;background:' + (!_selR ? 'rgba(168,85,247,0.45)' : 'rgba(168,85,247,0.12)') + ';border:1px solid ' + (!_selR ? '#d8b4fe' : 'rgba(168,85,247,0.5)') + ';border-radius:6px;padding:3px 9px;font-size:11px;color:#e9d5ff;cursor:pointer;font-weight:bold;">' + (!_selR ? '✓ ' : '') + 'TODAS</span>';
+            var _colS9 = Math.max(1, Math.ceil((ranking.length + 1) / 2)); // V46.9.248: 2 renglones parejos
+            html += '<div style="background:rgba(0,0,0,0.3);border:1px solid rgba(168,85,247,0.5);border-radius:8px;padding:7px 10px;margin-bottom:10px;display:grid;grid-template-columns:repeat(' + _colS9 + ',1fr);gap:6px;">';
+            html += '<span style="font-size:12px;font-weight:bold;color:#d8b4fe;grid-column:1 / -1;">🎚️ Loterías a mostrar:</span>'; // V46.9.248: etiqueta en su renglón, botones a lo ancho
+            html += '<span onclick="_ngpResumenSelTodas()" style="display:inline-flex;align-items:center;justify-content:center;flex:1 1 auto;background:' + (!_selR ? 'rgba(168,85,247,0.45)' : 'rgba(168,85,247,0.12)') + ';border:1px solid ' + (!_selR ? '#d8b4fe' : 'rgba(168,85,247,0.5)') + ';border-radius:7px;padding:9px 12px;font-size:13px;color:#e9d5ff;cursor:pointer;font-weight:bold;">' + (!_selR ? '✓ ' : '') + 'TODAS</span>';
             ranking.slice().map(function(r9) { return r9.lot; }).sort().forEach(function(L9) {
                 var _on9 = _selR && _selR.indexOf(L9) >= 0;
-                html += '<span onclick="_ngpResumenSelToggle(this.dataset.lot)" data-lot="' + L9.replace(/"/g, '&quot;') + '" style="display:inline-flex;align-items:center;background:' + (_on9 ? 'rgba(168,85,247,0.45)' : 'rgba(168,85,247,0.12)') + ';border:1px solid ' + (_on9 ? '#d8b4fe' : 'rgba(168,85,247,0.5)') + ';border-radius:6px;padding:3px 9px;font-size:11px;color:#e9d5ff;cursor:pointer;' + (_on9 ? 'font-weight:bold;' : '') + '">' + (_on9 ? '✓ ' : '') + L9 + '</span>';
+                html += '<span onclick="_ngpResumenSelToggle(this.dataset.lot)" data-lot="' + L9.replace(/"/g, '&quot;') + '" style="display:inline-flex;align-items:center;justify-content:center;flex:1 1 auto;background:' + (_on9 ? 'rgba(168,85,247,0.45)' : 'rgba(168,85,247,0.12)') + ';border:1px solid ' + (_on9 ? '#d8b4fe' : 'rgba(168,85,247,0.5)') + ';border-radius:7px;padding:9px 12px;font-size:13px;color:#e9d5ff;cursor:pointer;' + (_on9 ? 'font-weight:bold;' : '') + '">' + (_on9 ? '✓ ' : '') + L9 + '</span>';
             });
             html += '</div>';
             // V46.9.200 (pedido de Leo): VIBRACIONES DEL DÍA como encabezado (recuadro

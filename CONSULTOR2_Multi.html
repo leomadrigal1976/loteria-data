@@ -33522,12 +33522,13 @@ function senalesDe(nn) {
             // V46.9.191 (pedido de Leo, maqueta aprobada): UNA lotería por fila
             // (se apilan hacia abajo por fuerza) + selector de loterías a mostrar.
             var _selR = window._ngpResumenSel || null;
-            html += '<div style="background:rgba(0,0,0,0.3);border:1px solid rgba(168,85,247,0.5);border-radius:8px;padding:7px 10px;margin-bottom:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">';
-            html += '<span style="font-size:11px;font-weight:bold;color:#d8b4fe;">🎚️ Loterías a mostrar:</span>';
-            html += '<span onclick="_ngpResumenSelTodas()" style="display:inline-flex;align-items:center;background:' + (!_selR ? 'rgba(168,85,247,0.45)' : 'rgba(168,85,247,0.12)') + ';border:1px solid ' + (!_selR ? '#d8b4fe' : 'rgba(168,85,247,0.5)') + ';border-radius:6px;padding:3px 9px;font-size:11px;color:#e9d5ff;cursor:pointer;font-weight:bold;">' + (!_selR ? '✓ ' : '') + 'TODAS</span>';
+            var _colS9 = Math.max(1, Math.ceil((ranking.length + 1) / 2)); // V46.9.248: 2 renglones parejos
+            html += '<div style="background:rgba(0,0,0,0.3);border:1px solid rgba(168,85,247,0.5);border-radius:8px;padding:7px 10px;margin-bottom:10px;display:grid;grid-template-columns:repeat(' + _colS9 + ',1fr);gap:6px;">';
+            html += '<span style="font-size:12px;font-weight:bold;color:#d8b4fe;grid-column:1 / -1;">🎚️ Loterías a mostrar:</span>'; // V46.9.248: etiqueta en su renglón, botones a lo ancho
+            html += '<span onclick="_ngpResumenSelTodas()" style="display:inline-flex;align-items:center;justify-content:center;flex:1 1 auto;background:' + (!_selR ? 'rgba(168,85,247,0.45)' : 'rgba(168,85,247,0.12)') + ';border:1px solid ' + (!_selR ? '#d8b4fe' : 'rgba(168,85,247,0.5)') + ';border-radius:7px;padding:9px 12px;font-size:13px;color:#e9d5ff;cursor:pointer;font-weight:bold;">' + (!_selR ? '✓ ' : '') + 'TODAS</span>';
             ranking.slice().map(function(r9) { return r9.lot; }).sort().forEach(function(L9) {
                 var _on9 = _selR && _selR.indexOf(L9) >= 0;
-                html += '<span onclick="_ngpResumenSelToggle(this.dataset.lot)" data-lot="' + L9.replace(/"/g, '&quot;') + '" style="display:inline-flex;align-items:center;background:' + (_on9 ? 'rgba(168,85,247,0.45)' : 'rgba(168,85,247,0.12)') + ';border:1px solid ' + (_on9 ? '#d8b4fe' : 'rgba(168,85,247,0.5)') + ';border-radius:6px;padding:3px 9px;font-size:11px;color:#e9d5ff;cursor:pointer;' + (_on9 ? 'font-weight:bold;' : '') + '">' + (_on9 ? '✓ ' : '') + L9 + '</span>';
+                html += '<span onclick="_ngpResumenSelToggle(this.dataset.lot)" data-lot="' + L9.replace(/"/g, '&quot;') + '" style="display:inline-flex;align-items:center;justify-content:center;flex:1 1 auto;background:' + (_on9 ? 'rgba(168,85,247,0.45)' : 'rgba(168,85,247,0.12)') + ';border:1px solid ' + (_on9 ? '#d8b4fe' : 'rgba(168,85,247,0.5)') + ';border-radius:7px;padding:9px 12px;font-size:13px;color:#e9d5ff;cursor:pointer;' + (_on9 ? 'font-weight:bold;' : '') + '">' + (_on9 ? '✓ ' : '') + L9 + '</span>';
             });
             html += '</div>';
             // V46.9.200 (pedido de Leo): VIBRACIONES DEL DÍA como encabezado (recuadro
@@ -75142,7 +75143,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r180 · v46.9.247</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r181 · v46.9.248</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
