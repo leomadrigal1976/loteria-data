@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.244</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.247</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6350,7 +6350,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.244</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.247</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -14097,6 +14097,17 @@ ${groups.map((g,i)=>`
         // =====================================================================
         var _GH_CFG_KEY = 'ghSyncConfig';
         var _ghSyncEnEjecucion = false;
+        // V46.9.245 (reporte de Leo): contador de fallos SEGUIDOS de subida y
+        // reintento automático. Un choque aislado (capturas rápidas o varias
+        // máquinas subiendo a la vez) ya no dispara el banner rojo de "token".
+        var _ghFallosSeguidos = 0, _ghRetryTimer = null;
+        function _ghReintentoProgramar() {
+            try {
+                if (_ghRetryTimer) return;
+                _ghRetryTimer = setTimeout(function() { _ghRetryTimer = null; _ghSubirData(true); }, 60000);
+            } catch (e) {}
+        }
+        function _ghReintentoCancelar() { try { if (_ghRetryTimer) { clearTimeout(_ghRetryTimer); _ghRetryTimer = null; } } catch (e) {} }
         var _ghSyncPendiente = false;
 
         function _ghLeerConfig() {
@@ -14226,7 +14237,8 @@ ${groups.map((g,i)=>`
             try {
                 var m = '' + (msg || 'error desconocido');
                 var pista = '';
-                if (/bad credentials|401/i.test(m)) pista = ' → el TOKEN venció o es inválido: generá uno nuevo en GitHub (Settings → Developer settings → Tokens), pegalo en ⚙️ Sincronización y presioná "💾 Guardar y probar conexión".';
+                if (/409|422|conflict|does not match|sha/i.test(m)) pista = ' → CHOQUE de subidas simultáneas (capturas muy seguidas o varias máquinas a la vez). NO es problema del token: se resuelve solo con el reintento automático.';
+                else if (/bad credentials|401/i.test(m)) pista = ' → GitHub rechazó el token. Si las demás subidas de hoy funcionaron, casi seguro fue un rechazo PASAJERO: esperá el reintento automático (1 min) antes de tocar nada. Solo si este aviso persiste tras varias capturas, generá un token nuevo en GitHub (Settings → Developer settings → Tokens), pegalo en ⚙️ Sincronización y presioná "💾 Guardar y probar conexión".';
                 else if (/403|rate limit/i.test(m)) pista = ' → GitHub limitó las subidas por unos minutos; reintentá con "☁️ Subir ahora" en un rato.';
                 else if (/network|conexión|failed to fetch/i.test(m)) pista = ' → parece un problema de internet en esta máquina.';
                 var b = document.getElementById('ghSyncBannerErr');
@@ -14246,7 +14258,7 @@ ${groups.map((g,i)=>`
                 }
                 b.style.display = 'block';
                 var tx = document.getElementById('ghSyncBannerErrTxt');
-                if (tx) tx.textContent = '❌ LA SUBIDA A LA NUBE ESTÁ FALLANDO — las capturas están quedando SOLO en esta máquina y las demás NO las ven. Motivo: ' + m + pista + ' (este aviso se quita solo cuando una subida vuelva a funcionar)';
+                if (tx) tx.textContent = '❌ LA SUBIDA A LA NUBE FALLÓ ' + (_ghFallosSeguidos || 2) + ' VECES SEGUIDAS — puede que lo último capturado aún no esté en la nube. Tranquilo: cada subida manda el conjunto COMPLETO, así que con una que funcione (reintento automático en 1 min, o tu próxima captura) todo queda al día. Motivo: ' + m + pista + ' (el aviso se quita solo cuando una subida funcione)'; // V46.9.245
             } catch (e) {}
         }
         function _ghBannerErrorQuitar() {
@@ -14514,6 +14526,7 @@ ${groups.map((g,i)=>`
                         _ghActualizarEstado('ok', _msgFus);
                         _ghPill('ok', 'Nube sincronizada · ' + new Date().toLocaleTimeString('es-CR') + ' · ' + (capturedResults || []).length + ' reg.'); // V46.9.71
                         try { _ghBannerErrorQuitar(); } catch (eBQ) {} // V46.9.226
+                        _ghFallosSeguidos = 0; _ghReintentoCancelar(); // V46.9.245
                         try { if (typeof _ghToastOk === 'function') _ghToastOk(_msgFus); } catch (eT) {}
                         // V46.9.70: dejar registro persistente de la subida exitosa
                         try { localStorage.setItem(_GH_LAST_OK_KEY, JSON.stringify({ fecha: new Date().toLocaleString('es-CR'), registros: (capturedResults || []).length })); } catch (ePersist) {}
@@ -14526,8 +14539,12 @@ ${groups.map((g,i)=>`
                         _ghActualizarEstado('error', 'Error al subir: ' + msg);
                         _ghPill('error', ''); // V46.9.71: la píldora se oculta, el toast rojo avisa
                         // V46.9.70: el fallo se avisa SIEMPRE (toast flotante + consola), aunque sea subida automática
-                        _ghToastError(msg);
-                        _ghBannerError(msg); // V46.9.226: aviso persistente, no pasajero
+                        _ghToastError(msg + ' — se reintenta solo en 1 minuto');
+                        // V46.9.245 (reporte de Leo): el banner rojo solo tras 2+ fallos
+                        // seguidos; un choque aislado se resuelve con el reintento.
+                        _ghFallosSeguidos++;
+                        if (_ghFallosSeguidos >= 2) _ghBannerError(msg);
+                        _ghReintentoProgramar();
                         console.error('[GH-SYNC]', res);
                         // si había una pendiente, intentarla igual (por si esta falló pero la data cambió)
                         if (_ghSyncPendiente) { _ghSyncPendiente = false; setTimeout(function() { _ghSubirData(true); }, 1200); }
@@ -14539,8 +14556,10 @@ ${groups.map((g,i)=>`
                     _ghActualizarEstado('error', 'Sin conexión o error: ' + e.message);
                     _ghPill('error', ''); // V46.9.71
                     // V46.9.70: el fallo se avisa SIEMPRE
-                    _ghToastError(e.message);
-                    _ghBannerError(e.message); // V46.9.226
+                    _ghToastError(e.message + ' — se reintenta solo en 1 minuto');
+                    _ghFallosSeguidos++; // V46.9.245
+                    if (_ghFallosSeguidos >= 2) _ghBannerError(e.message);
+                    _ghReintentoProgramar();
                     console.error('[GH-SYNC]', e);
                     return false;
                 });
@@ -29305,6 +29324,12 @@ function senalesDe(nn) {
                 h += '<div style="font-size:9px;color:#a78bfa;margin-top:3px;">Trata cada posición (NY 2º, NY 3º, FL 2º, FL 3º) como una lotería propia y le aplica el mismo análisis del Resumen de Loterías Más Fuertes, con su TOP 5 sugerido.</div>';
                 h += '<div id="p23PosResultado" style="margin-top:8px;"></div>';
                 h += '</div>';
+                // V46.9.245 (pedido de Leo): PALES 2º+3º
+                h += '<div style="margin-bottom:9px;">';
+                h += '<button onclick="_p23PaleToggle()" style="background:linear-gradient(135deg,#7c2d12,#ea580c);border:1.5px solid #fdba74;color:#fff;padding:9px 18px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:bold;">🎲 PALES 2º+3º — después-de por posición, top 3 y backtest</button>';
+                h += '<div style="font-size:9px;color:#fdba74;margin-top:3px;">"Después de" propio de cada posición (1º, 2º y 3º), top 3 de seguidores, DOS pales sugeridos (el top 3 del 1º premio da peso ⭐) y backtest EXACTO por posición.</div>';
+                h += '<div id="p23PaleResultado" style="margin-top:8px;"></div>';
+                h += '</div>';
                 h += '<div id="p23Resultado" style="max-height:max(560px,72vh);overflow-y:auto;"><div style="font-size:11px;color:#94a3b8;padding:6px;">Cargando…</div></div>';
                 h += '</div>';
                 // V46.9.221 (pedido de Leo): botones flotantes más pequeños, apilados
@@ -34701,6 +34726,287 @@ function senalesDe(nn) {
             h += '</div>';
             h += '</div>';
             return h;
+        }
+        // ═══ V46.9.245 (pedido de Leo): PALES del 2º y 3º premio — NY y Florida ═══
+        // "Después de" propio de cada posición (el 1º, el 2º y el 3º se tratan como
+        // series independientes), top 3 de seguidores por posición, sugerencia de
+        // DOS pales (2º+3º) donde el top 3 del 1º premio da peso extra, y backtest
+        // EXACTO POR POSICIÓN recorrido cronológicamente sin ver el futuro.
+        function _p23SeriesPale(base) {
+            var s1 = [], s2 = [], s3 = [];
+            (capturedResults || []).forEach(function(r) {
+                if (!r || r.lottery !== base || !r.number) return;
+                var nn = '' + r.number; if (nn.length > 2) return;
+                if (nn.length === 1) nn = '0' + nn;
+                s1.push({ n: nn, date: r.date, time: r.time || '' });
+            });
+            s1.sort(function(a, b) { var ka = a.date + ' ' + a.time, kb = b.date + ' ' + b.time; return ka < kb ? -1 : ka > kb ? 1 : 0; });
+            var cfg = _P23_LOTS[base] || {};
+            var w4 = (typeof p23Data !== 'undefined' && p23Data && p23Data[base]) ? p23Data[base] : {};
+            Object.keys(w4).sort().forEach(function(f) {
+                [['m', cfg.mid], ['e', cfg.eve]].forEach(function(par) {
+                    var v = (w4[f] || {})[par[0]];
+                    if (!v || ('' + v).length !== 4) return;
+                    s2.push({ n: ('' + v).substring(0, 2), date: f, t: par[0], time: par[1] });
+                    s3.push({ n: ('' + v).substring(2, 4), date: f, t: par[0], time: par[1] });
+                });
+            });
+            return { s1: s1, s2: s2, s3: s3 };
+        }
+        function _p23Top3De(serie, prev) {
+            var nx = {};
+            for (var i = 1; i < serie.length; i++) if (serie[i - 1].n === prev) nx[serie[i].n] = (nx[serie[i].n] || 0) + 1;
+            return Object.keys(nx).map(function(k) { return { n: k, c: nx[k] }; })
+                .sort(function(a, b) { return b.c - a.c; }).slice(0, 3);
+        }
+        function _p23PaleArmar(t1, t2, t3) {
+            // puntos: 3/2/1 por el puesto en el top 3 de SU posición, +2 si además
+            // está en el top 3 del 1º premio (peso del 1º — pedido de Leo)
+            var en1 = {}; (t1 || []).forEach(function(x) { en1[x.n] = 1; });
+            function puntuar(top) {
+                return (top || []).map(function(x, i) {
+                    return { n: x.n, c: x.c, pts: (3 - i) + (en1[x.n] ? 2 : 0), del1: !!en1[x.n] };
+                }).sort(function(a, b) { return b.pts !== a.pts ? b.pts - a.pts : b.c - a.c; });
+            }
+            var c2 = puntuar(t2), c3 = puntuar(t3);
+            var pales = [];
+            if (c2.length && c3.length) pales.push({ p2: c2[0], p3: c3[0] });
+            if (c2.length > 1 && c3.length > 1) pales.push({ p2: c2[1], p3: c3[1] });
+            return { c2: c2, c3: c3, pales: pales };
+        }
+        // V46.9.246 (pedido de Leo): ritmo de repetición de un número en SU serie.
+        // Mide las brechas históricas entre salidas y define el "rango típico"
+        // entre el percentil 25 y el 75 de esas brechas.
+        function _p23RangoDe(serie, num) {
+            try {
+                var idxs = [];
+                for (var i = 0; i < serie.length; i++) if (serie[i].n === num) idxs.push(i);
+                if (idxs.length < 4) return null;
+                var gaps = [];
+                for (var g = 1; g < idxs.length; g++) gaps.push(idxs[g] - idxs[g - 1]);
+                gaps.sort(function(a, b) { return a - b; });
+                var p25 = gaps[Math.floor((gaps.length - 1) * 0.25)];
+                var p75 = gaps[Math.floor((gaps.length - 1) * 0.75)];
+                var last = idxs[idxs.length - 1];
+                return {
+                    veces: idxs.length,
+                    cada: serie.length / idxs.length,
+                    sin: (serie.length - 1) - last,
+                    p25: p25, p75: p75,
+                    ultFecha: serie[last].date
+                };
+            } catch (e) { return null; }
+        }
+        function _p23RangoHTML(pos, cand) {
+            var r = cand.rango;
+            if (!r) return '<div style="font-size:8px;color:#64748b;margin-top:2px;">' + pos + '=' + cand.n + ': pocos datos para medir su ritmo de repetición</div>';
+            var prox = r.sin + 1; // el próximo sorteo cerraría una brecha de este tamaño
+            var est, col, ico;
+            if (prox < r.p25) { est = 'ANTES de su rango (salió hace poco)'; col = '#93c5fd'; ico = '🔵'; }
+            else if (prox <= r.p75) { est = 'EN su rango típico de repetición'; col = '#4ade80'; ico = '🟢'; }
+            else { est = 'PASADO de su rango (' + (r.sin / r.cada).toFixed(1) + '× su cadencia)'; col = '#f87171'; ico = '🔴'; }
+            return '<div style="font-size:8px;color:' + col + ';margin-top:2px;" title="' + ('Brechas históricas del ' + cand.n + ' en esta posición: el 50% central cae entre ' + r.p25 + ' y ' + r.p75 + ' turnos. Última salida: ' + r.ultFecha + '. ' + r.veces + ' apariciones en total.') + '">' + ico + ' ' + pos + '=' + cand.n + ': sale cada ~' + Math.round(r.cada) + ' turnos · lleva ' + r.sin + ' sin salir · rango típico ' + r.p25 + '–' + r.p75 + ' → ' + est + '</div>';
+        }
+        function _p23PaleCalc(base) {
+            var S = _p23SeriesPale(base);
+            var res = { base: base, err: null };
+            if (S.s2.length < 400) { res.err = 'Faltan datos del 2º/3º premio de ' + base + ' (' + S.s2.length + ' turnos).'; return res; }
+            // ── SUGERENCIA EN VIVO (con todo el historial) ──
+            var u1 = S.s1.length ? S.s1[S.s1.length - 1] : null;
+            var u2 = S.s2[S.s2.length - 1], u3 = S.s3[S.s3.length - 1];
+            var t1v = u1 ? _p23Top3De(S.s1, u1.n) : [];
+            var t2v = _p23Top3De(S.s2, u2.n);
+            var t3v = _p23Top3De(S.s3, u3.n);
+            res.vivo = { u1: u1, u2: u2, u3: u3, t1: t1v, t2: t2v, t3: t3v, arm: _p23PaleArmar(t1v, t2v, t3v) };
+            // V46.9.246 (pedido de Leo): rango de repetición de cada candidato en SU serie
+            try {
+                res.vivo.arm.c2.forEach(function(x2) { x2.rango = _p23RangoDe(S.s2, x2.n); });
+                res.vivo.arm.c3.forEach(function(x3) { x3.rango = _p23RangoDe(S.s3, x3.n); });
+            } catch (eRg) {}
+            // V46.9.247 (pedido de Leo): SOLO los muy excedidos de cada posición —
+            // números cuya brecha actual ya pasó el percentil 75 de sus brechas
+            // históricas, ordenados por cuánto exceden su cadencia media.
+            try {
+                var _excDe = function(serie) {
+                    var vistosE = {}, outE = [];
+                    serie.forEach(function(r0) { vistosE[r0.n] = 1; });
+                    Object.keys(vistosE).forEach(function(n0) {
+                        var rgE = _p23RangoDe(serie, n0);
+                        if (rgE && (rgE.sin + 1) > rgE.p75) outE.push({ n: n0, rango: rgE, ratio: rgE.sin / rgE.cada });
+                    });
+                    outE.sort(function(a, b) { return b.ratio - a.ratio; });
+                    return outE.slice(0, 5);
+                };
+                res.exc = { e2: _excDe(S.s2), e3: _excDe(S.s3) };
+            } catch (eEx) { res.exc = { e2: [], e3: [] }; }
+            // ── BACKTEST exacto por posición ──
+            // turnos alineados (fecha+turno con 2º y 3º conocidos), 1º si existe
+            var m1 = {};
+            S.s1.forEach(function(r) { m1[r.date + '|' + ((r.time || '') < '15:00' ? 'm' : 'e')] = r.n; });
+            var tur = [];
+            for (var i = 0; i < S.s2.length; i++) {
+                tur.push({ n1: m1[S.s2[i].date + '|' + S.s2[i].t] || null, n2: S.s2[i].n, n3: S.s3[i].n });
+            }
+            var WARM = 300;
+            var nx1 = {}, nx2 = {}, nx3 = {}, prev1 = null;
+            function top3(nx, p) {
+                var o = nx[p]; if (!o) return [];
+                return Object.keys(o).map(function(k) { return { n: k, c: o[k] }; })
+                    .sort(function(a, b) { return b.c - a.c; }).slice(0, 3);
+            }
+            var bt = { casos: 0, pocos: 0, hPale: 0, h2: 0, h3: 0, h9: 0 };
+            for (var j = 0; j < tur.length; j++) {
+                var cur = tur[j];
+                if (j >= WARM) {
+                    var p2 = tur[j - 1].n2, p3 = tur[j - 1].n3;
+                    var t2b = top3(nx2, p2), t3b = top3(nx3, p3);
+                    if (t2b.length === 3 && t3b.length === 3) {
+                        var t1b = prev1 ? top3(nx1, prev1) : [];
+                        var arm = _p23PaleArmar(t1b, t2b, t3b);
+                        bt.casos++;
+                        var in2 = false, in3 = false, k;
+                        for (k = 0; k < 3; k++) { if (t2b[k].n === cur.n2) in2 = true; if (t3b[k].n === cur.n3) in3 = true; }
+                        if (in2) bt.h2++;
+                        if (in3) bt.h3++;
+                        if (in2 && in3) bt.h9++;
+                        for (k = 0; k < arm.pales.length; k++) {
+                            if (arm.pales[k].p2.n === cur.n2 && arm.pales[k].p3.n === cur.n3) { bt.hPale++; break; }
+                        }
+                    } else bt.pocos++;
+                }
+                // actualizar estado
+                if (j > 0) {
+                    var q2 = tur[j - 1].n2, q3 = tur[j - 1].n3;
+                    (nx2[q2] = nx2[q2] || {})[cur.n2] = (nx2[q2][cur.n2] || 0) + 1;
+                    (nx3[q3] = nx3[q3] || {})[cur.n3] = (nx3[q3][cur.n3] || 0) + 1;
+                }
+                if (cur.n1) {
+                    if (prev1) (nx1[prev1] = nx1[prev1] || {})[cur.n1] = (nx1[prev1][cur.n1] || 0) + 1;
+                    prev1 = cur.n1;
+                }
+            }
+            res.bt = bt;
+            res.nTur = tur.length;
+            res.d1 = S.s2[0].date; res.d2 = S.s2[S.s2.length - 1].date;
+            return res;
+        }
+        function _p23PaleToggle() {
+            window._p23PaleVer = !window._p23PaleVer;
+            var cs = document.querySelectorAll('[id="p23PaleResultado"]');
+            if (!window._p23PaleVer) { cs.forEach(function(x) { x.innerHTML = ''; }); return; }
+            cs.forEach(function(x) { x.innerHTML = '<div style="font-size:12px;color:#fbbf24;padding:10px;">⏳ Calculando pales y backtest de las dos loterías…</div>'; });
+            setTimeout(function() {
+                try { window._p23PaleData = [_p23PaleCalc('New York'), _p23PaleCalc('Florida')]; }
+                catch (e) { window._p23PaleData = { err: 'Error: ' + e.message }; }
+                _p23PaleRender();
+            }, 60);
+        }
+        function _p23PaleFila(nom, h, c, base, nota) {
+            var pct = c ? (100 * h / c) : 0;
+            var idx = base > 0 && c ? (pct / (100 * base)) : 0;
+            var col = c < 200 ? '#94a3b8' : idx >= 1.15 ? '#4ade80' : idx >= 0.9 ? '#fbbf24' : '#f87171';
+            var hh = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid rgba(148,163,184,0.15);padding:4px 0;font-size:10px;">';
+            hh += '<span style="flex:1;min-width:190px;color:#e2e8f0;">' + nom + (nota ? ' <span style="color:#64748b;font-size:8px;">' + nota + '</span>' : '') + '</span>';
+            hh += '<span style="color:#94a3b8;">' + h.toLocaleString() + ' / ' + c.toLocaleString() + '</span>';
+            hh += '<span style="font-weight:bold;color:#fff;min-width:48px;text-align:right;">' + pct.toFixed(2) + '%</span>';
+            hh += '<span style="color:#94a3b8;font-size:9px;min-width:64px;text-align:right;">azar ' + (100 * base).toFixed(2) + '%</span>';
+            hh += '<span style="font-weight:bold;color:' + col + ';min-width:46px;text-align:right;">×' + idx.toFixed(2) + '</span>';
+            hh += '</div>';
+            return hh;
+        }
+        function _p23PaleRender() {
+            var cs = document.querySelectorAll('[id="p23PaleResultado"]');
+            if (!cs.length) return;
+            if (!window._p23PaleVer) { cs.forEach(function(x) { x.innerHTML = ''; }); return; }
+            var D = window._p23PaleData;
+            var h = '';
+            if (!D || D.err) {
+                h = '<div style="font-size:11px;color:#fca5a5;padding:8px;">' + ((D && D.err) || 'Sin datos.') + '</div>';
+                cs.forEach(function(x) { x.innerHTML = h; }); return;
+            }
+            h += '<div style="background:rgba(67,20,7,0.4);border:1px solid #fdba74;border-radius:8px;padding:7px 11px;margin-bottom:8px;font-size:10px;color:#fed7aa;line-height:1.6;">🎲 Cada posición tiene su propio "después de": qué suele seguir al último 1º, al último 2º y al último 3º <b>dentro de su misma serie</b>. Los pales se arman con el top 3 del 2º y del 3º; si un candidato también está en el top 3 del 1º premio, recibe <b>+2 de peso</b> (⭐). El backtest de abajo es <b>EXACTO POR POSICIÓN</b>: el pale acierta solo si su número del 2º sale de 2º Y el del 3º sale de 3º.</div>';
+            D.forEach(function(r) {
+                var esNY = (r.base === 'New York');
+                var col = esNY ? '#38bdf8' : '#fb923c';
+                var bg = esNY ? 'rgba(8,47,73,0.55)' : 'rgba(67,20,7,0.5)';
+                h += '<div style="background:' + bg + ';border:2px solid ' + col + ';border-radius:10px;padding:10px 12px;margin-bottom:10px;">';
+                h += '<div style="font-size:14px;font-weight:bold;color:#fff;margin-bottom:6px;">🎰 ' + r.base + (r.err ? '' : ' <span style="font-size:9px;font-weight:normal;color:#94a3b8;">' + r.nTur.toLocaleString() + ' turnos · ' + _p23FmtF(r.d1) + ' → ' + _p23FmtF(r.d2) + '</span>') + '</div>';
+                if (r.err) { h += '<div style="font-size:10px;color:#fca5a5;">' + r.err + '</div></div>'; return; }
+                var V = r.vivo;
+                // últimos por posición
+                h += '<div style="font-size:10px;color:#cbd5e1;margin-bottom:6px;">Últimos: 1º=<b style="color:#fff;font-family:monospace;">' + (V.u1 ? V.u1.n : '—') + '</b> · 2º=<b style="color:#fff;font-family:monospace;">' + V.u2.n + '</b> · 3º=<b style="color:#fff;font-family:monospace;">' + V.u3.n + '</b> <span style="color:#64748b;">(' + _p23FmtF(V.u2.date) + ' ' + (V.u2.t === 'm' ? 'mediodía' : 'noche') + ')</span></div>';
+                // top 3 por posición
+                var noms = [['1º premio (da peso ⭐)', V.t1], ['2º premio', V.t2], ['3º premio', V.t3]];
+                h += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;">';
+                noms.forEach(function(par) {
+                    h += '<div style="background:rgba(0,0,0,0.3);border:1px solid rgba(148,163,184,0.35);border-radius:8px;padding:6px 10px;">';
+                    h += '<div style="font-size:9px;font-weight:bold;color:#94a3b8;margin-bottom:4px;">Después de, ' + par[0] + '</div>';
+                    if (!par[1].length) h += '<div style="font-size:9px;color:#64748b;">sin datos</div>';
+                    else {
+                        h += '<div style="display:flex;gap:5px;">';
+                        par[1].forEach(function(x) {
+                            h += '<span style="background:rgba(255,255,255,0.08);border:1px solid rgba(148,163,184,0.4);border-radius:6px;padding:3px 8px;text-align:center;"><span style="font-family:monospace;font-size:15px;font-weight:bold;color:#fff;">' + x.n + '</span><span style="font-size:8px;color:#94a3b8;"> ×' + x.c + '</span></span>';
+                        });
+                        h += '</div>';
+                    }
+                    h += '</div>';
+                });
+                h += '</div>';
+                // pales sugeridos
+                h += '<div style="background:rgba(20,83,45,0.4);border:1.5px solid #4ade80;border-radius:9px;padding:8px 11px;margin-bottom:8px;">';
+                h += '<div style="font-size:12px;font-weight:bold;color:#bbf7d0;margin-bottom:5px;">🎲 PALES SUGERIDOS (2º + 3º)</div>';
+                if (!V.arm.pales.length) h += '<div style="font-size:10px;color:#94a3b8;">Sin suficientes seguidores para armar pales.</div>';
+                else {
+                    h += '<div style="display:flex;gap:10px;flex-wrap:wrap;">';
+                    V.arm.pales.forEach(function(p, i) {
+                        h += '<div style="background:rgba(2,44,34,0.92);border:' + (i === 0 ? '2px solid #4ade80' : '1.5px solid rgba(74,222,128,0.5)') + ';border-radius:9px;padding:7px 13px;text-align:center;">';
+                        h += '<div style="font-size:9px;color:#86efac;font-weight:bold;">PALE ' + (i + 1) + (i === 0 ? ' · principal' : '') + '</div>';
+                        h += '<div style="font-family:monospace;font-size:22px;font-weight:bold;color:#fff;line-height:1.2;">' + p.p2.n + (p.p2.del1 ? '⭐' : '') + ' · ' + p.p3.n + (p.p3.del1 ? '⭐' : '') + '</div>';
+                        h += '<div style="font-size:8px;color:#6ee7b7;">2º=' + p.p2.n + ' (' + p.p2.pts + ' pts) · 3º=' + p.p3.n + ' (' + p.p3.pts + ' pts)</div>';
+                        h += _p23RangoHTML('2º', p.p2); // V46.9.246
+                        h += _p23RangoHTML('3º', p.p3);
+                        h += '</div>';
+                    });
+                    h += '</div>';
+                    h += '<div style="font-size:8px;color:#6ee7b7;margin-top:4px;">⭐ = también está en el top 3 del 1º premio (+2 pts de peso). El rango típico de repetición es donde cae el 50% central de las brechas históricas de ese número en esa posición: 🔵 todavía no llega · 🟢 está dentro · 🔴 ya lo pasó (pasá el cursor para el detalle).</div>';
+                }
+                h += '</div>';
+                // V46.9.247 (pedido de Leo): SOLO los muy excedidos por posición
+                var EX = r.exc || { e2: [], e3: [] };
+                h += '<div style="background:rgba(127,29,29,0.35);border:1.5px solid #f87171;border-radius:9px;padding:8px 11px;margin-bottom:8px;">';
+                h += '<div style="font-size:12px;font-weight:bold;color:#fecaca;margin-bottom:5px;">🔴 SOLO LOS MUY EXCEDIDOS — pasados de su rango típico de repetición</div>';
+                if (!EX.e2.length && !EX.e3.length) h += '<div style="font-size:10px;color:#94a3b8;">Ahora mismo ningún número está pasado de su rango en estas posiciones.</div>';
+                else {
+                    if (EX.e2.length && EX.e3.length) {
+                        h += '<div style="background:rgba(2,44,34,0.9);border:2px solid #f87171;border-radius:9px;padding:7px 13px;text-align:center;display:inline-block;margin-bottom:6px;">';
+                        h += '<div style="font-size:9px;color:#fca5a5;font-weight:bold;">PALE DE EXCEDIDOS (el más pasado de cada posición)</div>';
+                        h += '<div style="font-family:monospace;font-size:22px;font-weight:bold;color:#fff;line-height:1.2;">' + EX.e2[0].n + ' · ' + EX.e3[0].n + '</div>';
+                        h += '</div>';
+                    }
+                    [['2º premio', EX.e2], ['3º premio', EX.e3]].forEach(function(parE) {
+                        h += '<div style="font-size:9px;font-weight:bold;color:#fca5a5;margin-top:4px;">' + parE[0] + ' — los 5 más pasados:</div>';
+                        if (!parE[1].length) h += '<div style="font-size:9px;color:#94a3b8;">ninguno pasado de rango</div>';
+                        parE[1].forEach(function(xE) {
+                            var rgE = xE.rango;
+                            h += '<div style="font-size:9px;color:#fecaca;">🔴 <b style="font-family:monospace;font-size:12px;color:#fff;">' + xE.n + '</b> — ' + xE.ratio.toFixed(1) + '× su cadencia: sale cada ~' + Math.round(rgE.cada) + ' turnos y lleva ' + rgE.sin + ' sin salir (rango típico ' + rgE.p25 + '–' + rgE.p75 + ' · últ. ' + _p23FmtF(rgE.ultFecha) + ')</div>';
+                        });
+                    });
+                    h += '<div style="font-size:8px;color:#fda4af;margin-top:5px;">⚠️ Honestidad estadística: el backtest de estas series mostró que el atraso NO adelanta la salida (≈×1.0 el azar) — usalos como lista de vigilancia, no como certeza.</div>';
+                }
+                h += '</div>';
+                // backtest
+                var B = r.bt;
+                h += '<div style="background:rgba(69,26,3,0.45);border:1px solid #f59e0b;border-radius:8px;padding:7px 11px;">';
+                h += '<div style="font-size:11px;font-weight:bold;color:#fde68a;margin-bottom:4px;">⚖️ BACKTEST exacto por posición (' + B.casos.toLocaleString() + ' turnos evaluados' + (B.pocos ? ' · ' + B.pocos + ' con pocos datos' : '') + ')</div>';
+                h += _p23PaleFila('El 2º real estaba en el top 3 del 2º', B.h2, B.casos, 0.03, '');
+                h += _p23PaleFila('El 3º real estaba en el top 3 del 3º', B.h3, B.casos, 0.03, '');
+                h += _p23PaleFila('Ambos a la vez (= jugar los 9 pales)', B.h9, B.casos, 0.0009, '');
+                h += _p23PaleFila('Alguno de los 2 PALES sugeridos EXACTO', B.hPale, B.casos, 0.0002, '');
+                h += '</div>';
+                h += '</div>';
+            });
+            h += '<div style="font-size:9px;color:#64748b;line-height:1.6;">📝 Cómo leerlo: ×1.00 = igual que el azar. El pale exacto por posición es una apuesta de MUY baja probabilidad (azar 0.02% con 2 pales): incluso con ×1.30 seguiría siendo un premio raro — mirá también las filas del top 3 por posición, que son las que tienen volumen estadístico.</div>';
+            cs.forEach(function(x) { x.innerHTML = h; });
         }
         function _p23Guardar() {
             try {
