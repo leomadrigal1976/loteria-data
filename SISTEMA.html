@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.243</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.244</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6350,7 +6350,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.243</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.244</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -30623,6 +30623,43 @@ function senalesDe(nn) {
                         return valAC;
                     } catch (e) { return null; }
                 }
+                // V46.9.244 (pedido de Leo): 🔁 ECO INMEDIATO — mide, con el historial
+                // de la PROPIA lotería, cuánto repite el número recién salido en el
+                // sorteo siguiente DEL MISMO DÍA. Si la tasa es ≥1.3× el azar con ≥15
+                // repeticiones, y el último capturado es de HOY con al menos un sorteo
+                // pendiente hoy, la señal se activa para ese número. Autocalibrada:
+                // se apaga sola si el efecto desaparece del historial.
+                function _ngpEcoDe(L) {
+                    try {
+                        var keyEC = L + '|' + ((capturedResults || []).length);
+                        if (!window._ngpEcoCache) window._ngpEcoCache = {};
+                        if (window._ngpEcoCache[keyEC] !== undefined) return window._ngpEcoCache[keyEC];
+                        var PEC = _ngpParesDe(L);
+                        var SEC = (PEC && PEC.serie) || [];
+                        var hE = 0, cE = 0;
+                        for (var iE = 1; iE < SEC.length; iE++) {
+                            if (SEC[iE].date !== SEC[iE - 1].date) continue;
+                            if (SEC[iE].time === SEC[iE - 1].time) continue; // registro duplicado
+                            cE++;
+                            if (SEC[iE].n === SEC[iE - 1].n) hE++;
+                        }
+                        var idxE = cE ? (hE / cE) / 0.01 : 0;
+                        var valEC = { h: hE, c: cE, idx: idxE, activa: false, ult: null, proxHora: null };
+                        if (idxE >= 1.3 && hE >= 15 && SEC.length) {
+                            var ultE = SEC[SEC.length - 1];
+                            if (ultE.date === getLocalDateString()) {
+                                var tsE = null;
+                                for (var lE = 0; lE < LOTTERIES.length; lE++) { if (LOTTERIES[lE].name === L) { tsE = LOTTERIES[lE].times || []; break; } }
+                                if (tsE) {
+                                    for (var tE = 0; tE < tsE.length; tE++) { if (tsE[tE] > (ultE.time || '')) { valEC.proxHora = tsE[tE]; break; } }
+                                }
+                                if (valEC.proxHora) { valEC.activa = true; valEC.ult = ultE; }
+                            }
+                        }
+                        window._ngpEcoCache[keyEC] = valEC;
+                        return valEC;
+                    } catch (e) { return null; }
+                }
                 function _ngpGrpPromDe(L) {
                     try {
                         var key = L + '|' + ((capturedResults || []).length);
@@ -31039,7 +31076,14 @@ function senalesDe(nn) {
                                 var s5 = (typeof _ngpSigueTop5 === 'function') ? _ngpSigueTop5(L) : null;
                                 var esSigue5 = !!(s5 && s5.set[nn] && pos !== null && !salioReciente);
                                 var esSigue10 = !!(s5 && s5.set10 && s5.set10[nn] && pos !== null && !salioReciente);
-                                if (!esRezagoL && !(tieneSenalesL && pos !== null && !salioReciente) && !esSigue10) return;
+                                // V46.9.244 (pedido de Leo): con ECO activo, el último salido
+                                // entra como candidato aunque haya salido recién.
+                                var esEco9 = false, ecoC9 = null;
+                                try {
+                                    ecoC9 = (typeof _ngpEcoDe === 'function') ? _ngpEcoDe(L) : null;
+                                    esEco9 = !!(ecoC9 && ecoC9.activa && ecoC9.ult && ecoC9.ult.n === nn);
+                                } catch (eEc0) {}
+                                if (!esRezagoL && !(tieneSenalesL && pos !== null && !salioReciente) && !esSigue10 && !esEco9) return;
                                 var scoreL = 0, tiposL = [];
                                 (sn0.porLoteria || []).forEach(function(cf) {
                                     if (cf.lot === L) { scoreL += cf.score; cf.tipos.forEach(function(t) { tiposL.push(t); }); }
@@ -31235,6 +31279,16 @@ function senalesDe(nn) {
                                         var aq9 = actC9.por[g];
                                         scoreL += 1;
                                         tiposL.push('🧨 ACTIVADOR DE GRUPO (+1): el último salido acá fue el ' + actC9.ult.n + (actC9.ult.date ? ' (' + actC9.ult.date.split('-')[2] + '/' + actC9.ult.date.split('-')[1] + (actC9.ult.time ? ' ' + actC9.ult.time : '') + ')' : '') + ' y en el historial el ' + g + ' le sale al sorteo SIGUIENTE ' + aq9.a + ' de ' + aq9.tot + ' veces (' + Math.round(aq9.rate * 100) + '% = ' + aq9.idx.toFixed(1) + '× el azar) — el ' + nn + ' es de ese grupo y está pendiente');
+                                    }
+                                    // V46.9.244 (pedido de Leo): 🔁 ECO INMEDIATO (+2) — en loterías
+                                    // donde el recién salido repite el sorteo siguiente del mismo día
+                                    // ≥1.3× el azar (≥15 casos), el último salido de HOY es candidato
+                                    // para el próximo sorteo de hoy.
+                                    if (esEco9 && ecoC9) {
+                                        var hEc9 = ecoC9.ult.time || '', pEc9 = ecoC9.proxHora || '';
+                                        try { if (typeof convertTo12Hour === 'function') { if (hEc9) hEc9 = convertTo12Hour(hEc9); if (pEc9) pEc9 = convertTo12Hour(pEc9); } } catch (eEc2) {}
+                                        scoreL += 2;
+                                        tiposL.push('🔁 ECO INMEDIATO (+2): en esta lotería el número recién salido REPITE en el sorteo siguiente del MISMO día ' + ecoC9.idx.toFixed(1) + '× más que el azar (' + ecoC9.h + ' de ' + ecoC9.c + ' casos del historial) — el último salido HOY fue este ' + nn + (hEc9 ? ' (' + hEc9 + ')' : '') + ' y es posibilidad para el sorteo de las ' + pEc9);
                                     }
                                     // V46.9.229 (pedido de Leo): ⏳ RÉCORD DE REZAGO (+2) — el grupo
                                     // ya estuvo "pegado" (sin salir) un máximo histórico acá y el
@@ -34331,7 +34385,7 @@ function senalesDe(nn) {
             ['_ngpParesCache', '_ngpGrpPromLCache', '_ngpGrpMaxSeqCache', '_ngpActivCache', '_ngpUltLotCache',
              '_ngpGrpExcCache', '_ngpF2882BkCache', '_ngpCadNumLCache', '_ngpGrpPendCache', '_ngpHorCache',
              '_ngpGrpHorCache', '_ngpVibAdCache', '_ngpVibAdPCache', '_ngpTopsCache', '_ngpPropHoyCache',
-             '_ngpDdnFullCache', '_seqFiltCache', '_djDespuesLots', '_ngpEsperaCache'].forEach(function(k) {
+             '_ngpDdnFullCache', '_seqFiltCache', '_djDespuesLots', '_ngpEsperaCache', '_ngpEcoCache'].forEach(function(k) {
                 try { delete window[k]; } catch (e) {}
             });
         }
