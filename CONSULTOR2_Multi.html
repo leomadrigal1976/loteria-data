@@ -28973,13 +28973,19 @@ function senalesDe(nn) {
                         var hoyD = new Date(parseInt(hp[0], 10), parseInt(hp[1], 10) - 1, parseInt(hp[2], 10));
                         var dowHoy = hoyD.getDay(), domHoy = hoyD.getDate();
                         var cSem = {}, cDia = {}, cRep = {}, ultIdx = {}, ultFecha = {};
+                        // V46.9.249 (pedido de Leo): conteo por GRUPO en cada contexto
+                        var gOf9 = {};
+                        try { Object.keys(NUMBER_GROUPS).forEach(function(g9) { NUMBER_GROUPS[g9].forEach(function(n9) { gOf9[n9] = g9; }); }); } catch (eG9) {}
+                        var gSem = {}, gDia = {}, gRep = {}, totSem = 0, totDia = 0;
                         sorteos.forEach(function(s0, ix) {
                             cRep[s0.n] = (cRep[s0.n] || 0) + 1;
                             ultIdx[s0.n] = ix; ultFecha[s0.n] = s0.d;
                             var pp = s0.d.split('-');
                             var dd0 = new Date(parseInt(pp[0], 10), parseInt(pp[1], 10) - 1, parseInt(pp[2], 10));
-                            if (dd0.getDay() === dowHoy) cSem[s0.n] = (cSem[s0.n] || 0) + 1;
-                            if (dd0.getDate() === domHoy) cDia[s0.n] = (cDia[s0.n] || 0) + 1;
+                            var g9s = gOf9[s0.n]; // V46.9.249
+                            if (g9s) gRep[g9s] = (gRep[g9s] || 0) + 1;
+                            if (dd0.getDay() === dowHoy) { cSem[s0.n] = (cSem[s0.n] || 0) + 1; totSem++; if (g9s) gSem[g9s] = (gSem[g9s] || 0) + 1; }
+                            if (dd0.getDate() === domHoy) { cDia[s0.n] = (cDia[s0.n] || 0) + 1; totDia++; if (g9s) gDia[g9s] = (gDia[g9s] || 0) + 1; }
                         });
                         var tot = sorteos.length;
                         var arma = function(cnt) {
@@ -28998,7 +29004,42 @@ function senalesDe(nn) {
                             vibL.sort(function(a, b) { return b.sinSalir - a.sinSalir; });
                             vibL = vibL.slice(0, 5);
                         } catch (eVb) { vibL = []; }
-                        var val = { sem: arma(cSem), dia: arma(cDia), rep: arma(cRep), vib: vibL, dow: dowHoy, dom: domHoy, tot: tot };
+                        // V46.9.249 (pedido de Leo): grupos más salidores por contexto.
+                        // Índice JUSTO: % observado ÷ % esperado por tamaño del grupo
+                        // (si no, los grupos grandes ganarían siempre por pura aritmética).
+                        var armaG = function(cntG, totC) {
+                            return Object.keys(cntG).map(function(g0) {
+                                var esp0 = ((NUMBER_GROUPS[g0] || []).length) / 100;
+                                var pct0 = totC ? cntG[g0] / totC : 0;
+                                return { g: g0, veces: cntG[g0], pct: pct0, esp: esp0, idx: esp0 ? pct0 / esp0 : 0 };
+                            }).sort(function(a, b) { return b.idx - a.idx; }).slice(0, 3);
+                        };
+                        var gVibL = [];
+                        try {
+                            var gVib = {};
+                            Object.keys(_vibHoy || {}).forEach(function(nv9) { var gv9 = gOf9[nv9]; if (gv9) gVib[gv9] = (gVib[gv9] || 0) + 1; });
+                            gVibL = Object.keys(gVib).map(function(g0) { return { g: g0, veces: gVib[g0] }; })
+                                .sort(function(a, b) { return b.veces - a.veces; }).slice(0, 3);
+                        } catch (eGV) {}
+                        // líder general de la lotería + sus 5 números más salidores
+                        var lider = null;
+                        try {
+                            var liderL = Object.keys(gRep).map(function(g0) {
+                                var esp1 = ((NUMBER_GROUPS[g0] || []).length) / 100;
+                                var pct1 = tot ? gRep[g0] / tot : 0;
+                                return { g: g0, veces: gRep[g0], pct: pct1, esp: esp1, idx: esp1 ? pct1 / esp1 : 0 };
+                            }).sort(function(a, b) { return b.idx - a.idx; });
+                            if (liderL.length) {
+                                lider = liderL[0];
+                                lider.nums = [];
+                                (NUMBER_GROUPS[lider.g] || []).forEach(function(nm9) {
+                                    if (cRep[nm9]) lider.nums.push({ n: nm9, veces: cRep[nm9], sinSalir: tot - 1 - ultIdx[nm9], ult: ultFecha[nm9] });
+                                });
+                                lider.nums.sort(function(a, b) { return b.veces - a.veces; });
+                                lider.nums = lider.nums.slice(0, 5);
+                            }
+                        } catch (eLd) {}
+                        var val = { sem: arma(cSem), dia: arma(cDia), rep: arma(cRep), vib: vibL, dow: dowHoy, dom: domHoy, tot: tot, gSem: armaG(gSem, totSem), gDia: armaG(gDia, totDia), gRep3: armaG(gRep, tot), gVib: gVibL, lider: lider };
                         window._ngpTopsCache[key] = val;
                         return val;
                     } catch (e) { return { sem: [], dia: [], rep: [], dow: 0, dom: 0, tot: 0 }; }
@@ -32002,7 +32043,7 @@ function senalesDe(nn) {
                 var _cn9t = (F0.cadNum) ? F0.cadNum(L) : {}; // V46.9.218
                 var DIAS_SEM = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
                 var fmtF = function(d0) { if (!d0) return '—'; var p0 = d0.split('-'); return p0[2] + '/' + p0[1]; };
-                var col = function(icono, titulo, lst, etqTt, cBorde, cFondo, cTit) {
+                var col = function(icono, titulo, lst, etqTt, cBorde, cFondo, cTit, grpS9) {
                     var s0 = '<div style="flex:1;min-width:126px;background:' + cFondo + ';border:1px solid ' + cBorde + ';border-radius:8px;overflow:hidden;">';
                     s0 += '<div style="background:linear-gradient(90deg,' + cBorde + '33,' + cBorde + '11);border-bottom:1px solid ' + cBorde + ';padding:4px 7px;font-size:11px;font-weight:bold;color:' + cTit + ';text-align:center;letter-spacing:0.5px;">' + icono + ' ' + titulo + '</div>';
                     s0 += '<div style="padding:5px;">';
@@ -32024,19 +32065,55 @@ function senalesDe(nn) {
                         s0 += '<span style="font-size:10px;color:#cbd5e1;line-height:1.3;"><strong style="color:' + cTit + ';font-size:11px;">' + x0.sinSalir + '</strong> sorteos sin salir' + (_dss !== null ? ' · <strong style="color:' + cTit + ';font-size:11px;">' + _dss + 'd</strong>' : '') + '<br><span style="color:#94a3b8;">últ: ' + fmtF(x0.ult) + '</span>' + _exVis9 + '</span>';
                         s0 += '</div>';
                     });
+                    s0 += (grpS9 || ''); // V46.9.249: pie con los grupos del contexto
                     s0 += '</div></div>';
                     return s0;
+                };
+                // V46.9.249 (pedido de Leo): pie "grupos que más salen" de cada tarjeta
+                var grpStrip9 = function(lst3, etq9) {
+                    if (!lst3 || !lst3.length) return '';
+                    var s1 = '<div style="border-top:1px dashed rgba(148,163,184,0.4);margin:2px 5px 5px 5px;padding-top:4px;font-size:9px;color:#cbd5e1;line-height:1.5;">📁 <b>Grupos que más salen</b> ' + etq9 + ':<br>';
+                    s1 += lst3.map(function(gx9) {
+                        var t9 = gx9.idx !== undefined
+                            ? (gx9.g + ': ' + gx9.veces + ' salidas = ' + (100 * gx9.pct).toFixed(1) + '% del total, cuando por su tamaño le tocaría ' + (100 * gx9.esp).toFixed(0) + '% → índice ' + gx9.idx.toFixed(2) + '× (mayor a 1 = sale MÁS de lo que le toca)')
+                            : (gx9.g + ': ' + gx9.veces + ' número(s) de la vibración de la fecha pertenecen a este grupo');
+                        var v9 = gx9.idx !== undefined ? ('×' + gx9.idx.toFixed(2)) : ('(' + gx9.veces + ' núm.)');
+                        return '<span title="' + t9 + '" style="cursor:help;"><b style="color:#fff;">' + gx9.g.replace('Grupo ', 'G') + '</b> <span style="color:' + (gx9.idx !== undefined && gx9.idx >= 1.05 ? '#4ade80' : '#cbd5e1') + ';">' + v9 + '</span></span>';
+                    }).join(' · ');
+                    return s1 + '</div>';
                 };
                 var h0 = '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:7px;align-items:stretch;">';
                 // V46.9.184 (pedido de Leo): títulos "Top de <día>", "Top de fecha <N>",
                 // "Top que más repiten".
                 var _diaCap = DIAS_SEM[td.dow].charAt(0).toUpperCase() + DIAS_SEM[td.dow].slice(1);
-                h0 += col('📆', 'Top de ' + _diaCap, td.sem, 'en ' + DIAS_SEM[td.dow], '#38bdf8', 'rgba(8,47,73,0.5)', '#7dd3fc');
-                h0 += col('📅', 'Top de fecha ' + td.dom, td.dia, 'los días ' + td.dom + ' del mes', '#a78bfa', 'rgba(46,16,101,0.5)', '#c4b5fd');
-                h0 += col('🔁', 'Top que más repiten', td.rep, 'en total en esta lotería', '#fbbf24', 'rgba(69,26,3,0.5)', '#fde68a');
+                h0 += col('📆', 'Top de ' + _diaCap, td.sem, 'en ' + DIAS_SEM[td.dow], '#38bdf8', 'rgba(8,47,73,0.5)', '#7dd3fc', grpStrip9(td.gSem, 'los ' + DIAS_SEM[td.dow]));
+                h0 += col('📅', 'Top de fecha ' + td.dom, td.dia, 'los días ' + td.dom + ' del mes', '#a78bfa', 'rgba(46,16,101,0.5)', '#c4b5fd', grpStrip9(td.gDia, 'los días ' + td.dom));
+                h0 += col('🔁', 'Top que más repiten', td.rep, 'en total en esta lotería', '#fbbf24', 'rgba(69,26,3,0.5)', '#fde68a', grpStrip9(td.gRep3, 'en general acá'));
                 // V46.9.235 (pedido de Leo): tarjeta de la VIBRACIÓN de la fecha en
                 // estudio — ordenada por rezago (los más vencidos primero).
-                h0 += col('🔮', 'Top de Vibración', td.vib || [], 'siendo de la vibración de la fecha en estudio (ordenado por rezago)', '#fb923c', 'rgba(67,20,7,0.5)', '#fdba74');
+                h0 += col('🔮', 'Top de Vibración', td.vib || [], 'siendo de la vibración de la fecha en estudio (ordenado por rezago)', '#fb923c', 'rgba(67,20,7,0.5)', '#fdba74', grpStrip9(td.gVib, 'de la vibración de la fecha'));
+                // V46.9.249 (pedido de Leo): tarjeta del GRUPO líder general de la lotería
+                if (td.lider) {
+                    var ld9 = td.lider;
+                    var ldH = '<div style="flex:1;min-width:126px;background:rgba(4,47,46,0.55);border:1px solid #2dd4bf;border-radius:8px;overflow:hidden;">';
+                    ldH += '<div style="background:linear-gradient(90deg,#2dd4bf33,#2dd4bf11);border-bottom:1px solid #2dd4bf;padding:4px 7px;font-size:11px;font-weight:bold;color:#5eead4;text-align:center;letter-spacing:0.5px;">🏆 Grupo TOP general</div>';
+                    ldH += '<div style="padding:5px;">';
+                    ldH += '<div title="' + (ld9.g + ': ' + ld9.veces + ' salidas de ' + td.tot + ' = ' + (100 * ld9.pct).toFixed(1) + '% del total, cuando por su tamaño (' + (NUMBER_GROUPS[ld9.g] || []).length + ' números) le tocaría ' + (100 * ld9.esp).toFixed(0) + '%. Índice ' + ld9.idx.toFixed(2) + '× — el grupo que MÁS tiende a salir en esta lotería, corregido por tamaño.') + '" style="background:#2dd4bf2e;border:1px solid #2dd4bf;border-radius:6px;padding:4px 6px;margin-bottom:4px;cursor:help;text-align:center;">';
+                    ldH += '<span style="font-size:13px;font-weight:bold;color:#fff;">' + ld9.g + '</span> <span style="font-size:10px;font-weight:bold;color:' + (ld9.idx >= 1.05 ? '#4ade80' : '#fde68a') + ';">×' + ld9.idx.toFixed(2) + '</span><br>';
+                    ldH += '<span style="font-size:9px;color:#99f6e4;">' + ld9.veces.toLocaleString() + ' salidas (' + (100 * ld9.pct).toFixed(1) + '% vs ' + (100 * ld9.esp).toFixed(0) + '% que le toca)</span>';
+                    ldH += '</div>';
+                    ldH += '<div style="font-size:9px;color:#5eead4;font-weight:bold;margin:2px 0 3px 2px;">Sus más salidores:</div>';
+                    (ld9.nums || []).forEach(function(nm9, ni9) {
+                        var _dssL = null;
+                        try { if (nm9.ult && F0.difDias && F0.hoyStr) _dssL = F0.difDias(nm9.ult, F0.hoyStr); } catch (eDL) {}
+                        ldH += '<div title="' + (nm9.n + ': salió ' + nm9.veces + ' veces en esta lotería · última: ' + nm9.ult + ' · lleva ' + nm9.sinSalir + ' sorteos sin salir') + '" style="display:flex;align-items:center;gap:8px;padding:3px 6px;margin-bottom:3px;border-radius:6px;cursor:help;background:' + (ni9 === 0 ? '#2dd4bf2e' : 'rgba(255,255,255,0.04)') + ';' + (ni9 === 0 ? 'border:1px solid #2dd4bf;' : 'border:1px solid transparent;') + '">';
+                        ldH += '<span style="font-family:monospace;font-size:18px;font-weight:bold;color:#fff;min-width:28px;text-align:center;">' + nm9.n + '</span>';
+                        ldH += '<span style="font-size:10px;color:#cbd5e1;line-height:1.3;"><strong style="color:#5eead4;font-size:11px;">' + nm9.veces + '</strong> salidas · lleva ' + nm9.sinSalir + (_dssL !== null ? ' (' + _dssL + 'd)' : '') + '<br><span style="color:#94a3b8;">últ: ' + fmtF(nm9.ult) + '</span></span>';
+                        ldH += '</div>';
+                    });
+                    ldH += '</div></div>';
+                    h0 += ldH;
+                }
                 h0 += '</div>';
                 return h0;
             } catch (e) { return ''; }
@@ -75143,7 +75220,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r181 · v46.9.248</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r182 · v46.9.249</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
