@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.251</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.252</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6350,7 +6350,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.251</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.252</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -31156,7 +31156,13 @@ function senalesDe(nn) {
                                     e24C = (typeof _ngpEco24De === 'function') ? _ngpEco24De(L) : null;
                                     esE24 = !!(e24C && e24C.fuerte && e24C.cands && e24C.cands[nn]);
                                 } catch (eE24) {}
-                                if (!esRezagoL && !(tieneSenalesL && pos !== null && !salioReciente) && !esSigue10 && !esEco9 && !esE24) return;
+                                // V46.9.252 (pedido de Leo): JALE + CRUCE — los números del grupo coincidente entran
+                                var esJC9 = false, jcC9 = null;
+                                try {
+                                    jcC9 = (typeof _ngpJaleCruceDe === 'function') ? _ngpJaleCruceDe(L) : null;
+                                    esJC9 = !!(jcC9 && jcC9.activa && jcC9.grupo === g && ((ultPorNumLot[nn] || {})[L] !== hoyStr));
+                                } catch (eJC0) {}
+                                if (!esRezagoL && !(tieneSenalesL && pos !== null && !salioReciente) && !esSigue10 && !esEco9 && !esE24 && !esJC9) return;
                                 var scoreL = 0, tiposL = [];
                                 (sn0.porLoteria || []).forEach(function(cf) {
                                     if (cf.lot === L) { scoreL += cf.score; cf.tipos.forEach(function(t) { tiposL.push(t); }); }
@@ -31370,6 +31376,14 @@ function senalesDe(nn) {
                                         try { if (typeof convertTo12Hour === 'function') { if (hEc9) hEc9 = convertTo12Hour(hEc9); if (pEc9) pEc9 = convertTo12Hour(pEc9); } } catch (eEc2) {}
                                         scoreL += 4; // V46.9.251: +2→+4 (la señal más sólida: ×1.56, z=4.5)
                                         tiposL.push('🔁 ECO INMEDIATO (+4): en esta lotería el número recién salido REPITE en el sorteo siguiente del MISMO día ' + ecoC9.idx.toFixed(1) + '× más que el azar (' + ecoC9.h + ' de ' + ecoC9.c + ' casos del historial) — el último salido HOY fue este ' + nn + (hEc9 ? ' (' + hEc9 + ')' : '') + ' y es posibilidad para el sorteo de las ' + pEc9);
+                                    }
+                                    // V46.9.252 (pedido de Leo): 🎯 JALE + CRUCE (+3)
+                                    if (esJC9 && jcC9) {
+                                        var hCr9 = jcC9.cruce.time || '', hPx9 = jcC9.prox || '';
+                                        try { if (typeof convertTo12Hour === 'function') { if (hCr9) hCr9 = convertTo12Hour(hCr9); if (hPx9) hPx9 = convertTo12Hour(hPx9); } } catch (eHJ) {}
+                                        var esConv9 = jcC9.conv.indexOf(nn) >= 0;
+                                        scoreL += 3;
+                                        tiposL.push('🎯 JALE + CRUCE (+3): el jale de ayer para las ' + hPx9 + ' (salió el ' + jcC9.jaleNum + ') y el cruce de hoy en ' + jcC9.cruce.L + ' (' + jcC9.cruce.n + ' a las ' + hCr9 + ') apuntan al MISMO ' + jcC9.grupo + (esConv9 ? ' — y el ' + nn + ' es CONVERSIÓN directa del ' + jcC9.cruce.n : '') + (jcC9.conv.length ? ' · conversiones del cruce: ' + jcC9.conv.join(', ') : '') + ' · histórico del par cuando coinciden: ×' + jcC9.idx.toFixed(2) + ' el azar en ' + jcC9.c + ' casos');
                                     }
                                     // V46.9.251 (backtest): 🔂 ECO 24h (+1)
                                     if (esE24 && e24C) {
@@ -32928,6 +32942,72 @@ function senalesDe(nn) {
                 }
                 window._ngpEco24Cache[key24] = val24;
                 return val24;
+            } catch (e) { return null; }
+        }
+        // V46.9.252 (pedido de Leo): JALE + CRUCE — en los pares NY↔FL y Nica↔Tica,
+        // si el grupo del JALE (número de ayer a la hora del próximo sorteo de L) es
+        // el MISMO grupo del último sorteo de HOY en la otra lotería del par, ese
+        // grupo recibe +3 para ese sorteo. Historial NY↔FL: ×1.09 (z=1.5), Nica↔Tica
+        // ×0.96 — Leo decidió implementarla con +3 conociendo esos números.
+        function _ngpJaleCruceDe(L) {
+            try {
+                var PARES_JC = { 'New York': 'Florida', 'Florida': 'New York', 'Nicaragua': 'Tica', 'Tica': 'Nicaragua' };
+                var otraJC = PARES_JC[L];
+                if (!otraJC) return null;
+                var hoyJC = getLocalDateString();
+                var keyJC = L + '|' + ((capturedResults || []).length) + '|' + hoyJC;
+                if (!window._ngpJaleCruceCache) window._ngpJaleCruceCache = {};
+                if (window._ngpJaleCruceCache[keyJC] !== undefined) return window._ngpJaleCruceCache[keyJC];
+                var gOfJC = {};
+                Object.keys(NUMBER_GROUPS).forEach(function(g) { NUMBER_GROUPS[g].forEach(function(n0) { gOfJC[n0] = g; }); });
+                var SJC = [], mJC = {};
+                (capturedResults || []).forEach(function(r) {
+                    if (!r || !r.number || !r.date || (r.lottery !== L && r.lottery !== otraJC)) return;
+                    var nn = '' + r.number; if (nn.length > 2) return;
+                    if (nn.length === 1) nn = '0' + nn;
+                    var t = r.time || '00:00';
+                    SJC.push({ L: r.lottery, n: nn, date: r.date, time: t });
+                    mJC[r.lottery + '|' + r.date + '|' + t] = nn;
+                });
+                SJC.sort(function(a, b) { var ka = a.date + ' ' + a.time, kb = b.date + ' ' + b.time; return ka < kb ? -1 : ka > kb ? 1 : 0; });
+                var ayerJC = function(ds) {
+                    var p = ds.split('-');
+                    var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10) - 1);
+                    return d.getFullYear() + '-' + (d.getMonth() < 9 ? '0' : '') + (d.getMonth() + 1) + '-' + (d.getDate() < 10 ? '0' : '') + d.getDate();
+                };
+                // histórico del par: cuando jale y cruce coinciden, ¿sale ese grupo?
+                var hJC = 0, eJC = 0, cJC = 0;
+                for (var i = 1; i < SJC.length; i++) {
+                    var r1 = SJC[i], p1 = SJC[i - 1];
+                    if (p1.L === r1.L || p1.date !== r1.date) continue;
+                    var gC1 = gOfJC[p1.n]; if (!gC1) continue;
+                    var na1 = mJC[r1.L + '|' + ayerJC(r1.date) + '|' + r1.time];
+                    if (!na1 || gOfJC[na1] !== gC1) continue;
+                    cJC++; eJC += (NUMBER_GROUPS[gC1] || []).length / 100;
+                    if (gOfJC[r1.n] === gC1) hJC++;
+                }
+                var valJC = { h: hJC, e: eJC, c: cJC, idx: eJC ? hJC / eJC : 0, activa: false, grupo: null, cruce: null, jaleNum: null, prox: null, conv: [] };
+                var ultJC = SJC.length ? SJC[SJC.length - 1] : null;
+                if (ultJC && ultJC.L === otraJC && ultJC.date === hoyJC && gOfJC[ultJC.n]) {
+                    var tsJC = null;
+                    for (var lJ = 0; lJ < LOTTERIES.length; lJ++) { if (LOTTERIES[lJ].name === L) { tsJC = LOTTERIES[lJ].times || []; break; } }
+                    var proxJC = null;
+                    if (tsJC) { for (var tJ = 0; tJ < tsJC.length; tJ++) { if (tsJC[tJ] > ultJC.time && mJC[L + '|' + hoyJC + '|' + tsJC[tJ]] === undefined) { proxJC = tsJC[tJ]; break; } } }
+                    if (proxJC) {
+                        var naJ = mJC[L + '|' + ayerJC(hoyJC) + '|' + proxJC];
+                        if (naJ && gOfJC[naJ] === gOfJC[ultJC.n]) {
+                            valJC.activa = true; valJC.grupo = gOfJC[ultJC.n]; valJC.cruce = ultJC; valJC.jaleNum = naJ; valJC.prox = proxJC;
+                            try {
+                                var cvJ = (typeof getNumberConversions === 'function') ? getNumberConversions(ultJC.n) : [];
+                                var setJ = {};
+                                cvJ.forEach(function(x) { setJ[x] = 1; setJ[x.charAt(1) + x.charAt(0)] = 1; });
+                                valJC.conv = Object.keys(setJ).filter(function(x) { return gOfJC[x] === valJC.grupo && x !== ultJC.n; }).sort();
+                            } catch (eCv) {}
+                        }
+                    }
+                }
+                window._ngpJaleCruceCache[keyJC] = valJC;
+                return valJC;
             } catch (e) { return null; }
         }
         function _ngpVueltaCruceDe(L) {
