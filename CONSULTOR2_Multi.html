@@ -32034,6 +32034,52 @@ function senalesDe(nn) {
         // columnas (día de la semana / día del mes / más repetidos), cada una con
         // su color, números grandes y el 1° de cada lista resaltado. Por número:
         // sorteos que lleva sin salir + última fecha (detalle completo en tooltip).
+        // V46.9.250 (pedido de Leo): VUELTA DE CRUCE — en los pares NY↔FL y
+        // Nicaragua↔Tica, cuando en la OTRA lotería del par acaba de salir un
+        // número HOY y todavía queda sorteo acá, su VUELTA queda "en juego".
+        // Estudio con todo el historial: ×1.12 el azar (z=2.1) — real pero sin
+        // confirmación sólida, por eso es INFORMATIVA (+0 pts) por ahora.
+        function _ngpVueltaCruceDe(L) {
+            try {
+                var PARES_VC = { 'New York': 'Florida', 'Florida': 'New York', 'Nicaragua': 'Tica', 'Tica': 'Nicaragua' };
+                var otraVC = PARES_VC[L];
+                if (!otraVC) return null;
+                var keyVC = L + '|' + ((capturedResults || []).length);
+                if (!window._ngpVtaCruceCache) window._ngpVtaCruceCache = {};
+                if (window._ngpVtaCruceCache[keyVC] !== undefined) return window._ngpVtaCruceCache[keyVC];
+                var SVC = [];
+                (capturedResults || []).forEach(function(r) {
+                    if (!r || !r.number || (r.lottery !== L && r.lottery !== otraVC)) return;
+                    var nn = '' + r.number; if (nn.length > 2) return;
+                    if (nn.length === 1) nn = '0' + nn;
+                    SVC.push({ L: r.lottery, n: nn, date: r.date, time: r.time || '00:00' });
+                });
+                SVC.sort(function(a, b) { var ka = a.date + ' ' + a.time, kb = b.date + ' ' + b.time; return ka < kb ? -1 : ka > kb ? 1 : 0; });
+                // histórico del par: cruces adyacentes (ambas direcciones), sin palíndromos
+                var hVC = 0, cVC = 0;
+                for (var iV = 1; iV < SVC.length; iV++) {
+                    if (SVC[iV].L === SVC[iV - 1].L) continue;
+                    var rvV = SVC[iV - 1].n.charAt(1) + SVC[iV - 1].n.charAt(0);
+                    if (rvV === SVC[iV - 1].n) continue;
+                    cVC++;
+                    if (SVC[iV].n === rvV) hVC++;
+                }
+                var valVC = { h: hVC, c: cVC, idx: cVC ? (hVC / cVC) / 0.01 : 0, activa: false, origen: null, vuelta: null, prox: null };
+                var ultVC = SVC.length ? SVC[SVC.length - 1] : null;
+                if (ultVC && ultVC.L === otraVC && ultVC.date === getLocalDateString()) {
+                    var rv2V = ultVC.n.charAt(1) + ultVC.n.charAt(0);
+                    if (rv2V !== ultVC.n) {
+                        var tsVC = null;
+                        for (var lV = 0; lV < LOTTERIES.length; lV++) { if (LOTTERIES[lV].name === L) { tsVC = LOTTERIES[lV].times || []; break; } }
+                        var proxVC = null;
+                        if (tsVC) { for (var tV = 0; tV < tsVC.length; tV++) { if (tsVC[tV] > (ultVC.time || '')) { proxVC = tsVC[tV]; break; } } }
+                        if (proxVC) { valVC.activa = true; valVC.origen = ultVC; valVC.vuelta = rv2V; valVC.prox = proxVC; }
+                    }
+                }
+                window._ngpVtaCruceCache[keyVC] = valVC;
+                return valVC;
+            } catch (e) { return null; }
+        }
         function _ngpTopsDiaHTML(L) {
             try {
                 var F0 = window._ngpFiltro;
@@ -32115,6 +32161,20 @@ function senalesDe(nn) {
                     h0 += ldH;
                 }
                 h0 += '</div>';
+                // V46.9.250 (pedido de Leo): aviso informativo VUELTA DE CRUCE
+                try {
+                    var vc9 = (typeof _ngpVueltaCruceDe === 'function') ? _ngpVueltaCruceDe(L) : null;
+                    if (vc9 && vc9.activa) {
+                        var hOr9 = vc9.origen.time || '', hPx9 = vc9.prox || '';
+                        try { if (typeof convertTo12Hour === 'function') { if (hOr9) hOr9 = convertTo12Hour(hOr9); if (hPx9) hPx9 = convertTo12Hour(hPx9); } } catch (eH9) {}
+                        h0 += '<div style="margin-top:7px;background:rgba(76,29,149,0.35);border:1.5px dashed #c4b5fd;border-radius:8px;padding:6px 10px;font-size:10px;color:#ddd6fe;line-height:1.6;">';
+                        h0 += '🔄 <b>VUELTA DE CRUCE</b> <span style="background:rgba(250,204,21,0.15);border:1px solid #facc15;border-radius:4px;padding:0 5px;font-size:8px;color:#fde047;font-weight:bold;">EN OBSERVACIÓN · +0 pts</span> — ';
+                        h0 += 'en <b>' + vc9.origen.L + '</b> acaba de salir el <b style="font-family:monospace;color:#fff;">' + vc9.origen.n + '</b>' + (hOr9 ? ' (' + hOr9 + ')' : '') + ': su vuelta ';
+                        h0 += '<b style="font-family:monospace;font-size:14px;color:#fff;background:rgba(255,255,255,0.12);border:1px solid #c4b5fd;border-radius:4px;padding:0 6px;">' + vc9.vuelta + '</b>';
+                        h0 += ' queda en juego para el sorteo de las <b>' + hPx9 + '</b> acá. Histórico del par: ' + vc9.h + ' vueltas en ' + vc9.c.toLocaleString() + ' cruces = <b>×' + vc9.idx.toFixed(2) + '</b> el azar — tendencia real pero aún sin confirmación sólida; cuando el historial la confirme, le damos su punto.';
+                        h0 += '</div>';
+                    }
+                } catch (eVC9) {}
                 return h0;
             } catch (e) { return ''; }
         }
@@ -75220,7 +75280,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r182 · v46.9.249</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r183 · v46.9.250</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
