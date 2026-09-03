@@ -28698,7 +28698,7 @@ function senalesDe(nn) {
                             } else {
                                 _gdMsg = '⏳ Aún sin activarse hoy — vigilá este grupo, tiene mayor posibilidad en esta fecha.';
                             }
-                            grupoHTML += '<div style="font-size:10px;color:#f1f5f9;margin-top:3px;">' + _gdMsg + ' <span style="opacity:0.8;">Estos números suman peso fuerte en las sugerencias de hoy.</span></div>';
+                            grupoHTML += '<div style="font-size:10px;color:#f1f5f9;margin-top:3px;">' + _gdMsg + ' <span style="opacity:0.8;">Estos números suman +2 en las sugerencias de hoy.</span></div>';
                             grupoHTML += '</div>';
                         }
                         gInfo.forEach(function(gi) {
@@ -31021,7 +31021,7 @@ function senalesDe(nn) {
                 var _jTxtF = jalesF.map(function(j) { return 'a las ' + j.horaFmt + ' salió el <span style="color:#fde68a;">' + j.numAyer + '</span> (' + j.grupo + ')'; }).join(' · ');
                 html += '<div class="ngp-parpadea" style="background:linear-gradient(135deg,#7c2d12,#ea580c);border:2px solid #fdba74;border-radius:7px;padding:7px 10px;margin-bottom:8px;">';
                 html += '<div style="font-size:11px;font-weight:bold;color:#fff;">⏰ JALE' + (jalesF.length > 1 ? 'S' : '') + ' DEL DÍA DE AYER (' + sel[0] + ') — ayer ' + _jTxtF + '</div>';
-                html += '<div style="font-size:9px;color:#fed7aa;margin-top:2px;">' + (jalesF.length > 1 ? 'Esos sorteos de hoy están pendientes de capturar → sus grupos van de primeros y suman peso fuerte. Si alguno de esos horarios no se juega hoy (ej. Nica 6 PM solo mar/sáb/dom; Dominicana/Leidsa adelantan los domingos; Panameña varía), consideralo solo como referencia del que sí aplique.' : 'Hoy el sorteo de las ' + jalesF[0].horaFmt + ' está pendiente de capturar → los rezagados del ' + jalesF[0].grupo + ' van de primeros y suman peso fuerte para ese sorteo.') + '</div>';
+                html += '<div style="font-size:9px;color:#fed7aa;margin-top:2px;">' + (jalesF.length > 1 ? 'Esos sorteos de hoy están pendientes de capturar → sus grupos van de primeros y suman +3 donde el historial respalda el jale (+1 en el resto). Si alguno de esos horarios no se juega hoy (ej. Nica 6 PM solo mar/sáb/dom; Dominicana/Leidsa adelantan los domingos; Panameña varía), consideralo solo como referencia del que sí aplique.' : 'Hoy el sorteo de las ' + jalesF[0].horaFmt + ' está pendiente de capturar → los rezagados del ' + jalesF[0].grupo + ' van de primeros y suman +3 donde el historial respalda el jale (+1 en el resto) para ese sorteo.') + '</div>';
                 html += '</div>';
             }
             html += '<div style="display:flex;align-items:stretch;gap:0;">';
@@ -32729,11 +32729,11 @@ function senalesDe(nn) {
                     if (sal6) {
                         h6 += '<span title="' + n6 + ': ya salió hoy en ' + sal6.join(' · ').replace(/"/g, '') + '" style="font-family:monospace;font-size:17px;font-weight:bold;color:#dcfce7;background:rgba(34,197,94,0.25);border:2px solid #4ade80;border-radius:6px;padding:3px 8px;cursor:help;text-align:center;">' + n6 + '<small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:7px;font-weight:bold;color:#86efac;">✓ ' + sal6[0] + (sal6.length > 1 ? ' +' + (sal6.length - 1) : '') + '</small></span>';
                     } else {
-                        h6 += '<span title="' + n6 + ': del ' + gd.grupo + ' (grupo del día) y aún no sale hoy — suma peso fuerte en las sugerencias" style="font-family:monospace;font-size:17px;font-weight:bold;color:#fde68a;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.55);border-radius:6px;padding:3px 8px;cursor:help;text-align:center;">' + n6 + '<small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:7px;font-weight:bold;color:#fbbf24;">pendiente</small></span>';
+                        h6 += '<span title="' + n6 + ': del ' + gd.grupo + ' (grupo del día) y aún no sale hoy — suma +2 en las sugerencias" style="font-family:monospace;font-size:17px;font-weight:bold;color:#fde68a;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.55);border-radius:6px;padding:3px 8px;cursor:help;text-align:center;">' + n6 + '<small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:7px;font-weight:bold;color:#fbbf24;">pendiente</small></span>';
                     }
                 });
                 h6 += '</div>';
-                h6 += '<div style="font-size:9px;color:#86efac;margin-top:5px;">Los números del grupo del día suman peso fuerte (+4) en las sugerencias de hoy.' + (insiste ? ' El grupo está INSISTIENDO: ojo con los que siguen pendientes (ámbar).' : (activado ? ' Ya abrió — los pendientes quedan en observación.' : ' Todavía nada del grupo ha salido hoy.')) + '</div>';
+                h6 += '<div style="font-size:9px;color:#86efac;margin-top:5px;">Los números del grupo del día suman +2 en las sugerencias de hoy (backtest: sale lo que le toca por tamaño, ×0.98).' + (insiste ? ' El grupo está INSISTIENDO: ojo con los que siguen pendientes (ámbar).' : (activado ? ' Ya abrió — los pendientes quedan en observación.' : ' Todavía nada del grupo ha salido hoy.')) + '</div>';
                 h6 += '</div>';
                 return h6;
             } catch (e) { return ''; }
@@ -34442,7 +34442,7 @@ function senalesDe(nn) {
                     var _jTxt = jales.map(function(j) { return 'a las ' + j.horaFmt + ' salió el <span style="color:#fde68a;">' + j.numAyer + '</span> (' + j.grupo + ')'; }).join(' · ');
                     htmlLots += '<div class="ngp-parpadea" style="background:linear-gradient(135deg,#7c2d12,#ea580c);border:2px solid #fdba74;border-radius:7px;padding:7px 10px;margin-bottom:8px;">';
                     htmlLots += '<div style="font-size:11px;font-weight:bold;color:#fff;">⏰ JALE' + (jales.length > 1 ? 'S' : '') + ' DEL DÍA DE AYER — ayer ' + _jTxt + '</div>';
-                    htmlLots += '<div style="font-size:9px;color:#fed7aa;margin-top:2px;">' + (jales.length > 1 ? 'Esos sorteos de hoy están pendientes de capturar → sus grupos van de primeros y suman peso fuerte. Si alguno de esos horarios no se juega hoy (ej. Nica 6 PM solo mar/sáb/dom; Dominicana/Leidsa adelantan los domingos), consideralo solo como referencia del que sí aplique.' : 'Hoy el sorteo de las ' + jales[0].horaFmt + ' está pendiente de capturar → los rezagados del ' + jales[0].grupo + ' van de primeros y suman peso fuerte para ese sorteo.') + '</div>';
+                    htmlLots += '<div style="font-size:9px;color:#fed7aa;margin-top:2px;">' + (jales.length > 1 ? 'Esos sorteos de hoy están pendientes de capturar → sus grupos van de primeros y suman +3 donde el historial respalda el jale (+1 en el resto). Si alguno de esos horarios no se juega hoy (ej. Nica 6 PM solo mar/sáb/dom; Dominicana/Leidsa adelantan los domingos), consideralo solo como referencia del que sí aplique.' : 'Hoy el sorteo de las ' + jales[0].horaFmt + ' está pendiente de capturar → los rezagados del ' + jales[0].grupo + ' van de primeros y suman +3 donde el historial respalda el jale (+1 en el resto) para ese sorteo.') + '</div>';
                     htmlLots += '</div>';
                 }
                 bloquesGrupo.forEach(function(bg) {
@@ -75464,7 +75464,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r185 · v46.9.252</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r186 · v46.9.253</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {

@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.252</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.253</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6350,7 +6350,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.252</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.253</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -29487,7 +29487,7 @@ function senalesDe(nn) {
                             } else {
                                 _gdMsg = '⏳ Aún sin activarse hoy — vigilá este grupo, tiene mayor posibilidad en esta fecha.';
                             }
-                            grupoHTML += '<div style="font-size:10px;color:#f1f5f9;margin-top:3px;">' + _gdMsg + ' <span style="opacity:0.8;">Estos números suman peso fuerte en las sugerencias de hoy.</span></div>';
+                            grupoHTML += '<div style="font-size:10px;color:#f1f5f9;margin-top:3px;">' + _gdMsg + ' <span style="opacity:0.8;">Estos números suman +2 en las sugerencias de hoy.</span></div>';
                             grupoHTML += '</div>';
                         }
                         gInfo.forEach(function(gi) {
@@ -31812,7 +31812,7 @@ function senalesDe(nn) {
                 var _jTxtF = jalesF.map(function(j) { return 'a las ' + j.horaFmt + ' salió el <span style="color:#fde68a;">' + j.numAyer + '</span> (' + j.grupo + ')'; }).join(' · ');
                 html += '<div class="ngp-parpadea" style="background:linear-gradient(135deg,#7c2d12,#ea580c);border:2px solid #fdba74;border-radius:7px;padding:7px 10px;margin-bottom:8px;">';
                 html += '<div style="font-size:11px;font-weight:bold;color:#fff;">⏰ JALE' + (jalesF.length > 1 ? 'S' : '') + ' DEL DÍA DE AYER (' + sel[0] + ') — ayer ' + _jTxtF + '</div>';
-                html += '<div style="font-size:9px;color:#fed7aa;margin-top:2px;">' + (jalesF.length > 1 ? 'Esos sorteos de hoy están pendientes de capturar → sus grupos van de primeros y suman peso fuerte. Si alguno de esos horarios no se juega hoy (ej. Nica 6 PM solo mar/sáb/dom; Dominicana/Leidsa adelantan los domingos; Panameña varía), consideralo solo como referencia del que sí aplique.' : 'Hoy el sorteo de las ' + jalesF[0].horaFmt + ' está pendiente de capturar → los rezagados del ' + jalesF[0].grupo + ' van de primeros y suman peso fuerte para ese sorteo.') + '</div>';
+                html += '<div style="font-size:9px;color:#fed7aa;margin-top:2px;">' + (jalesF.length > 1 ? 'Esos sorteos de hoy están pendientes de capturar → sus grupos van de primeros y suman +3 donde el historial respalda el jale (+1 en el resto). Si alguno de esos horarios no se juega hoy (ej. Nica 6 PM solo mar/sáb/dom; Dominicana/Leidsa adelantan los domingos; Panameña varía), consideralo solo como referencia del que sí aplique.' : 'Hoy el sorteo de las ' + jalesF[0].horaFmt + ' está pendiente de capturar → los rezagados del ' + jalesF[0].grupo + ' van de primeros y suman +3 donde el historial respalda el jale (+1 en el resto) para ese sorteo.') + '</div>';
                 html += '</div>';
             }
             html += '<div style="display:flex;align-items:stretch;gap:0;">';
@@ -33520,11 +33520,11 @@ function senalesDe(nn) {
                     if (sal6) {
                         h6 += '<span title="' + n6 + ': ya salió hoy en ' + sal6.join(' · ').replace(/"/g, '') + '" style="font-family:monospace;font-size:17px;font-weight:bold;color:#dcfce7;background:rgba(34,197,94,0.25);border:2px solid #4ade80;border-radius:6px;padding:3px 8px;cursor:help;text-align:center;">' + n6 + '<small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:7px;font-weight:bold;color:#86efac;">✓ ' + sal6[0] + (sal6.length > 1 ? ' +' + (sal6.length - 1) : '') + '</small></span>';
                     } else {
-                        h6 += '<span title="' + n6 + ': del ' + gd.grupo + ' (grupo del día) y aún no sale hoy — suma peso fuerte en las sugerencias" style="font-family:monospace;font-size:17px;font-weight:bold;color:#fde68a;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.55);border-radius:6px;padding:3px 8px;cursor:help;text-align:center;">' + n6 + '<small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:7px;font-weight:bold;color:#fbbf24;">pendiente</small></span>';
+                        h6 += '<span title="' + n6 + ': del ' + gd.grupo + ' (grupo del día) y aún no sale hoy — suma +2 en las sugerencias" style="font-family:monospace;font-size:17px;font-weight:bold;color:#fde68a;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.55);border-radius:6px;padding:3px 8px;cursor:help;text-align:center;">' + n6 + '<small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:7px;font-weight:bold;color:#fbbf24;">pendiente</small></span>';
                     }
                 });
                 h6 += '</div>';
-                h6 += '<div style="font-size:9px;color:#86efac;margin-top:5px;">Los números del grupo del día suman peso fuerte (+4) en las sugerencias de hoy.' + (insiste ? ' El grupo está INSISTIENDO: ojo con los que siguen pendientes (ámbar).' : (activado ? ' Ya abrió — los pendientes quedan en observación.' : ' Todavía nada del grupo ha salido hoy.')) + '</div>';
+                h6 += '<div style="font-size:9px;color:#86efac;margin-top:5px;">Los números del grupo del día suman +2 en las sugerencias de hoy (backtest: sale lo que le toca por tamaño, ×0.98).' + (insiste ? ' El grupo está INSISTIENDO: ojo con los que siguen pendientes (ámbar).' : (activado ? ' Ya abrió — los pendientes quedan en observación.' : ' Todavía nada del grupo ha salido hoy.')) + '</div>';
                 h6 += '</div>';
                 return h6;
             } catch (e) { return ''; }
@@ -36364,7 +36364,7 @@ function senalesDe(nn) {
                     var _jTxt = jales.map(function(j) { return 'a las ' + j.horaFmt + ' salió el <span style="color:#fde68a;">' + j.numAyer + '</span> (' + j.grupo + ')'; }).join(' · ');
                     htmlLots += '<div class="ngp-parpadea" style="background:linear-gradient(135deg,#7c2d12,#ea580c);border:2px solid #fdba74;border-radius:7px;padding:7px 10px;margin-bottom:8px;">';
                     htmlLots += '<div style="font-size:11px;font-weight:bold;color:#fff;">⏰ JALE' + (jales.length > 1 ? 'S' : '') + ' DEL DÍA DE AYER — ayer ' + _jTxt + '</div>';
-                    htmlLots += '<div style="font-size:9px;color:#fed7aa;margin-top:2px;">' + (jales.length > 1 ? 'Esos sorteos de hoy están pendientes de capturar → sus grupos van de primeros y suman peso fuerte. Si alguno de esos horarios no se juega hoy (ej. Nica 6 PM solo mar/sáb/dom; Dominicana/Leidsa adelantan los domingos), consideralo solo como referencia del que sí aplique.' : 'Hoy el sorteo de las ' + jales[0].horaFmt + ' está pendiente de capturar → los rezagados del ' + jales[0].grupo + ' van de primeros y suman peso fuerte para ese sorteo.') + '</div>';
+                    htmlLots += '<div style="font-size:9px;color:#fed7aa;margin-top:2px;">' + (jales.length > 1 ? 'Esos sorteos de hoy están pendientes de capturar → sus grupos van de primeros y suman +3 donde el historial respalda el jale (+1 en el resto). Si alguno de esos horarios no se juega hoy (ej. Nica 6 PM solo mar/sáb/dom; Dominicana/Leidsa adelantan los domingos), consideralo solo como referencia del que sí aplique.' : 'Hoy el sorteo de las ' + jales[0].horaFmt + ' está pendiente de capturar → los rezagados del ' + jales[0].grupo + ' van de primeros y suman +3 donde el historial respalda el jale (+1 en el resto) para ese sorteo.') + '</div>';
                     htmlLots += '</div>';
                 }
                 bloquesGrupo.forEach(function(bg) {
