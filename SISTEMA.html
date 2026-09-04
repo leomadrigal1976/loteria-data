@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.253</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.255</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6350,7 +6350,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.253</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.255</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -14264,13 +14264,33 @@ ${groups.map((g,i)=>`
         function _ghBannerErrorQuitar() {
             try { var b = document.getElementById('ghSyncBannerErr'); if (b) b.style.display = 'none'; } catch (e) {}
         }
+        // V46.9.254 (reporte de Leo): leer la nube SIEMPRE fresca. raw.githubusercontent
+        // pasa por un CDN que puede servir una copia de hasta ~5 minutos atrás: por eso
+        // una máquina "no veía" lo recién subido por la otra, y la fusión reencontraba
+        // datos viejos una y otra vez (bucle de subidas). Con token se lee por la API
+        // (sin caché); sin token, se usa el raw como antes.
+        function _ghLeerNube(cfg) {
+            var repoN = (cfg && cfg.repo && cfg.repo.indexOf('/') > 0) ? cfg.repo : 'leomadrigal1976/loteria-data';
+            var tokN = cfg && cfg.token;
+            if (!tokN) { try { tokN = (_ghLeerConfig() || {}).token; } catch (e0) {} }
+            var pRaw = function() {
+                return fetch('https://raw.githubusercontent.com/' + repoN + '/main/data.json?t=' + Date.now(), { cache: 'no-store' })
+                    .then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; });
+            };
+            if (!tokN) return pRaw();
+            var pN = repoN.split('/');
+            return fetch('https://api.github.com/repos/' + pN[0] + '/' + pN[1] + '/contents/data.json?ref=main&t=' + Date.now(), {
+                headers: { 'Authorization': 'Bearer ' + tokN, 'Accept': 'application/vnd.github.raw+json' },
+                cache: 'no-store'
+            }).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+              .catch(function() { return pRaw(); });
+        }
         function _ghVerificarNube() {
             var cfg = _ghLeerConfig();
-            var repo = (cfg.repo && cfg.repo.indexOf('/') > 0) ? cfg.repo : 'leomadrigal1976/loteria-data';
             _ghActualizarEstado('subiendo', 'Consultando la nube…');
-            fetch('https://raw.githubusercontent.com/' + repo + '/main/data.json?t=' + Date.now(), { cache: 'no-store' })
-                .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            _ghLeerNube(cfg)
                 .then(function(d) {
+                    if (!d) throw new Error('no se pudo leer la nube');
                     var nReg = (d.capturedResults || []).length;
                     var f = d.lastUpdate ? new Date(d.lastUpdate).toLocaleString('es-CR') : 'sin fecha';
                     var nLocal = (capturedResults || []).length;
@@ -14311,7 +14331,7 @@ ${groups.map((g,i)=>`
             } catch (e) { return []; }
         }
         function _ghBorradosGuardar(arr) {
-            try { localStorage.setItem('ghBorrados', JSON.stringify(arr.slice(-500))); } catch (e) {}
+            try { localStorage.setItem('ghBorrados', JSON.stringify(arr.slice(-5000))); } catch (e) {} // V46.9.255: tope 500→5000 (que un borrado viejo nunca reviva)
         }
         function _ghBorradosAgregar(clave) {
             var a = _ghBorradosLeer().filter(function(e) { return e.k !== clave; });
@@ -14328,12 +14348,15 @@ ${groups.map((g,i)=>`
             if (!remotos || !remotos.length) return;
             // claves de registros VIVOS localmente: su borrado remoto es obsoleto
             // (este dispositivo es el que captura/borra; si lo tiene vivo, va en serio)
-            var vivos = {};
-            try { (capturedResults || []).forEach(function(r) { vivos[_ghClaveReg(r)] = true; }); } catch (e) {}
+            // V46.9.254 (reporte de Leo): antes se IGNORABA un borrado remoto si esta
+            // máquina tenía el registro vivo — por eso lo borrado en una máquina nunca
+            // moría en la otra, y la otra lo REVIVÍA en la nube al subir (los 91 de
+            // Honduras volvieron así el 03/09). La regla de fecha (una recaptura
+            // posterior al borrado sobrevive) ya protege lo legítimo; el veto sobraba.
             var a = _ghBorradosLeer(); var cambio = false;
             remotos.forEach(function(e) {
                 var k = (typeof e === 'string') ? e : (e && e.k);
-                if (!k || vivos[k]) return;
+                if (!k) return;
                 var t = (typeof e === 'string') ? Date.now() : (e.t || 0);
                 var ex = null;
                 a.forEach(function(x) { if (x.k === k) ex = x; });
@@ -14343,13 +14366,10 @@ ${groups.map((g,i)=>`
             if (cambio) _ghBorradosGuardar(a);
         }
         function _ghFusionarConNube(cfg) {
-            var repo = (cfg.repo && cfg.repo.indexOf('/') > 0) ? cfg.repo : 'leomadrigal1976/loteria-data';
-            return fetch('https://raw.githubusercontent.com/' + repo + '/main/data.json?t=' + Date.now(), { cache: 'no-store' })
-                .then(function(r) { return r.ok ? r.json() : null; })
-                .catch(function() { return null; })
+            return _ghLeerNube(cfg) // V46.9.254: lectura fresca (API con token)
                 .then(function(nube) {
                     var localArr = capturedResults || [];
-                    var resumen = { antesLocal: localArr.length, nube: 0, nuevosDeNube: 0, total: 0, huboNube: false, seqFusion: 0 };
+                    var resumen = { antesLocal: localArr.length, nube: 0, nuevosDeNube: 0, total: 0, huboNube: false, seqFusion: 0, quitados: 0 };
                     if (!nube || !nube.capturedResults) {
                         // no se pudo leer la nube (primera vez, o sin conexión): subir lo local tal cual
                         var _bs0 = {};
@@ -14400,11 +14420,14 @@ ${groups.map((g,i)=>`
                     // POSTERIOR a la captura (una recaptura posterior sobrevive)
                     var _bmap = {};
                     _ghBorradosLeer().forEach(function(e) { _bmap[e.k] = e.t; });
-                    merged = merged.filter(function(r) {
+                    var _nLoc = localArr.length;
+                    merged = merged.filter(function(r, _ix) {
                         var bt = _bmap[_ghClaveReg(r)];
                         if (bt === undefined) return true;
                         var rt = r.timestamp ? (Date.parse(r.timestamp) || 0) : 0;
-                        return rt > bt;
+                        var _ok = rt > bt;
+                        if (!_ok && _ix < _nLoc) resumen.quitados++; // V46.9.254: local retirado por lápida
+                        return _ok;
                     });
                     resumen.total = merged.length;
                     // fusionar sequenceHistory igual (por si la nube trae secuencias nuevas)
@@ -14453,10 +14476,21 @@ ${groups.map((g,i)=>`
             var _resumenFusion = fus.resumen;
             // Actualizar lo local con el conjunto combinado (así este dispositivo
             // también queda con todo, y el respaldo local no pierde nada).
-            if (fus.resumen.nuevosDeNube > 0 || fus.resumen.seqFusion > 0) {
+            if (fus.resumen.nuevosDeNube > 0 || fus.resumen.seqFusion > 0 || fus.resumen.quitados > 0) {
                 capturedResults = fus.merged;
                 sequenceHistory = fus.seq;
                 try { saveData(); } catch (e) {}
+                // V46.9.254 (reporte de Leo): este guardado NO debe encolar otra subida —
+                // esta misma subida ya lleva el conjunto completo. Antes, cada fusión
+                // que "encontraba algo" disparaba otra subida, y con la copia vieja del
+                // CDN eso se volvía un bucle (248 subidas el 03/09).
+                try { if (_ghDebounceTimer) { clearTimeout(_ghDebounceTimer); _ghDebounceTimer = null; } } catch (eDb) {}
+                _ghSyncPendiente = false;
+                if (fus.resumen.quitados > 0) {
+                    console.log('🗑️ Fusión: ' + fus.resumen.quitados + ' registro(s) retirados acá por borrados hechos en otra máquina.');
+                    try { updateHistoricalCounts(); } catch (e1) {}
+                    try { updateRecentResults(); } catch (e2) {}
+                }
             }
             // Payload: solo los datos necesarios para los consultores (números y secuencias)
             var payload = {
@@ -14700,9 +14734,9 @@ ${groups.map((g,i)=>`
             var repo = (cfg.repo && cfg.repo.indexOf('/') > 0) ? cfg.repo : 'leomadrigal1976/loteria-data';
             _ghYaBajoAlAbrir = true;
             _ghPill('subiendo', 'Trayendo datos de la nube al abrir…');
-            _ghFusionarConNube({ repo: repo }).then(function(fus) {
+            _ghFusionarConNube({ repo: repo, token: cfg.token }).then(function(fus) { // V46.9.254: con token = lectura fresca
                 var rf = fus.resumen || {};
-                if (rf.huboNube && (rf.nuevosDeNube > 0 || rf.seqFusion > 0)) {
+                if (rf.huboNube && (rf.nuevosDeNube > 0 || rf.seqFusion > 0 || rf.quitados > 0)) {
                     // hay registros nuevos en la nube que este dispositivo no tenía → incorporarlos
                     capturedResults = fus.merged;
                     sequenceHistory = fus.seq;
@@ -14713,7 +14747,7 @@ ${groups.map((g,i)=>`
                     try { updateStats(); } catch (e) {}
                     try { if (typeof _ngpContagioRefrescar === 'function') _ngpContagioRefrescar(); } catch (e) {} // V46.9.227
                     try { _ghAvisoDatosNuevos(rf.nuevosDeNube); } catch (e) {} // V46.9.227
-                    var msg = '✅ Al abrir se trajeron ' + rf.nuevosDeNube + ' registro(s) de la nube (cargados desde otro dispositivo). Ahora tenés ' + rf.total + ' registros, todo al día.';
+                    var msg = '✅ Al abrir se trajeron ' + rf.nuevosDeNube + ' registro(s) de la nube (cargados desde otro dispositivo)' + (rf.quitados > 0 ? ' y se retiraron ' + rf.quitados + ' borrado(s) en otra máquina' : '') + '. Ahora tenés ' + rf.total + ' registros, todo al día.';
                     _ghPill('ok', 'Al día con la nube · ' + rf.total + ' reg. (se bajaron ' + rf.nuevosDeNube + ')');
                     try { if (typeof _ghToastOk === 'function') _ghToastOk(msg); } catch (e) {}
                     try { _ghActualizarEstado('ok', msg); } catch (e) {}
