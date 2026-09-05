@@ -33946,7 +33946,17 @@ function senalesDe(nn) {
                 if (_selR && _selR.indexOf(rk.lot) < 0) return; // V46.9.191: filtro del selector
                 var esOro = ix === 0;
                 var medalla = ix === 0 ? '🥇' : ix === 1 ? '🥈' : ix === 2 ? '🥉' : (ix + 1) + '°';
-                html += '<div style="background:' + (esOro ? 'linear-gradient(135deg,#713f12,#a16207)' : 'rgba(0,0,0,0.3)') + ';border:2px solid ' + (ix < 3 ? '#fbbf24' : '#a855f7') + ';border-radius:10px;padding:10px;margin-bottom:12px;">';
+                html += '<div style="background:' + (esOro ? 'linear-gradient(135deg,#713f12,#a16207)' : 'rgba(0,0,0,0.3)') + ';border:2px solid ' + (ix < 3 ? '#fbbf24' : '#a855f7') + ';border-radius:10px;padding:0;margin-bottom:12px;display:flex;align-items:stretch;overflow:hidden;">';
+                // V46.9.259 (pedido de Leo): franja vertical con el nombre de la lotería
+                // repetido, para saber de cuál se trata sin volver al inicio del recuadro.
+                try {
+                    var _nmV9 = ('' + rk.lot).toUpperCase(), _repV9 = '';
+                    for (var _rv9 = 0; _rv9 < 10; _rv9++) _repV9 += (_rv9 > 0 ? ' · · · ' : '') + _nmV9;
+                    html += '<div style="flex:0 0 30px;background:linear-gradient(180deg,#0e7490,#155e75);display:flex;align-items:center;justify-content:center;overflow:hidden;">';
+                    html += '<div style="writing-mode:vertical-rl;text-orientation:upright;font-size:12px;font-weight:bold;color:#e0fbff;letter-spacing:1px;line-height:1;white-space:nowrap;text-shadow:0 0 6px rgba(165,243,252,0.5);">' + _repV9 + '</div>';
+                    html += '</div>';
+                } catch (eV9) {}
+                html += '<div style="flex:1;min-width:0;padding:10px;">';
                 html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
                 html += '<span style="font-size:14px;font-weight:bold;color:#fff;">' + medalla + ' ' + rk.lot + '</span>';
                 html += '<span title="Desglose: ' + rk.det.t3 + ' señ. de sus 3 números top + ' + rk.det.t45 + ' señ. del 4° y 5° + ' + rk.det.jal + ' de bonus por jales = ' + rk.fuerza + '" style="font-size:16px;font-weight:bold;color:#fde68a;cursor:help;text-decoration:underline dotted;">' + rk.fuerza + '</span>';
@@ -34082,6 +34092,7 @@ function senalesDe(nn) {
                     }
                 }
                 html += '</div></div>'; // V46.9.191: cierra columna derecha y contenedor de columnas
+                html += '</div>'; // V46.9.259: cierra el contenido a la derecha de la franja
                 html += '</div>';
             });
             html += '</div>';
@@ -75467,7 +75478,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r191 · v46.9.258</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r192 · v46.9.259</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
