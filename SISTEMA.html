@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.255</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.256</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6350,7 +6350,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.255</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.256</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -14319,6 +14319,8 @@ ${groups.map((g,i)=>`
         // desaparecer en cada fusión).
         function _ghBorradosLeer() {
             try {
+                // V46.9.256: la copia en MEMORIA manda (sobrevive aunque localStorage falle)
+                if (window._ghBorradosMem) return window._ghBorradosMem.slice();
                 var a = JSON.parse(localStorage.getItem('ghBorrados') || '[]');
                 if (!Array.isArray(a)) return [];
                 var migro = false;
@@ -14331,7 +14333,24 @@ ${groups.map((g,i)=>`
             } catch (e) { return []; }
         }
         function _ghBorradosGuardar(arr) {
-            try { localStorage.setItem('ghBorrados', JSON.stringify(arr.slice(-5000))); } catch (e) {} // V46.9.255: tope 500→5000 (que un borrado viejo nunca reviva)
+            window._ghBorradosMem = arr.slice(-5000); // V46.9.256: fuente de verdad en memoria
+            try { localStorage.setItem('ghBorrados', JSON.stringify(window._ghBorradosMem)); window._ghBorradosLSOk = true; }
+            catch (e) { window._ghBorradosLSOk = false; console.warn('⚠️ ghBorrados: localStorage no disponible — las lápidas siguen en memoria e IndexedDB.'); }
+        }
+        // V46.9.256: unir lápidas venidas de IndexedDB (o de donde sea) a la memoria
+        function _ghBorradosUnirLocal(arr) {
+            try {
+                if (!arr || !arr.length) return;
+                var a = _ghBorradosLeer(), idx = {}, cambio = false;
+                a.forEach(function(x, i) { idx[x.k] = i; });
+                arr.forEach(function(e) {
+                    var k = (typeof e === 'string') ? e : (e && e.k); if (!k) return;
+                    var t = (typeof e === 'string') ? 0 : (e.t || 0);
+                    if (idx[k] === undefined) { a.push({ k: k, t: t }); idx[k] = a.length - 1; cambio = true; }
+                    else if (t > a[idx[k]].t) { a[idx[k]].t = t; cambio = true; }
+                });
+                if (cambio) _ghBorradosGuardar(a);
+            } catch (e) {}
         }
         function _ghBorradosAgregar(clave) {
             var a = _ghBorradosLeer().filter(function(e) { return e.k !== clave; });
@@ -14364,6 +14383,7 @@ ${groups.map((g,i)=>`
                 else if (t > ex.t) { ex.t = t; cambio = true; }
             });
             if (cambio) _ghBorradosGuardar(a);
+            return cambio; // V46.9.256
         }
         function _ghFusionarConNube(cfg) {
             return _ghLeerNube(cfg) // V46.9.254: lectura fresca (API con token)
@@ -14385,7 +14405,7 @@ ${groups.map((g,i)=>`
                     }
                     resumen.huboNube = true;
                     // V46.9.157: traer los borrados definitivos de la nube
-                    _ghBorradosUnir(nube.borrados);
+                    resumen.lapidas = !!_ghBorradosUnir(nube.borrados); // V46.9.256: si cambiaron, hay que guardar
                     // V46.9.238: fusionar los 2º/3º premios de la nube (unión por fecha,
                     // nunca borra lo local — si ambos tienen la fecha, gana lo local).
                     try {
@@ -14476,7 +14496,7 @@ ${groups.map((g,i)=>`
             var _resumenFusion = fus.resumen;
             // Actualizar lo local con el conjunto combinado (así este dispositivo
             // también queda con todo, y el respaldo local no pierde nada).
-            if (fus.resumen.nuevosDeNube > 0 || fus.resumen.seqFusion > 0 || fus.resumen.quitados > 0) {
+            if (fus.resumen.nuevosDeNube > 0 || fus.resumen.seqFusion > 0 || fus.resumen.quitados > 0 || fus.resumen.lapidas) {
                 capturedResults = fus.merged;
                 sequenceHistory = fus.seq;
                 try { saveData(); } catch (e) {}
@@ -14558,7 +14578,7 @@ ${groups.map((g,i)=>`
                             _msgFus = '✅ Subido correctamente (' + _rf.total + ' registros). Nota: no se pudo leer la nube para fusionar — si cargaste desde otro dispositivo antes, bajá primero para no pisarlo.';
                         }
                         _ghActualizarEstado('ok', _msgFus);
-                        _ghPill('ok', 'Nube sincronizada · ' + new Date().toLocaleTimeString('es-CR') + ' · ' + (capturedResults || []).length + ' reg.'); // V46.9.71
+                        _ghPill('ok', 'Nube sincronizada · ' + new Date().toLocaleTimeString('es-CR') + ' · ' + (capturedResults || []).length + ' reg. · ' + _ghBorradosLeer().length + ' lápidas' + (window._ghBorradosLSOk === false ? ' ⚠️ almacenamiento local lleno' : '')); // V46.9.71 · V46.9.256
                         try { _ghBannerErrorQuitar(); } catch (eBQ) {} // V46.9.226
                         _ghFallosSeguidos = 0; _ghReintentoCancelar(); // V46.9.245
                         try { if (typeof _ghToastOk === 'function') _ghToastOk(_msgFus); } catch (eT) {}
@@ -14736,7 +14756,7 @@ ${groups.map((g,i)=>`
             _ghPill('subiendo', 'Trayendo datos de la nube al abrir…');
             _ghFusionarConNube({ repo: repo, token: cfg.token }).then(function(fus) { // V46.9.254: con token = lectura fresca
                 var rf = fus.resumen || {};
-                if (rf.huboNube && (rf.nuevosDeNube > 0 || rf.seqFusion > 0 || rf.quitados > 0)) {
+                if (rf.huboNube && (rf.nuevosDeNube > 0 || rf.seqFusion > 0 || rf.quitados > 0 || rf.lapidas)) {
                     // hay registros nuevos en la nube que este dispositivo no tenía → incorporarlos
                     capturedResults = fus.merged;
                     sequenceHistory = fus.seq;
@@ -14844,6 +14864,7 @@ ${groups.map((g,i)=>`
                 emeHistory,
                 emeGeneratedNumbers,
                 p23Data, // V46.9.238: 2º y 3º premio NY/FL (estructura aparte)
+                borrados: _ghBorradosLeer(), // V46.9.256: las lápidas también viven en IndexedDB
                 lastUpdate: new Date().toISOString()
             };
             
@@ -14958,6 +14979,8 @@ ${groups.map((g,i)=>`
         async function _syncFromIndexedDB() {
             try {
                 const idbData = await IDB.get('lotteryData');
+                // V46.9.256: restaurar lápidas guardadas en IndexedDB (unión con las locales)
+                try { if (idbData && idbData.borrados && typeof _ghBorradosUnirLocal === 'function') _ghBorradosUnirLocal(idbData.borrados); } catch (eBI) {}
                 
                 if (!idbData) {
                     // Primera vez con V42: copiar datos actuales a IndexedDB
