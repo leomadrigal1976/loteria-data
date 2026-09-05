@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.257</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.258</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6350,7 +6350,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.257</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.258</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -14097,6 +14097,11 @@ ${groups.map((g,i)=>`
         // =====================================================================
         var _GH_CFG_KEY = 'ghSyncConfig';
         var _ghSyncEnEjecucion = false;
+        // V46.9.258: VERSIÓN DE DATOS para las cachés de análisis. Sube con cada
+        // guardado/fusión, así una fusión que quita y agrega la misma cantidad
+        // (ej. −91 zombis +91 capturas) no deja cachés viejas con la misma clave.
+        window._ngpDataVer = 0;
+        function _ngpDV() { return ((capturedResults || []).length) + 'v' + (window._ngpDataVer || 0); }
         // V46.9.245 (reporte de Leo): contador de fallos SEGUIDOS de subida y
         // reintento automático. Un choque aislado (capturas rápidas o varias
         // máquinas subiendo a la vez) ya no dispara el banner rojo de "token".
@@ -14409,6 +14414,8 @@ ${groups.map((g,i)=>`
                     resumen.huboNube = true;
                     // V46.9.157: traer los borrados definitivos de la nube
                     resumen.lapidas = !!_ghBorradosUnir(nube.borrados); // V46.9.256: si cambiaron, hay que guardar
+                    // V46.9.258: parámetros del filtro — gana el último cambio entre máquinas
+                    try { resumen.ajustes = (typeof _ngpAjustesAplicarDeNube === 'function') ? _ngpAjustesAplicarDeNube(nube.ajustes) : false; } catch (eAj) { resumen.ajustes = false; }
                     // V46.9.238: fusionar los 2º/3º premios de la nube (unión por fecha,
                     // nunca borra lo local — si ambos tienen la fecha, gana lo local).
                     try {
@@ -14521,6 +14528,7 @@ ${groups.map((g,i)=>`
                 sequenceHistory: fus.seq,
                 borrados: _ghBorradosLeer(), // V46.9.157: los borrados viajan en la nube
                 p23Data: (typeof p23Data !== 'undefined' ? p23Data : {}), // V46.9.238: 2º/3º premio NY/FL
+                ajustes: (typeof _ngpAjustesLeer === 'function' ? _ngpAjustesLeer() : null), // V46.9.258: parámetros del filtro
                 lastUpdate: new Date().toISOString(),
                 version: 'v46.9.157'
             };
@@ -14759,6 +14767,7 @@ ${groups.map((g,i)=>`
             _ghPill('subiendo', 'Trayendo datos de la nube al abrir…');
             _ghFusionarConNube({ repo: repo, token: cfg.token }).then(function(fus) { // V46.9.254: con token = lectura fresca
                 var rf = fus.resumen || {};
+                if (rf.huboNube && rf.ajustes) { try { if (typeof _ngpContagioRefrescar === 'function') _ngpContagioRefrescar(); } catch (eR) {} } // V46.9.258
                 if (rf.huboNube && (rf.nuevosDeNube > 0 || rf.seqFusion > 0 || rf.quitados > 0 || rf.lapidas)) {
                     // hay registros nuevos en la nube que este dispositivo no tenía → incorporarlos
                     capturedResults = fus.merged;
@@ -14852,6 +14861,7 @@ ${groups.map((g,i)=>`
         }
 
         function saveData() {
+            window._ngpDataVer = (window._ngpDataVer || 0) + 1; // V46.9.258
             const dataObj = {
                 capturedResults,
                 alerts,
@@ -15082,6 +15092,7 @@ ${groups.map((g,i)=>`
                     try { if (typeof _tdmRenderChecks === 'function') _tdmRenderChecks(true); } catch(e) {}
                     try { if (typeof _lot3dPopularSelect === 'function') _lot3dPopularSelect(); } catch(e) {}
                     console.log('✅ Restaurados ' + capturedResults.length + ' resultados desde IndexedDB');
+                    window._ngpDataVer = (window._ngpDataVer || 0) + 1; // V46.9.258
                     console.log('🔄 Checkboxes y selectores refrescados con conteos actualizados');
                 } else if (memCount > idbCount) {
                     // Memoria tiene más (primer uso o nueva captura) — actualizar IndexedDB
@@ -29772,7 +29783,7 @@ function senalesDe(nn) {
                 // salió), cuántos lleva sin salir y cuántas veces está excedido.
                 function _ngpCadNumDe(L) {
                     try {
-                        var key = L + '|' + ((capturedResults || []).length);
+                        var key = L + '|' + _ngpDV();
                         if (!window._ngpCadNumCache) window._ngpCadNumCache = {};
                         if (window._ngpCadNumCache[key]) return window._ngpCadNumCache[key];
                         var _minC9 = function(t) {
@@ -29802,7 +29813,7 @@ function senalesDe(nn) {
                 }
                 function _ngpTopsDia(L) {
                     try {
-                        var key = L + '|' + hoyStr + '|' + ((capturedResults || []).length);
+                        var key = L + '|' + hoyStr + '|' + _ngpDV();
                         if (!window._ngpTopsCache) window._ngpTopsCache = {};
                         if (window._ngpTopsCache[key]) return window._ngpTopsCache[key];
                         var _minT = function(t) {
@@ -29899,7 +29910,7 @@ function senalesDe(nn) {
                 function _ngpPropensosHoy(L) {
                     try {
                         if (typeof _propGet !== 'function') return [];
-                        var key = L + '|' + hoyStr + '|' + ((capturedResults || []).length);
+                        var key = L + '|' + hoyStr + '|' + _ngpDV();
                         if (!window._ngpPropHoyCache) window._ngpPropHoyCache = {};
                         if (window._ngpPropHoyCache[key]) return window._ngpPropHoyCache[key];
                         var vistosP = {}, out = [];
@@ -29940,7 +29951,7 @@ function senalesDe(nn) {
                 // REFERENCIAS del resumen solo contaban capturas y no coincidían.
                 function _ngpDespuesDeNumFull(L, num, topN) {
                     try {
-                        var keyDF = L + '|' + num + '|' + ((capturedResults || []).length) + '|' + ((typeof sequenceHistory !== 'undefined' && sequenceHistory) ? sequenceHistory.length : 0);
+                        var keyDF = L + '|' + num + '|' + _ngpDV() + '|' + ((typeof sequenceHistory !== 'undefined' && sequenceHistory) ? sequenceHistory.length : 0);
                         if (!window._ngpDdnFullCache) window._ngpDdnFullCache = {};
                         if (window._ngpDdnFullCache[keyDF]) return window._ngpDdnFullCache[keyDF].slice(0, topN || 10);
                         var acc = {};
@@ -29982,7 +29993,7 @@ function senalesDe(nn) {
                 // V46.9.204: último número capturado de una lotería (fecha + hora)
                 function _ngpUltimoDeLot(L) {
                     try {
-                        var key = L + '|' + ((capturedResults || []).length);
+                        var key = L + '|' + _ngpDV();
                         if (!window._ngpUltLotCache) window._ngpUltLotCache = {};
                         if (window._ngpUltLotCache[key] !== undefined) return window._ngpUltLotCache[key];
                         var _minU = function(t) {
@@ -30015,7 +30026,7 @@ function senalesDe(nn) {
                 // en volver a salir. Azar de referencia: geométrico con p = tamaño/100.
                 function _ngpGrpExcBack() {
                     try {
-                        var key = 'gx|' + ((capturedResults || []).length);
+                        var key = 'gx|' + _ngpDV();
                         if (window._ngpGrpExcCache && window._ngpGrpExcCache.key === key) return window._ngpGrpExcCache.val;
                         var n2gX = {}, gSizeX = {};
                         Object.keys(NUMBER_GROUPS || {}).forEach(function(g0) {
@@ -30096,7 +30107,7 @@ function senalesDe(nn) {
                 // donde k = sorteos realmente disponibles en la ventana (máx 4).
                 function _ngpFam2882Back() {
                     try {
-                        var key = 'bk|' + ((capturedResults || []).length);
+                        var key = 'bk|' + _ngpDV();
                         if (window._ngpF2882BkCache && window._ngpF2882BkCache.key === key) return window._ngpF2882BkCache.val;
                         var _minB = function(t) {
                             try {
@@ -30146,7 +30157,7 @@ function senalesDe(nn) {
                 // alerta visible + peso (+1) donde estén pendientes.
                 function _ngpFam2882() {
                     try {
-                        var key = hoyStr + '|' + ((capturedResults || []).length);
+                        var key = hoyStr + '|' + _ngpDV();
                         if (window._ngpF2882Cache && window._ngpF2882Cache.key === key) return window._ngpF2882Cache.val;
                         var _min8 = function(t) {
                             try {
@@ -30184,7 +30195,7 @@ function senalesDe(nn) {
                 }
                 function _ngpConvInmediata() {
                     try {
-                        var key = hoyStr + '|' + ((capturedResults || []).length);
+                        var key = hoyStr + '|' + _ngpDV();
                         if (window._ngpConvInmCache && window._ngpConvInmCache.key === key) return window._ngpConvInmCache.val;
                         var MAPD2 = { '4': '7', '7': '4', '3': '8', '8': '3' };
                         var convDe2 = function(n0) { return (MAPD2[n0.charAt(0)] || n0.charAt(0)) + (MAPD2[n0.charAt(1)] || n0.charAt(1)); };
@@ -30219,7 +30230,7 @@ function senalesDe(nn) {
                 // reciente por hora, en todas las loterías) — para el contagio de grupo.
                 function _ngpUltimoHoy() {
                     try {
-                        var key = hoyStr + '|' + ((capturedResults || []).length);
+                        var key = hoyStr + '|' + _ngpDV();
                         if (window._ngpUltHoyCache && window._ngpUltHoyCache.key === key) return window._ngpUltHoyCache.val;
                         var n2gU = {};
                         Object.keys(NUMBER_GROUPS || {}).forEach(function(g0) { (NUMBER_GROUPS[g0] || []).forEach(function(nn0) { n2gU[nn0] = g0; }); });
@@ -30244,7 +30255,7 @@ function senalesDe(nn) {
                 // (2 dígitos), del más reciente al más antiguo — contagio ampliado.
                 function _ngpUltimos3Hoy() {
                     try {
-                        var key = hoyStr + '|' + ((capturedResults || []).length);
+                        var key = hoyStr + '|' + _ngpDV();
                         if (window._ngpUlt3Cache && window._ngpUlt3Cache.key === key) return window._ngpUlt3Cache.val;
                         var n2gU3 = {};
                         Object.keys(NUMBER_GROUPS || {}).forEach(function(g0) { (NUMBER_GROUPS[g0] || []).forEach(function(nn0) { n2gU3[nn0] = g0; }); });
@@ -30272,7 +30283,7 @@ function senalesDe(nn) {
                 // históricos de ese grupo EN ESA lotería reciben +3.
                 function _ngpCrucePegadoDom(L) {
                     try {
-                        var key = L + '|' + hoyStr + '|' + ((capturedResults || []).length);
+                        var key = L + '|' + hoyStr + '|' + _ngpDV();
                         if (!window._ngpCruzPDCache) window._ngpCruzPDCache = {};
                         if (window._ngpCruzPDCache[key]) return window._ngpCruzPDCache[key];
                         var lista = [];
@@ -30314,7 +30325,7 @@ function senalesDe(nn) {
                 // ese mismo día (con OTRO número)? Backtest + estado de hoy.
                 function _ngpTermRepite(L) {
                     try {
-                        var key = L + '|' + hoyStr + '|' + ((capturedResults || []).length);
+                        var key = L + '|' + hoyStr + '|' + _ngpDV();
                         if (!window._ngpTermRepCache) window._ngpTermRepCache = {};
                         if (window._ngpTermRepCache[key]) return window._ngpTermRepCache[key];
                         var n2g9 = {};
@@ -30389,7 +30400,7 @@ function senalesDe(nn) {
                 // sumados-9 se tiran por día? (una lotería específica o todas las de 2 díg)
                 function _ngpSum9Fechas(lotSel) {
                     try {
-                        var key = (lotSel || '__TODAS__') + '|' + ((capturedResults || []).length);
+                        var key = (lotSel || '__TODAS__') + '|' + _ngpDV();
                         if (!window._ngpSum9FCache) window._ngpSum9FCache = {};
                         if (window._ngpSum9FCache[key]) return window._ngpSum9FCache[key];
                         var SUM9F = ['09', '18', '27', '36', '45', '54', '63', '72', '81', '90', '99'];
@@ -30451,7 +30462,7 @@ function senalesDe(nn) {
                 // y ranking de grupos que más salen en un mes dado (todas las de 2 díg).
                 function _ngpTopMes(mes, lotSel) {
                     try {
-                        var key = mes + '|' + (lotSel || '__TODAS__') + '|' + ((capturedResults || []).length);
+                        var key = mes + '|' + (lotSel || '__TODAS__') + '|' + _ngpDV();
                         if (!window._ngpTopMesCache) window._ngpTopMesCache = {};
                         if (window._ngpTopMesCache[key]) return window._ngpTopMesCache[key];
                         var n2gM = {}, gSizeM = {};
@@ -30490,7 +30501,7 @@ function senalesDe(nn) {
                 // MENOS tienden a salir (más malos) en una lotería (incluye los que nunca).
                 function _ngpFrios(L) {
                     try {
-                        var key = L + '|' + hoyStr + '|' + ((capturedResults || []).length);
+                        var key = L + '|' + hoyStr + '|' + _ngpDV();
                         if (!window._ngpFriosCache) window._ngpFriosCache = {};
                         if (window._ngpFriosCache[key]) return window._ngpFriosCache[key];
                         var cntF = {}, ultF = {}, total = 0;
@@ -30630,7 +30641,7 @@ function senalesDe(nn) {
                 // y la señal (+1) en los pendientes que sean de esa vibración.
                 function _ngpVibAdelantoPas() {
                     try {
-                        var key = hoyStr + '|' + ((capturedResults || []).length);
+                        var key = hoyStr + '|' + _ngpDV();
                         if (window._ngpVibAdPCache && window._ngpVibAdPCache.key === key) return window._ngpVibAdPCache.val;
                         var cntVP = {}, detVP = {};
                         (capturedResults || []).forEach(function(r) {
@@ -30656,7 +30667,7 @@ function senalesDe(nn) {
                 // sean de esa vibración.
                 function _ngpVibAdelanto() {
                     try {
-                        var key = hoyStr + '|' + ((capturedResults || []).length);
+                        var key = hoyStr + '|' + _ngpDV();
                         if (window._ngpVibAdCache && window._ngpVibAdCache.key === key) return window._ngpVibAdCache.val;
                         var cntVA = {}, detVA = {};
                         (capturedResults || []).forEach(function(r) {
@@ -30685,7 +30696,7 @@ function senalesDe(nn) {
                 function _ngpGrpMaxSeqDe(L) {
                     try {
                         var umbMS = (window._ngpParamRec ? window._ngpParamRec() : 80) / 100; // V46.9.235: umbral parametrizable
-                        var keyMS = L + '|' + umbMS + '|' + ((capturedResults || []).length);
+                        var keyMS = L + '|' + umbMS + '|' + _ngpDV();
                         if (!window._ngpGrpMaxSeqCache) window._ngpGrpMaxSeqCache = {};
                         if (window._ngpGrpMaxSeqCache[keyMS]) return window._ngpGrpMaxSeqCache[keyMS];
                         var PMS = (typeof _ngpParesDe === 'function') ? _ngpParesDe(L) : null;
@@ -30724,7 +30735,7 @@ function senalesDe(nn) {
                 // sorteo siguiente, 4+ activaciones y una tasa 1.5× o más el azar).
                 function _ngpActivadorDe(L) {
                     try {
-                        var keyAC = L + '|' + ((capturedResults || []).length);
+                        var keyAC = L + '|' + _ngpDV();
                         if (!window._ngpActivCache) window._ngpActivCache = {};
                         if (window._ngpActivCache[keyAC] !== undefined) return window._ngpActivCache[keyAC];
                         var ultA = (typeof _ngpUltimoDeLot === 'function') ? _ngpUltimoDeLot(L) : null;
@@ -30757,7 +30768,7 @@ function senalesDe(nn) {
                 // se apaga sola si el efecto desaparece del historial.
                 function _ngpEcoDe(L) {
                     try {
-                        var keyEC = L + '|' + ((capturedResults || []).length);
+                        var keyEC = L + '|' + _ngpDV();
                         if (!window._ngpEcoCache) window._ngpEcoCache = {};
                         if (window._ngpEcoCache[keyEC] !== undefined) return window._ngpEcoCache[keyEC];
                         var PEC = _ngpParesDe(L);
@@ -30788,7 +30799,7 @@ function senalesDe(nn) {
                 }
                 function _ngpGrpPromDe(L) {
                     try {
-                        var key = L + '|' + ((capturedResults || []).length);
+                        var key = L + '|' + _ngpDV();
                         if (!window._ngpGrpPromLCache) window._ngpGrpPromLCache = {};
                         if (window._ngpGrpPromLCache[key]) return window._ngpGrpPromLCache[key];
                         var rGP = _ngpGruposPromedio([L]);
@@ -30870,7 +30881,7 @@ function senalesDe(nn) {
                 // y únicamente MIENTRAS el primer sorteo de hoy no se haya jugado.
                 function _ngpCierreDia(L) {
                     try {
-                        var key = L + '|' + hoyStr + '|' + ((capturedResults || []).length);
+                        var key = L + '|' + hoyStr + '|' + _ngpDV();
                         if (!window._ngpCierreCache) window._ngpCierreCache = {};
                         if (window._ngpCierreCache[key]) return window._ngpCierreCache[key];
                         var n2g = {}, gSize = {};
@@ -30935,7 +30946,7 @@ function senalesDe(nn) {
                 // número repetido).
                 function _ngpConvEspHoy() {
                     try {
-                        var key = hoyStr + '|' + ((capturedResults || []).length);
+                        var key = hoyStr + '|' + _ngpDV();
                         if (window._ngpConvEspCache && window._ngpConvEspCache.key === key) return window._ngpConvEspCache.val;
                         var MAPD = { '4': '7', '7': '4', '3': '8', '8': '3' };
                         var convDe = function(n0) { return (MAPD[n0.charAt(0)] || n0.charAt(0)) + (MAPD[n0.charAt(1)] || n0.charAt(1)); };
@@ -30988,7 +30999,7 @@ function senalesDe(nn) {
                 function _ngpEsperaDe(L) {
                     try {
                         var tope = _ngpEsperaTope();
-                        var key = L + '|' + hoyStr + '|' + tope + '|' + ((capturedResults || []).length);
+                        var key = L + '|' + hoyStr + '|' + tope + '|' + _ngpDV();
                         if (!window._ngpEsperaCache) window._ngpEsperaCache = {};
                         if (window._ngpEsperaCache[key]) return window._ngpEsperaCache[key];
                         var td = _ngpTopsDia(L);
@@ -31154,7 +31165,7 @@ function senalesDe(nn) {
                 // loterías ya salió (y con qué números) y en cuáles sigue pendiente.
                 function _ngpPredominioHoy() {
                     try {
-                        var key = hoyStr + '|' + ((capturedResults || []).length);
+                        var key = hoyStr + '|' + _ngpDV();
                         if (window._ngpPredomCache && window._ngpPredomCache.key === key) return window._ngpPredomCache.val;
                         var n2g = {};
                         Object.keys(NUMBER_GROUPS || {}).forEach(function(g0) { (NUMBER_GROUPS[g0] || []).forEach(function(nn0) { n2g[nn0] = g0; }); });
@@ -32281,7 +32292,7 @@ function senalesDe(nn) {
         function _ngpParesDe(L) {
             // V46.9.233 (reporte de Leo): la caché ahora se invalida sola al capturar
             // nuevos resultados (antes quedaba pegada y el backtest no veía lo de HOY).
-            var _kP = L + '|' + ((capturedResults || []).length);
+            var _kP = L + '|' + _ngpDV();
             window._ngpParesCache = window._ngpParesCache || {};
             if (window._ngpParesCache[_kP]) return window._ngpParesCache[_kP];
             var serie = [];
@@ -32363,6 +32374,7 @@ function senalesDe(nn) {
             var v = parseInt(inp && inp.value, 10);
             if (!v || v < 3 || v > 365) v = 15;
             try { localStorage.setItem('ngpGrpPendDias', String(v)); } catch (e) {}
+            try { _ngpAjustesMarcar(); } catch (eAj) {} // V46.9.258
             try { document.querySelectorAll('[id="ngpGrpDiasInp"]').forEach(function(x) { x.value = v; }); } catch (e) {}
             window._ngpGrpPendCache = {}; window._ngpHorCache = {}; window._ngpGrpHorCache = {};
             try { if (typeof _ngpFiltroRender === 'function') _ngpFiltroRender(); } catch (e) {}
@@ -32931,7 +32943,7 @@ function senalesDe(nn) {
         // que le toca por tamaño. "fuerte" = ≥1.2× con ≥30 aciertos (hoy: King).
         function _ngpJaleIdxDe(L) {
             try {
-                var keyJ = L + '|' + ((capturedResults || []).length);
+                var keyJ = L + '|' + _ngpDV();
                 if (!window._ngpJaleIdxCache) window._ngpJaleIdxCache = {};
                 if (window._ngpJaleIdxCache[keyJ] !== undefined) return window._ngpJaleIdxCache[keyJ];
                 var gOfJ = {};
@@ -32966,7 +32978,7 @@ function senalesDe(nn) {
         // (los de ayer en horarios que hoy aún no se capturan).
         function _ngpEco24De(L) {
             try {
-                var key24 = L + '|' + ((capturedResults || []).length) + '|' + getLocalDateString();
+                var key24 = L + '|' + _ngpDV() + '|' + getLocalDateString();
                 if (!window._ngpEco24Cache) window._ngpEco24Cache = {};
                 if (window._ngpEco24Cache[key24] !== undefined) return window._ngpEco24Cache[key24];
                 var map24 = {}, regs24 = [];
@@ -33015,7 +33027,7 @@ function senalesDe(nn) {
                 var otraJC = PARES_JC[L];
                 if (!otraJC) return null;
                 var hoyJC = getLocalDateString();
-                var keyJC = L + '|' + ((capturedResults || []).length) + '|' + hoyJC;
+                var keyJC = L + '|' + _ngpDV() + '|' + hoyJC;
                 if (!window._ngpJaleCruceCache) window._ngpJaleCruceCache = {};
                 if (window._ngpJaleCruceCache[keyJC] !== undefined) return window._ngpJaleCruceCache[keyJC];
                 var gOfJC = {};
@@ -33075,7 +33087,7 @@ function senalesDe(nn) {
                 var PARES_VC = { 'New York': 'Florida', 'Florida': 'New York', 'Nicaragua': 'Tica', 'Tica': 'Nicaragua' };
                 var otraVC = PARES_VC[L];
                 if (!otraVC) return null;
-                var keyVC = L + '|' + ((capturedResults || []).length);
+                var keyVC = L + '|' + _ngpDV();
                 if (!window._ngpVtaCruceCache) window._ngpVtaCruceCache = {};
                 if (window._ngpVtaCruceCache[keyVC] !== undefined) return window._ngpVtaCruceCache[keyVC];
                 var SVC = [];
@@ -33214,6 +33226,7 @@ function senalesDe(nn) {
             var v = parseInt(inp.value, 10);
             if (isNaN(v) || v < 1 || v > 28) { v = 10; }
             try { localStorage.setItem('ngpEsperaDiaTope', String(v)); } catch (e) {}
+            try { _ngpAjustesMarcar(); } catch (eAj) {} // V46.9.258
             window._ngpEsperaCache = {};
             try { _ngpResumenRender(); } catch (e1) {}
             try { _ngpExtractoRender(); } catch (e2) {}
@@ -34540,7 +34553,7 @@ function senalesDe(nn) {
         function _p23Serie(L) {
             try {
                 var cfg = _P23_LOTS[L]; if (!cfg) return [];
-                var key = 'p23|' + L + '|' + ((capturedResults || []).length) + '|' + ((p23Data && p23Data[L]) ? Object.keys(p23Data[L]).length : 0);
+                var key = 'p23|' + L + '|' + _ngpDV() + '|' + ((p23Data && p23Data[L]) ? Object.keys(p23Data[L]).length : 0);
                 if (!window._p23SerieCache) window._p23SerieCache = {};
                 if (window._p23SerieCache[key]) return window._p23SerieCache[key];
                 var p1 = {};
@@ -34701,7 +34714,7 @@ function senalesDe(nn) {
         // salir, contra lo que daría el azar puro (proceso sin memoria: 1/p).
         function _p23Backtest(L) {
             try {
-                var key = 'bt|' + L + '|' + ((capturedResults || []).length) + '|' + ((p23Data && p23Data[L]) ? Object.keys(p23Data[L]).length : 0);
+                var key = 'bt|' + L + '|' + _ngpDV() + '|' + ((p23Data && p23Data[L]) ? Object.keys(p23Data[L]).length : 0);
                 if (!window._p23BtCache) window._p23BtCache = {};
                 if (window._p23BtCache[key]) return window._p23BtCache[key];
                 var r = _p23Calc(L, false);
@@ -35700,6 +35713,36 @@ function senalesDe(nn) {
         window._ngpParamRec = function() {
             try { var v = parseInt(localStorage.getItem('ngpRecPct') || '80', 10); return (!isNaN(v) && v >= 50 && v <= 100) ? v : 80; } catch (e) { return 80; }
         };
+        // V46.9.258: los parámetros del filtro viajan en la nube (gana el último cambio)
+        var _NGP_AJ_KEYS = ['ngpRezTop', 'ngpRezExcl', 'ngpRecPct', 'ngpGrpPendDias', 'ngpEsperaDiaTope'];
+        function _ngpAjustesLeer() {
+            var o = { t: 0 };
+            try { o.t = parseInt(localStorage.getItem('ngpAjustesT') || '0', 10) || 0; } catch (e) {}
+            _NGP_AJ_KEYS.forEach(function(k) { try { var v = localStorage.getItem(k); o[k] = (v === null) ? null : v; } catch (e) { o[k] = null; } });
+            return o;
+        }
+        function _ngpAjustesMarcar() {
+            try { localStorage.setItem('ngpAjustesT', String(Date.now())); } catch (e) {}
+            try { if (typeof _ghSyncAuto === 'function') _ghSyncAuto(); } catch (e) {}
+        }
+        function _ngpAjustesAplicarDeNube(aj) {
+            try {
+                if (!aj || !aj.t) return false;
+                var loc = _ngpAjustesLeer();
+                if (aj.t <= loc.t) return false;
+                var cambio = false;
+                _NGP_AJ_KEYS.forEach(function(k) {
+                    var v = (aj[k] === undefined) ? null : aj[k];
+                    if (v !== loc[k]) { cambio = true; try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, String(v)); } catch (e) {} }
+                });
+                try { localStorage.setItem('ngpAjustesT', String(aj.t)); } catch (e) {}
+                if (cambio) {
+                    window._ngpGrpMaxSeqCache = {}; window._ngpGrpPendCache = {}; window._ngpHorCache = {}; window._ngpGrpHorCache = {}; window._ngpEsperaCache = {};
+                    console.log('⚙️ Parámetros del filtro actualizados desde la nube (cambiados en otra máquina).');
+                }
+                return cambio;
+            } catch (e) { return false; }
+        }
         function _ngpRezParamAplicar() {
             var i1 = document.querySelector('[id="ngpRezTopInp"]');
             var i2 = document.querySelector('[id="ngpRezExclInp"]');
@@ -35708,15 +35751,37 @@ function senalesDe(nn) {
             var i3 = document.querySelector('[id="ngpRecPctInp"]'); // V46.9.235
             var v3 = parseInt(i3 && i3.value, 10); if (isNaN(v3)) v3 = 80; if (v3 < 50) v3 = 50; if (v3 > 100) v3 = 100;
             try { localStorage.setItem('ngpRezTop', String(v1)); localStorage.setItem('ngpRezExcl', String(v2)); localStorage.setItem('ngpRecPct', String(v3)); } catch (e) {}
+            try { _ngpAjustesMarcar(); } catch (eAj) {} // V46.9.258: viaja a la nube
             window._ngpGrpMaxSeqCache = {}; // V46.9.235: el récord se recalcula con el nuevo umbral
             try { _ngpResumenRender(); } catch (e2) {}
             try { _ngpExtractoRender(); } catch (e3) {}
         }
         function _ngpRezParamReset() {
             try { localStorage.removeItem('ngpRezTop'); localStorage.removeItem('ngpRezExcl'); localStorage.removeItem('ngpRecPct'); } catch (e) {}
+            try { _ngpAjustesMarcar(); } catch (eAj) {} // V46.9.258
             window._ngpGrpMaxSeqCache = {}; // V46.9.235
             try { _ngpResumenRender(); } catch (e2) {}
             try { _ngpExtractoRender(); } catch (e3) {}
+        }
+        // V46.9.258 (reporte de Leo): SELLO DE DATOS — con qué foto se calculó el
+        // Resumen. Si dos máquinas muestran el mismo sello, tienen que mostrar
+        // lo mismo; si el sello difiere, ahí está la explicación.
+        function _ngpSelloHTML() {
+            try {
+                var cr = capturedResults || [];
+                var ult = null;
+                cr.forEach(function(r) { if (!r || !r.date) return; var k = r.date + ' ' + (r.time || ''); if (!ult || k > ult.k) ult = { k: k, r: r }; });
+                var F0 = window._ngpFiltro || {};
+                var p = [];
+                p.push('<b style="color:#e2e8f0;">' + cr.length.toLocaleString() + '</b> registros');
+                if (ult) p.push('último capturado: <b style="color:#e2e8f0;">' + ult.r.lottery + ' ' + ult.r.date + ' ' + (ult.r.time || '') + ' → ' + ult.r.number + '</b>');
+                p.push('fecha de estudio <b style="color:#e2e8f0;">' + (F0.hoyStr || getLocalDateString()) + '</b>');
+                p.push('rezago top ' + (window._ngpParamRez ? window._ngpParamRez() : 30) + ' · exclusión ' + (window._ngpParamExcl ? window._ngpParamExcl() : 2) + 'd · récord ' + (window._ngpParamRec ? window._ngpParamRec() : 80) + '%');
+                try { p.push('grupo pend. ≥' + (localStorage.getItem('ngpGrpPendDias') || '15') + 'd · tope período ' + (localStorage.getItem('ngpEsperaDiaTope') || '10')); } catch (e0) {}
+                p.push(_ghBorradosLeer().length + ' lápidas');
+                p.push('calculado ' + new Date().toLocaleTimeString('es-CR'));
+                return '<div style="margin-top:8px;padding:6px 10px;border:1px dashed rgba(148,163,184,0.5);border-radius:7px;font-size:9px;color:#94a3b8;line-height:1.6;">🔏 <b>SELLO DE DATOS</b> — ' + p.join(' · ') + '. <span style="color:#64748b;">Dos máquinas con el mismo sello deben mostrar exactamente lo mismo.</span></div>';
+            } catch (e) { return ''; }
         }
         function _ngpResumenRender() {
             window._ngpGrpPendCache = {}; window._ngpHorCache = {}; window._ngpGrpHorCache = {}; // V46.9.169/170: señales con datos frescos
@@ -36098,6 +36163,7 @@ function senalesDe(nn) {
                 html += '</div></div>';
             });
             html += '</div>';
+            html += _ngpSelloHTML(); // V46.9.258
             html += '<div style="font-size:8px;color:#64748b;margin-top:4px;">La fuerza compara cuánta señal acumulada tiene cada lotería en este momento — sirve para priorizar dónde mirar. Cada sorteo es independiente: más señales no cambia la probabilidad matemática.</div>';
             conts.forEach(function(x) { x.innerHTML = html; });
         }
