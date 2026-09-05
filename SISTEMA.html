@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.259</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.260</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6350,7 +6350,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.259</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.260</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -29151,7 +29151,11 @@ function senalesDe(nn) {
                 h += '<button onclick="_ngpDdeBackToggle()" style="background:linear-gradient(135deg,#134e4a,#2dd4bf);border:1px solid #99f6e4;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🎯 Backtest "Después de"</button>'; // V46.9.229 (pedido de Leo)
                 h += '<button onclick="_ngpActGrpToggle()" style="background:linear-gradient(135deg,#78350f,#f59e0b);border:1px solid #fde68a;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🧨 Activadores de Grupo</button>'; // V46.9.229 (pedido de Leo)
                 h += '<button onclick="_p23Toggle()" title="Análisis de 1º, 2º y 3º premio SOLO para New York y Florida — módulo independiente" style="background:linear-gradient(135deg,#065f46,#10b981);border:1px solid #6ee7b7;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🎰 3 Premios NY/FL</button>'; // V46.9.238 (pedido de Leo)
+                // V46.9.260 (pedido de Leo): sincronizar con la nube y recalcular desde acá,
+                // con el sello de datos a la vista para comparar dos máquinas.
+                h += '<button onclick="_ngpSincronizarYRecalcular()" title="Baja lo último de la nube, lo fusiona, limpia todas las cachés y recalcula el módulo completo. Muestra el sello de datos para comparar máquinas." style="background:linear-gradient(135deg,#0f766e,#14b8a6);border:1px solid #99f6e4;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">☁️ Sincronizar con la nube y recalcular</button>';
                 h += '</div>';
+                h += '<div id="ngpSyncEstado" style="margin-top:6px;">' + (window._ngpSyncEstadoTxt || '') + '</div>';
                 // panel del filtro (oculto por defecto)
                 h += '<div id="ngpFiltroPanel" style="display:none;background:rgba(8,47,73,0.6);border:1px solid #22d3ee;border-radius:9px;padding:10px;margin-top:9px;">';
                 h += '<div style="font-size:11px;font-weight:bold;color:#a5f3fc;margin-bottom:6px;">Elegí una o varias loterías — se muestran sus números con más señales, en el orden de grupos más acertado:</div>';
@@ -33462,6 +33466,49 @@ function senalesDe(nn) {
             var hoyR = _ngpHoyRealStr();
             window._ngpFechaEstudio = (v && /^\d{4}-\d{2}-\d{2}$/.test(v) && v !== hoyR) ? v : null;
             _ngpContagioRefrescar();
+        }
+        // V46.9.260 (pedido de Leo): bajar de la nube + fusionar + limpiar TODAS las
+        // cachés + recalcular el módulo, y dejar el sello de datos a la vista.
+        function _ngpSincronizarYRecalcular() {
+            var pinta = function(txt) {
+                window._ngpSyncEstadoTxt = txt;
+                document.querySelectorAll('[id="ngpSyncEstado"]').forEach(function(x) { x.innerHTML = txt; });
+            };
+            pinta('<div style="font-size:11px;color:#fbbf24;padding:4px 8px;">⏳ Bajando la nube y fusionando…</div>');
+            var cfg = {};
+            try { cfg = _ghLeerConfig() || {}; } catch (e0) {}
+            var p = (typeof _ghFusionarConNube === 'function') ? _ghFusionarConNube({ repo: cfg.repo, token: cfg.token }) : Promise.resolve(null);
+            p.then(function(fus) {
+                var rf = (fus && fus.resumen) || {};
+                var cambio = false;
+                if (rf.huboNube && (rf.nuevosDeNube > 0 || rf.seqFusion > 0 || rf.quitados > 0 || rf.lapidas || rf.ajustes)) {
+                    capturedResults = fus.merged;
+                    sequenceHistory = fus.seq;
+                    cambio = true;
+                    try { saveData(); } catch (e1) {}
+                    try { if (_ghDebounceTimer) { clearTimeout(_ghDebounceTimer); _ghDebounceTimer = null; } } catch (e2) {}
+                }
+                // limpiar TODO y recalcular con los mismos datos
+                window._ngpDataVer = (window._ngpDataVer || 0) + 1;
+                try { if (typeof _p23LimpiarCaches === 'function') _p23LimpiarCaches(); } catch (e3) {}
+                ['_ngpPredomCache', '_ngpConvEspCache', '_ngpTopsCache', '_ngpEsperaCache', '_ngpGrpPendCache', '_ngpHorCache', '_ngpGrpHorCache', '_ngpGrpMaxSeqCache', '_ngpActivCache', '_ngpUltLotCache', '_ngpGrpExcCache', '_ngpGrpPromLCache', '_ngpCadNumLCache', '_ngpVibAdCache', '_ngpVibAdPCache', '_ngpPropHoyCache', '_ngpDdnFullCache', '_seqFiltCache', '_ngpParesCache', '_ngpEcoCache', '_ngpJaleIdxCache', '_ngpEco24Cache', '_ngpJaleCruceCache', '_ngpVtaCruceCache'].forEach(function(k) { try { delete window[k]; } catch (e4) {} });
+                var txt = '<div style="background:rgba(4,47,46,0.6);border:1px solid #2dd4bf;border-radius:8px;padding:6px 10px;font-size:10px;color:#ccfbf1;line-height:1.6;">';
+                if (rf.huboNube) {
+                    txt += '☁️ <b>Nube leída:</b> ' + (rf.nube || 0).toLocaleString() + ' registros' + (fus && fus.merged ? '' : '') + ' · <b>en uso ahora:</b> ' + (capturedResults || []).length.toLocaleString() + ' registros · ' + _ghBorradosLeer().length + ' lápidas';
+                    txt += (rf.nuevosDeNube > 0 ? ' · se trajeron <b>' + rf.nuevosDeNube + '</b> nuevos' : ' · nada nuevo que traer') + (rf.quitados > 0 ? ' · se retiraron ' + rf.quitados + ' borrados en otra máquina' : '') + (rf.ajustes ? ' · parámetros actualizados desde la nube' : '');
+                } else {
+                    txt += '⚠️ <b>No se pudo leer la nube</b> (token o conexión) — se recalculó con los datos locales: ' + (capturedResults || []).length.toLocaleString() + ' registros · ' + _ghBorradosLeer().length + ' lápidas';
+                }
+                txt += ' · recalculado a las <b>' + new Date().toLocaleTimeString('es-CR') + '</b></div>';
+                txt += (typeof _ngpSelloHTML === 'function') ? _ngpSelloHTML() : '';
+                window._ngpSyncEstadoTxt = txt;
+                try { _ngpContagioRefrescar(); } catch (e5) {}
+                pinta(txt);
+                try { updateHistoricalCounts(); } catch (e6) {}
+                try { updateRecentResults(); } catch (e7) {}
+            }).catch(function(e) {
+                pinta('<div style="font-size:11px;color:#fca5a5;padding:4px 8px;">❌ Error al sincronizar: ' + (e && e.message ? e.message : e) + '</div>');
+            });
         }
         function _ngpContagioRefrescar() {
             var ws = document.querySelectorAll('[id="ngpContagioWrap"]');
