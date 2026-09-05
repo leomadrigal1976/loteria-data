@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.260</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.262</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -2762,6 +2762,9 @@
                         </button>
                         <button class="btn" onclick="exportarCalendarioGrupos('pantalla')" style="background:linear-gradient(135deg,#0e6655,#16a085);color:white;font-size:15px;padding:10px 22px;border:none;border-radius:8px;cursor:pointer;">
                             👁️ Ver en pantalla (lotería seleccionada)
+                        </button>
+                        <button class="btn" onclick="exportarCalendarioGrupos('pdf')" style="background:linear-gradient(135deg,#7f1d1d,#dc2626);color:white;font-size:15px;padding:10px 22px;border:none;border-radius:8px;cursor:pointer;font-weight:bold;">
+                            🖨️ Generar PDF (a tu gusto)
                         </button>
                     </div>
                     <div id="calExportStatus" style="margin-top:10px;font-size:13px;color:#6c3483;"></div>
@@ -6350,7 +6353,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.260</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.262</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -13448,7 +13451,10 @@
                 m++; if(m>12){m=1;y++;}
             }
 
-            const statusDiv = document.getElementById('calExportStatus');
+            // V46.9.262: el calendario también vive dentro de DDG (destino 'ddg')
+            const _calDDG = (window._calDestino === 'ddg');
+            const _idPant = _calDDG ? 'calPantallaResultsDDG' : 'calPantallaResults';
+            const statusDiv = document.getElementById(_calDDG ? 'calExportStatusDDG' : 'calExportStatus') || document.getElementById('calExportStatus');
             statusDiv.textContent = `⏳ Generando ${loteriasSeleccionadas.length} archivo(s) con ${meses.length} pestaña(s) cada uno...`;
 
             // ── Shared config ───────────────────────────────────────────
@@ -13548,14 +13554,14 @@ ${groups.map((g,i)=>`
 
             // ── V46.9.73: VER EN PANTALLA — misma información del Excel, sin descargar ──
             if (mode === 'pantalla') {
-                const contP = document.getElementById('calPantallaResults');
+                const contP = document.getElementById(_idPant);
                 if (!contP) { alert('No se encontró el contenedor de la vista en pantalla.'); return; }
                 // El CSS del Excel se aplica con alcance limitado al contenedor para no afectar el resto de la página
-                const cssPantalla = CSS_SHARED.replace(/(^|\n)\s*(td|\.[A-Za-z0-9_]+)\s*\{/g, '$1#calPantallaResults $2{');
+                const cssPantalla = CSS_SHARED.replace(/(^|\n)\s*(td|\.[A-Za-z0-9_]+)\s*\{/g, '$1#' + _idPant + ' $2{');
                 let vista = '<style>' + cssPantalla + '</style>';
                 vista += '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin:10px 0 6px 0;">' +
                          '<div style="font-weight:bold;color:#6c3483;font-size:14px;">👁️ Vista en pantalla — misma información del Excel</div>' +
-                         '<button onclick="document.getElementById(\'calPantallaResults\').innerHTML=\'\'" style="background:#95a5a6;color:white;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px;">✖ Cerrar vista</button></div>';
+                         '<button onclick="document.getElementById(\'' + _idPant + '\').innerHTML=\'\'" style="background:#95a5a6;color:white;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px;">✖ Cerrar vista</button></div>';
                 const lotsP = loteriasSeleccionadas.filter(ln => LOTTERIES.find(x=>x.name===ln));
                 lotsP.forEach(ln => {
                     const lotDefP = LOTTERIES.find(x=>x.name===ln);
@@ -13566,6 +13572,47 @@ ${groups.map((g,i)=>`
                 contP.innerHTML = vista;
                 statusDiv.textContent = '✅ Vista en pantalla generada: ' + lotsP.length + ' lotería(s) × ' + meses.length + ' mes(es).';
                 try { contP.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (eScroll) {}
+                return;
+            }
+
+            // ── V46.9.262 (pedido de Leo): PDF "a gusto" — ventana con opciones y Guardar como PDF ──
+            if (mode === 'pdf') {
+                const lotsPdf = loteriasSeleccionadas.filter(ln => LOTTERIES.find(x=>x.name===ln));
+                let cuerpo = '';
+                lotsPdf.forEach(ln => {
+                    const ld = LOTTERIES.find(x=>x.name===ln);
+                    meses.forEach(({year,month}) => { cuerpo += '<div class="pag">' + buildMonthTable(ln, ld.times, year, month) + '</div>'; });
+                });
+                const w = window.open('', '_blank');
+                if (!w) { alert('El navegador bloqueó la ventana del PDF. Permití ventanas emergentes para este sitio e intentá de nuevo.'); return; }
+                const docPdf = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Calendario por Grupos — PDF</title>' +
+                    '<style>' + CSS_SHARED +
+                    'body{font-family:Arial;margin:0;padding:12px;background:#fff;color:#000;}' +
+                    '.pag{page-break-after:always;margin-bottom:14px;} .pag:last-child{page-break-after:auto;}' +
+                    'table{border-collapse:collapse;}' +
+                    '#barra{position:sticky;top:0;z-index:5;background:#1A3A5C;color:#fff;padding:10px 14px;border-radius:8px;margin-bottom:12px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:13px;}' +
+                    '#barra label{display:flex;align-items:center;gap:5px;} #barra select,#barra input{font-size:13px;}' +
+                    '#barra button{background:#16a085;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-weight:bold;cursor:pointer;font-size:14px;}' +
+                    '@media print { #barra{display:none;} body{padding:0;} }' +
+                    'body.bn td{background:#fff !important;color:#000 !important;}' +
+                    'body.bn .hdr,body.bn .hdrM{background:#fff !important;color:#000 !important;border-bottom:2px solid #000;}' +
+                    '</style></head><body>' +
+                    '<div id="barra"><b>🖨️ Guardar como PDF</b>' +
+                    '<label>Orientación: <select id="ori" onchange="aplicar()"><option value="landscape" selected>Horizontal</option><option value="portrait">Vertical</option></select></label>' +
+                    '<label>Tamaño: <select id="esc" onchange="aplicar()"><option value="0.6">60%</option><option value="0.75">75%</option><option value="0.9">90%</option><option value="1" selected>100%</option><option value="1.2">120%</option></select></label>' +
+                    '<label><input type="checkbox" id="bn" onchange="aplicar()"> Blanco y negro</label>' +
+                    '<label><input type="checkbox" id="sinley" onchange="aplicar()"> Sin leyenda de grupos</label>' +
+                    '<button onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>' +
+                    '<span style="font-size:11px;opacity:0.85;">En el cuadro de impresión elegí <b>Guardar como PDF</b> como destino; ahí también podés ajustar márgenes.</span></div>' +
+                    '<div id="cont">' + cuerpo + '</div>' +
+                    '<scr' + 'ipt>function aplicar(){var ori=document.getElementById("ori").value,esc=document.getElementById("esc").value;' +
+                    'var st=document.getElementById("pageStyle");if(!st){st=document.createElement("style");st.id="pageStyle";document.head.appendChild(st);}' +
+                    'st.textContent="@page{size:"+ori+";margin:8mm;}";document.getElementById("cont").style.zoom=esc;' +
+                    'document.body.classList.toggle("bn",document.getElementById("bn").checked);' +
+                    'var ocultar=document.getElementById("sinley").checked;document.querySelectorAll("#cont .pag").forEach(function(p){var ts=p.querySelectorAll("table");if(ts.length>1)ts[ts.length-1].style.display=ocultar?"none":"";});}' +
+                    'aplicar();</scr' + 'ipt></body></html>';
+                w.document.open(); w.document.write(docPdf); w.document.close();
+                statusDiv.textContent = '🖨️ Se abrió la vista para PDF: ' + lotsPdf.length + ' lotería(s) × ' + meses.length + ' mes(es). Elegí orientación/tamaño y presioná "Imprimir / Guardar PDF".';
                 return;
             }
 
@@ -14290,6 +14337,54 @@ ${groups.map((g,i)=>`
             }).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
               .catch(function() { return pRaw(); });
         }
+        // V46.9.261 (pedido de Leo): AUTO-ACTUALIZACIÓN cuando el sistema se abre por el
+        // link de GitHub Pages. Cada 10 min consulta (llamada mínima) si hay un commit
+        // nuevo de SISTEMA.html; si lo hay, lee el archivo por la API (sin caché),
+        // compara la versión y, si es más nueva, recarga solo con un ?v= que salta
+        // todas las cachés. Con archivo local (file://) no hace nada.
+        var _NGP_VERSION = 'v46.9.262';
+        function _ngpVerNum(v) { var m = /v(\d+)\.(\d+)\.(\d+)/.exec(v || ''); return m ? (parseInt(m[1], 10) * 1000000 + parseInt(m[2], 10) * 10000 + parseInt(m[3], 10)) : 0; }
+        function _ngpAutoActualizar() {
+            try {
+                if (!/^https?:/.test(location.protocol)) return;
+                var cfg = {}; try { cfg = _ghLeerConfig() || {}; } catch (e0) {}
+                var repo = (cfg.repo && cfg.repo.indexOf('/') > 0) ? cfg.repo : 'leomadrigal1976/loteria-data';
+                var p = repo.split('/');
+                var hdr = { 'Accept': 'application/vnd.github+json' };
+                if (cfg.token) hdr['Authorization'] = 'Bearer ' + cfg.token;
+                fetch('https://api.github.com/repos/' + p[0] + '/' + p[1] + '/commits?path=SISTEMA.html&sha=main&per_page=1&t=' + Date.now(), { headers: hdr, cache: 'no-store' })
+                    .then(function(r) { return r.ok ? r.json() : null; })
+                    .then(function(arr) {
+                        var sha = (arr && arr[0] && arr[0].sha) ? arr[0].sha : null;
+                        if (!sha) return;
+                        var visto = null; try { visto = localStorage.getItem('ngpShaVisto'); } catch (e1) {}
+                        if (visto === sha) return; // ya evaluado este commit
+                        var hdr2 = { 'Accept': 'application/vnd.github.raw+json' };
+                        if (cfg.token) hdr2['Authorization'] = 'Bearer ' + cfg.token;
+                        return fetch('https://api.github.com/repos/' + p[0] + '/' + p[1] + '/contents/SISTEMA.html?ref=main&t=' + Date.now(), { headers: hdr2, cache: 'no-store' })
+                            .then(function(r) { return r.ok ? r.text() : ''; })
+                            .then(function(txt) {
+                                var m = /_NGP_VERSION = '(v[0-9.]+)'/.exec(txt || '');
+                                var vRepo = m ? m[1] : null;
+                                if (!vRepo) return;
+                                if (_ngpVerNum(vRepo) <= _ngpVerNum(_NGP_VERSION)) {
+                                    try { localStorage.setItem('ngpShaVisto', sha); } catch (e2) {}
+                                    return; // el repo no trae nada más nuevo que lo que corre
+                                }
+                                // hay versión nueva: recargar una sola vez por commit (evita bucles si Pages aún no publicó)
+                                var intento = null; try { intento = JSON.parse(sessionStorage.getItem('ngpReloadIntento') || 'null'); } catch (e3) {}
+                                if (intento && intento.sha === sha && (Date.now() - intento.t) < 15 * 60000) {
+                                    try { _ghPill('aviso', '🆕 Hay una versión nueva (' + vRepo + ') — GitHub todavía la está publicando; se actualizará sola en unos minutos.'); } catch (e4) {}
+                                    return;
+                                }
+                                try { sessionStorage.setItem('ngpReloadIntento', JSON.stringify({ sha: sha, t: Date.now() })); } catch (e5) {}
+                                try { _ghPill('subiendo', '🆕 Actualizando a la ' + vRepo + '…'); } catch (e6) {}
+                                setTimeout(function() { location.replace(location.pathname + '?v=' + sha.substring(0, 8)); }, 1200);
+                            });
+                    }).catch(function() {});
+            } catch (e) {}
+        }
+        try { setTimeout(_ngpAutoActualizar, 8000); setInterval(_ngpAutoActualizar, 10 * 60000); } catch (eAA) {}
         function _ghVerificarNube() {
             var cfg = _ghLeerConfig();
             _ghActualizarEstado('subiendo', 'Consultando la nube…');
@@ -29156,6 +29251,8 @@ function senalesDe(nn) {
                 h += '<button onclick="_ngpSincronizarYRecalcular()" title="Baja lo último de la nube, lo fusiona, limpia todas las cachés y recalcula el módulo completo. Muestra el sello de datos para comparar máquinas." style="background:linear-gradient(135deg,#0f766e,#14b8a6);border:1px solid #99f6e4;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">☁️ Sincronizar con la nube y recalcular</button>';
                 h += '</div>';
                 h += '<div id="ngpSyncEstado" style="margin-top:6px;">' + (window._ngpSyncEstadoTxt || '') + '</div>';
+                // V46.9.262 (pedido de Leo): Calendario Excel/PDF sin salir de DDG
+                h += '<div style="margin-top:6px;"><button onclick="_ngpCalToggle()" style="background:linear-gradient(135deg,#6c3483,#8e44ad);border:1px solid #d7bde2;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;">📅 Calendario por Grupos — Excel / PDF</button></div>';
                 // panel del filtro (oculto por defecto)
                 h += '<div id="ngpFiltroPanel" style="display:none;background:rgba(8,47,73,0.6);border:1px solid #22d3ee;border-radius:9px;padding:10px;margin-top:9px;">';
                 h += '<div style="font-size:11px;font-weight:bold;color:#a5f3fc;margin-bottom:6px;">Elegí una o varias loterías — se muestran sus números con más señales, en el orden de grupos más acertado:</div>';
@@ -29406,6 +29503,30 @@ function senalesDe(nn) {
                 h += '<div id="p23PaleResultado" style="margin-top:8px;"></div>';
                 h += '</div>';
                 h += '<div id="p23Resultado" style="max-height:max(560px,72vh);overflow-y:auto;"><div style="font-size:11px;color:#94a3b8;padding:6px;">Cargando…</div></div>';
+                h += '</div>';
+                // V46.9.262 (pedido de Leo): panel CALENDARIO POR GRUPOS dentro de DDG
+                h += '<div id="ngpCalPanel" style="display:none;background:rgba(76,29,149,0.35);border:1px solid #a78bfa;border-radius:9px;padding:10px;margin-top:9px;">';
+                h += '<div style="font-size:11px;font-weight:bold;color:#ddd6fe;margin-bottom:7px;">📅 CALENDARIO VISUAL POR GRUPOS — Excel (una pestaña por mes) · vista en pantalla · PDF a tu gusto. Mismo generador que el de Respaldo.</div>';
+                h += '<div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:8px;">';
+                h += '<div><label style="font-size:10px;color:#c4b5fd;display:block;margin-bottom:2px;">Desde mes:</label><input type="month" id="calExportMesDDG" style="background:#1e1b4b;color:#fff;border:1px solid #a78bfa;border-radius:6px;padding:5px 8px;font-size:12px;"></div>';
+                h += '<div><label style="font-size:10px;color:#c4b5fd;display:block;margin-bottom:2px;">Hasta mes:</label><input type="month" id="calExportMesHastaDDG" style="background:#1e1b4b;color:#fff;border:1px solid #a78bfa;border-radius:6px;padding:5px 8px;font-size:12px;"></div>';
+                h += '<button onclick="_ngpCalTodoHistorial()" style="background:linear-gradient(135deg,#6c3483,#8e44ad);border:1px solid #d7bde2;color:#fff;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:bold;">📚 Todo el historial</button>';
+                h += '<button onclick="_ngpCalMes(0)" style="background:#4c1d95;border:1px solid #a78bfa;color:#fff;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:11px;">Este mes</button>';
+                h += '<button onclick="_ngpCalMes(-1)" style="background:#4c1d95;border:1px solid #a78bfa;color:#fff;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:11px;">Mes pasado</button>';
+                h += '</div>';
+                h += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">';
+                h += '<button onclick="_ngpCalSel(true)" style="background:#8e44ad;border:none;color:#fff;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;">✅ Todas</button>';
+                h += '<button onclick="_ngpCalSel(false)" style="background:#64748b;border:none;color:#fff;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;">☐ Ninguna</button>';
+                h += '</div>';
+                h += '<div id="calCheckboxesDDG" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px;"></div>';
+                h += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+                h += '<button onclick="_ngpCalDDG(\'seleccion\')" style="background:linear-gradient(135deg,#6c3483,#8e44ad);border:1px solid #d7bde2;color:#fff;padding:8px 14px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:bold;">🗓️ Excel (loterías marcadas)</button>';
+                h += '<button onclick="_ngpCalDDG(\'todas_zip\')" style="background:linear-gradient(135deg,#1a5276,#2980b9);border:1px solid #93c5fd;color:#fff;padding:8px 14px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:bold;">📦 Excel de TODAS</button>';
+                h += '<button onclick="_ngpCalDDG(\'pantalla\')" style="background:linear-gradient(135deg,#0e6655,#16a085);border:1px solid #6ee7b7;color:#fff;padding:8px 14px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:bold;">👁️ Ver en pantalla</button>';
+                h += '<button onclick="_ngpCalDDG(\'pdf\')" style="background:linear-gradient(135deg,#7f1d1d,#dc2626);border:1px solid #fca5a5;color:#fff;padding:8px 14px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:bold;">🖨️ Generar PDF (a tu gusto)</button>';
+                h += '</div>';
+                h += '<div id="calExportStatusDDG" style="margin-top:8px;font-size:11px;color:#ddd6fe;"></div>';
+                h += '<div id="calPantallaResultsDDG" style="margin-top:8px;"></div>';
                 h += '</div>';
                 // V46.9.221 (pedido de Leo): botones flotantes más pequeños, apilados
                 h += '<div style="position:fixed;bottom:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:7px;align-items:flex-end;">';
@@ -31962,7 +32083,7 @@ function senalesDe(nn) {
             cont.innerHTML = html;
         }
         // V46.9.155: cierre mutuo de los 5 paneles del módulo
-        var _NGP_PANELES = ['ngpFiltroPanel', 'ngpExtractoPanel', 'ngpResumenPanel', 'ngpDespuesPanel', 'ngpBuscarPanel', 'ngpAntesPanel', 'ngpDgPanel', 'ngpDgtPanel', 'ngpFechaPanel', 'ngpGrpPromPanel', 'ngpTermRepPanel', 'ngpSum9Panel', 'ngpTopMesPanel', 'ngpFriosPanel', 'ngpAusPanel', 'ngpF2882Panel', 'ngpGrpExcPanel', 'ngpDdeBackPanel', 'ngpActGrpPanel', 'p23Panel']; // V46.9.229 · V46.9.238
+        var _NGP_PANELES = ['ngpFiltroPanel', 'ngpExtractoPanel', 'ngpResumenPanel', 'ngpDespuesPanel', 'ngpBuscarPanel', 'ngpAntesPanel', 'ngpDgPanel', 'ngpDgtPanel', 'ngpFechaPanel', 'ngpGrpPromPanel', 'ngpTermRepPanel', 'ngpSum9Panel', 'ngpTopMesPanel', 'ngpFriosPanel', 'ngpAusPanel', 'ngpF2882Panel', 'ngpGrpExcPanel', 'ngpDdeBackPanel', 'ngpActGrpPanel', 'p23Panel', 'ngpCalPanel']; // V46.9.229 · V46.9.238
         function _ngpCerrarOtros(salvo) {
             _NGP_PANELES.forEach(function(id) {
                 if (id === salvo) return;
@@ -34580,6 +34701,69 @@ function senalesDe(nn) {
             var v = '';
             document.querySelectorAll('[id="p23Lot"]').forEach(function(s) { if (!v && s.value) v = s.value; });
             return v || 'New York';
+        }
+        // V46.9.262 (pedido de Leo): CALENDARIO POR GRUPOS dentro de DDG — reutiliza
+        // exportarCalendarioGrupos() copiando la selección a los controles de Respaldo.
+        function _ngpCalToggle() {
+            var ps = document.querySelectorAll('[id="ngpCalPanel"]');
+            if (!ps.length) return;
+            var abrir = (ps[0].style.display === 'none');
+            if (typeof _ngpCerrarOtros === 'function') _ngpCerrarOtros('ngpCalPanel');
+            ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
+            if (abrir) _ngpCalInit();
+        }
+        function _ngpCalInit() {
+            try {
+                var c = document.getElementById('calCheckboxesDDG');
+                if (c && !c.children.length && typeof LOTTERIES !== 'undefined') {
+                    c.innerHTML = LOTTERIES.filter(function(l) { return !l.digits; }).map(function(l) {
+                        return '<label style="display:flex;align-items:center;gap:4px;background:rgba(0,0,0,0.3);border:1px solid #a78bfa;border-radius:6px;padding:3px 8px;font-size:11px;color:#ede9fe;cursor:pointer;white-space:nowrap;"><input type="checkbox" class="cal-lot-check-ddg" value="' + l.name.replace(/"/g, '&quot;') + '" style="accent-color:#a78bfa;" checked> ' + l.name + '</label>';
+                    }).join('');
+                }
+                var m1 = document.getElementById('calExportMesDDG'), m2 = document.getElementById('calExportMesHastaDDG');
+                if (m1 && !m1.value) { var hoy = getLocalDateString(); m1.value = hoy.substring(0, 7); if (m2) m2.value = hoy.substring(0, 7); }
+            } catch (e) {}
+        }
+        function _ngpCalSel(v) { document.querySelectorAll('.cal-lot-check-ddg').forEach(function(cb) { cb.checked = v; }); }
+        function _ngpCalMes(off) {
+            try {
+                var d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + off);
+                var v = d.getFullYear() + '-' + (d.getMonth() < 9 ? '0' : '') + (d.getMonth() + 1);
+                var m1 = document.getElementById('calExportMesDDG'), m2 = document.getElementById('calExportMesHastaDDG');
+                if (m1) m1.value = v; if (m2) m2.value = v;
+            } catch (e) {}
+        }
+        function _ngpCalTodoHistorial() {
+            try {
+                var sel = [].slice.call(document.querySelectorAll('.cal-lot-check-ddg:checked')).map(function(cb) { return cb.value; });
+                var fuente = (capturedResults || []).filter(function(r) { return r && r.date && r.date.length >= 7 && (!sel.length || sel.indexOf(r.lottery) >= 0); });
+                if (!fuente.length) { alert('No hay datos para las loterías marcadas.'); return; }
+                var min = null, max = null;
+                fuente.forEach(function(r) { var m = r.date.substring(0, 7); if (!min || m < min) min = m; if (!max || m > max) max = m; });
+                var m1 = document.getElementById('calExportMesDDG'), m2 = document.getElementById('calExportMesHastaDDG');
+                if (m1) m1.value = min; if (m2) m2.value = max;
+                var st = document.getElementById('calExportStatusDDG'); if (st) st.textContent = 'Rango: ' + min + ' a ' + max;
+            } catch (e) {}
+        }
+        function _ngpCalDDG(mode) {
+            try {
+                var m1 = document.getElementById('calExportMesDDG'), m2 = document.getElementById('calExportMesHastaDDG');
+                var o1 = document.getElementById('calExportMes'), o2 = document.getElementById('calExportMesHasta');
+                if (!m1 || !m1.value) { alert('Elegí al menos el mes inicial.'); return; }
+                if (o1) o1.value = m1.value;
+                if (o2) o2.value = (m2 && m2.value) ? m2.value : m1.value;
+                var marcadas = {};
+                document.querySelectorAll('.cal-lot-check-ddg').forEach(function(cb) { marcadas[cb.value] = cb.checked; });
+                var orig = document.querySelectorAll('.cal-lot-check');
+                if (!orig.length && typeof LOTTERIES !== 'undefined') {
+                    // si el panel de Respaldo aún no pobló sus casillas, crearlas
+                    var cont0 = document.getElementById('calCheckboxes');
+                    if (cont0) { cont0.innerHTML = LOTTERIES.filter(function(l) { return !l.digits; }).map(function(l) { return '<label><input type="checkbox" class="cal-lot-check" value="' + l.name.replace(/"/g, '&quot;') + '" checked> ' + l.name + '</label>'; }).join(''); orig = document.querySelectorAll('.cal-lot-check'); }
+                }
+                orig.forEach(function(cb) { if (marcadas[cb.value] !== undefined) cb.checked = marcadas[cb.value]; });
+                window._calDestino = 'ddg';
+                try { exportarCalendarioGrupos(mode); } finally { window._calDestino = null; }
+            } catch (e) { alert('Error al generar: ' + e.message); }
         }
         function _p23Toggle() {
             var ps = document.querySelectorAll('[id="p23Panel"]');
