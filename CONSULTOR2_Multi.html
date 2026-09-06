@@ -30674,7 +30674,8 @@ function senalesDe(nn) {
                         });
                         _topGrupos.sort(function(a, b) { return b.mejor.score !== a.mejor.score ? b.mejor.score - a.mejor.score : (a.mejor.pos || 999) - (b.mejor.pos || 999); });
                         // V46.9.173 (pedido de Leo): las sugerencias de cada tarjeta pasan de 3 a TOP 5
-                        ranking.push({ lot: L, fuerza: fuerza, top: cands.slice(0, 5), topGrupos: _topGrupos, jales: jalesL, grupoDia: tieneGrupoDia, det: { t3: _t3, t45: _t45, jal: _bJal }, datos: (todasLots[L] || 0) });
+                        var _scoresR = {}; cands.forEach(function(x) { _scoresR[x.num] = { score: x.score, tipos: x.tipos }; }); // V46.9.265
+                        ranking.push({ lot: L, fuerza: fuerza, top: cands.slice(0, 5), topGrupos: _topGrupos, jales: jalesL, grupoDia: tieneGrupoDia, det: { t3: _t3, t45: _t45, jal: _bJal }, datos: (todasLots[L] || 0), scores: _scoresR });
                         top5.forEach(function(x) { jugadas.push({ lot: L, num: x.num, score: x.score, tipos: x.tipos }); });
                     });
                     ranking.sort(function(a, b) { return b.fuerza - a.fuerza; });
@@ -31679,8 +31680,9 @@ function senalesDe(nn) {
                 return out;
             } catch (e) { return []; }
         }
-        function _ngpPegadosHTML(L) {
+        function _ngpPegadosHTML(L, scores) {
             try {
+                scores = scores || {};
                 var lista = _ngpPegadosDe(L);
                 if (!lista.length) return '';
                 var h = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">';
@@ -31719,7 +31721,8 @@ function senalesDe(nn) {
                         h += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;">';
                         pend.forEach(function(x) {
                             var hsN = pg.horSal.some(function(y) { return y.n === x.n; });
-                            h += '<span title="' + (x.n + ': ' + (x.ult ? 'última salida ' + x.ult + ' (' + x.dias + ' días)' : 'nunca ha salido acá') + (x.cad ? ' · pega cada ~' + Math.round(x.cad) + ' sorteos · ' + x.exc.toFixed(1) + '× su cadencia' : '') + (x.top ? ' · top 5 salidor del grupo' : '') + (hsN ? ' · su horario más salidor es el próximo sorteo' : '')).replace(/"/g, '') + '" style="font-family:monospace;font-size:13px;font-weight:bold;padding:2px 7px;border-radius:5px;cursor:help;background:' + (x.top ? 'rgba(74,222,128,0.15)' : 'rgba(251,191,36,0.12)') + ';border:1px solid ' + (x.top ? '#4ade80' : 'rgba(251,191,36,0.6)') + ';color:' + (x.top ? '#bbf7d0' : '#fde68a') + ';">' + x.n + (hsN ? '🕐' : '') + (x.vib ? '🔮' : '') + '</span>';
+                            var scN = scores[x.n] || null; // V46.9.265: señales del número en esta lotería
+                            h += '<span title="' + (x.n + ': ' + (scN ? scN.score + ' señal(es): ' + (scN.tipos || []).join(' · ') + ' · ' : '') + (x.ult ? 'última salida ' + x.ult + ' (' + x.dias + ' días)' : 'nunca ha salido acá') + (x.cad ? ' · pega cada ~' + Math.round(x.cad) + ' sorteos · ' + x.exc.toFixed(1) + '× su cadencia' : '') + (x.top ? ' · top 5 salidor del grupo' : '') + (hsN ? ' · su horario más salidor es el próximo sorteo' : '')).replace(/"/g, '') + '" style="font-family:monospace;font-size:13px;font-weight:bold;padding:2px 7px;border-radius:5px;cursor:help;background:' + (x.top ? 'rgba(74,222,128,0.15)' : 'rgba(251,191,36,0.12)') + ';border:1px solid ' + (x.top ? '#4ade80' : 'rgba(251,191,36,0.6)') + ';color:' + (x.top ? '#bbf7d0' : '#fde68a') + ';">' + x.n + (hsN ? '🕐' : '') + (x.vib ? '🔮' : '') + (scN ? '<span style="display:block;font-size:8px;font-weight:normal;color:#fbbf24;line-height:1;margin-top:1px;">' + scN.score + ' señ.</span>' : '<span style="display:block;font-size:8px;font-weight:normal;color:#64748b;line-height:1;margin-top:1px;">0 señ.</span>') + '</span>';
                         });
                         h += '</div>';
                     }
@@ -34118,7 +34121,7 @@ function senalesDe(nn) {
                 html += _ngpTopsDiaHTML(rk.lot); // V46.9.182 (pedido de Leo): tops del día en el encabezado
                 html += '</div>';
                 html += '<div style="flex:5;min-width:380px;">';
-                try { html += _ngpPegadosHTML(rk.lot); } catch (ePg) {} // V46.9.264 (pedido de Leo): grupos pegados a punto de caer
+                try { html += _ngpPegadosHTML(rk.lot, rk.scores || {}); } catch (ePg) {} // V46.9.264/265 (pedido de Leo): grupos pegados a punto de caer, con señales
                 html += '<div style="display:flex;gap:5px;margin-top:6px;">';
                 if (!rk.top.length) html += '<div style="font-size:10px;color:#64748b;padding:4px;">Sin candidatos (necesita más capturas de esta lotería).</div>';
                 var _hayT5 = false;
@@ -75595,7 +75598,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r197 · v46.9.264</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r198 · v46.9.265</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {

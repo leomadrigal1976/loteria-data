@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.264</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.265</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6353,7 +6353,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.264</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.265</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -14344,7 +14344,7 @@ ${groups.map((g,i)=>`
         // nuevo de SISTEMA.html; si lo hay, lee el archivo por la API (sin caché),
         // compara la versión y, si es más nueva, recarga solo con un ?v= que salta
         // todas las cachés. Con archivo local (file://) no hace nada.
-        var _NGP_VERSION = 'v46.9.264';
+        var _NGP_VERSION = 'v46.9.265';
         function _ngpVerNum(v) { var m = /v(\d+)\.(\d+)\.(\d+)/.exec(v || ''); return m ? (parseInt(m[1], 10) * 1000000 + parseInt(m[2], 10) * 10000 + parseInt(m[3], 10)) : 0; }
         function _ngpAutoActualizar() {
             try {
@@ -31658,7 +31658,8 @@ function senalesDe(nn) {
                         });
                         _topGrupos.sort(function(a, b) { return b.mejor.score !== a.mejor.score ? b.mejor.score - a.mejor.score : (a.mejor.pos || 999) - (b.mejor.pos || 999); });
                         // V46.9.173 (pedido de Leo): las sugerencias de cada tarjeta pasan de 3 a TOP 5
-                        ranking.push({ lot: L, fuerza: fuerza, top: cands.slice(0, 5), topGrupos: _topGrupos, jales: jalesL, grupoDia: tieneGrupoDia, det: { t3: _t3, t45: _t45, jal: _bJal }, datos: (todasLots[L] || 0) });
+                        var _scoresR = {}; cands.forEach(function(x) { _scoresR[x.num] = { score: x.score, tipos: x.tipos }; }); // V46.9.265
+                        ranking.push({ lot: L, fuerza: fuerza, top: cands.slice(0, 5), topGrupos: _topGrupos, jales: jalesL, grupoDia: tieneGrupoDia, det: { t3: _t3, t45: _t45, jal: _bJal }, datos: (todasLots[L] || 0), scores: _scoresR });
                         top5.forEach(function(x) { jugadas.push({ lot: L, num: x.num, score: x.score, tipos: x.tipos }); });
                     });
                     ranking.sort(function(a, b) { return b.fuerza - a.fuerza; });
@@ -32666,8 +32667,9 @@ function senalesDe(nn) {
                 return out;
             } catch (e) { return []; }
         }
-        function _ngpPegadosHTML(L) {
+        function _ngpPegadosHTML(L, scores) {
             try {
+                scores = scores || {};
                 var lista = _ngpPegadosDe(L);
                 if (!lista.length) return '';
                 var h = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">';
@@ -32706,7 +32708,8 @@ function senalesDe(nn) {
                         h += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;">';
                         pend.forEach(function(x) {
                             var hsN = pg.horSal.some(function(y) { return y.n === x.n; });
-                            h += '<span title="' + (x.n + ': ' + (x.ult ? 'última salida ' + x.ult + ' (' + x.dias + ' días)' : 'nunca ha salido acá') + (x.cad ? ' · pega cada ~' + Math.round(x.cad) + ' sorteos · ' + x.exc.toFixed(1) + '× su cadencia' : '') + (x.top ? ' · top 5 salidor del grupo' : '') + (hsN ? ' · su horario más salidor es el próximo sorteo' : '')).replace(/"/g, '') + '" style="font-family:monospace;font-size:13px;font-weight:bold;padding:2px 7px;border-radius:5px;cursor:help;background:' + (x.top ? 'rgba(74,222,128,0.15)' : 'rgba(251,191,36,0.12)') + ';border:1px solid ' + (x.top ? '#4ade80' : 'rgba(251,191,36,0.6)') + ';color:' + (x.top ? '#bbf7d0' : '#fde68a') + ';">' + x.n + (hsN ? '🕐' : '') + (x.vib ? '🔮' : '') + '</span>';
+                            var scN = scores[x.n] || null; // V46.9.265: señales del número en esta lotería
+                            h += '<span title="' + (x.n + ': ' + (scN ? scN.score + ' señal(es): ' + (scN.tipos || []).join(' · ') + ' · ' : '') + (x.ult ? 'última salida ' + x.ult + ' (' + x.dias + ' días)' : 'nunca ha salido acá') + (x.cad ? ' · pega cada ~' + Math.round(x.cad) + ' sorteos · ' + x.exc.toFixed(1) + '× su cadencia' : '') + (x.top ? ' · top 5 salidor del grupo' : '') + (hsN ? ' · su horario más salidor es el próximo sorteo' : '')).replace(/"/g, '') + '" style="font-family:monospace;font-size:13px;font-weight:bold;padding:2px 7px;border-radius:5px;cursor:help;background:' + (x.top ? 'rgba(74,222,128,0.15)' : 'rgba(251,191,36,0.12)') + ';border:1px solid ' + (x.top ? '#4ade80' : 'rgba(251,191,36,0.6)') + ';color:' + (x.top ? '#bbf7d0' : '#fde68a') + ';">' + x.n + (hsN ? '🕐' : '') + (x.vib ? '🔮' : '') + (scN ? '<span style="display:block;font-size:8px;font-weight:normal;color:#fbbf24;line-height:1;margin-top:1px;">' + scN.score + ' señ.</span>' : '<span style="display:block;font-size:8px;font-weight:normal;color:#64748b;line-height:1;margin-top:1px;">0 señ.</span>') + '</span>';
                         });
                         h += '</div>';
                     }
@@ -36395,7 +36398,7 @@ function senalesDe(nn) {
                 html += _ngpTopsDiaHTML(rk.lot); // V46.9.182 (pedido de Leo): tops del día en el encabezado
                 html += '</div>';
                 html += '<div style="flex:5;min-width:380px;">';
-                try { html += _ngpPegadosHTML(rk.lot); } catch (ePg) {} // V46.9.264 (pedido de Leo): grupos pegados a punto de caer
+                try { html += _ngpPegadosHTML(rk.lot, rk.scores || {}); } catch (ePg) {} // V46.9.264/265 (pedido de Leo): grupos pegados a punto de caer, con señales
                 html += '<div style="display:flex;gap:5px;margin-top:6px;">';
                 if (!rk.top.length) html += '<div style="font-size:10px;color:#64748b;padding:4px;">Sin candidatos (necesita más capturas de esta lotería).</div>';
                 var _hayT5 = false;
