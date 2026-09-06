@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.267</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.268</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -2721,40 +2721,6 @@
                     <button class="btn" onclick="importCorrecciones()" style="margin-top: 10px; background: linear-gradient(135deg,#ca6f1e,#e67e22);">
                         🩹 Aplicar Correcciones
                     </button>
-                </div>
-
-                <!-- V46.9.267 (pedido de Leo): SONDA de fuentes dominicanas (experimental) -->
-                <div class="card" style="border: 3px solid #0e7490; grid-column: 1 / -1;">
-                    <h3 style="color: #22d3ee;">🧪 Sonda de fuentes dominicanas (experimental)</h3>
-                    <p style="margin-bottom:8px;">Prueba qué entrega un sitio dominicano para una <strong>fecha pasada</strong>. No modifica datos: sirve para saber si se puede construir el relleno histórico de Anguila, Leidsa, LoteDom, Loteka, Real y La Primera. Copiá el diagnóstico y pegalo en el chat.</p>
-                    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
-                        <select id="sondaDomUrl" style="min-width:320px;">
-                            <option value="https://loteriasdominicanas.com/la-primera/quiniela-medio-dia">loteriasdominicanas.com · La Primera Día</option>
-                            <option value="https://loteriasdominicanas.com/anguila/anguila-12-pm">loteriasdominicanas.com · Anguila 12 PM</option>
-                            <option value="https://loteriasdominicanas.com/leidsa/quiniela-pale">loteriasdominicanas.com · Leidsa Quiniela Palé</option>
-                            <option value="https://loteriasdominicanas.com/loteka/quiniela-loteka">loteriasdominicanas.com · Loteka Quiniela</option>
-                            <option value="https://loteriasdominicanas.com/loteria-real/quiniela-real">loteriasdominicanas.com · Real Quiniela</option>
-                            <option value="https://loteriasdominicanas.com/lotedom/quiniela-lotedom">loteriasdominicanas.com · LoteDom Quiniela</option>
-                            <option value="https://www.loteriasdominicanas.com.do/historial/loteria-loteka/">loteriasdominicanas.com.do · historial Loteka</option>
-                            <option value="https://www.loteriasdominicanas.com.do/resultados-de-ayer">loteriasdominicanas.com.do · resultados de ayer</option>
-                            <option value="https://loterias.conectate.com.do/anguilla/">conectate · Anguila</option>
-                            <option value="https://www.yelu.do/lottery/results/history">yelu.do · historial</option>
-                            <option value="__otro__">Otra dirección (escribirla abajo)</option>
-                        </select>
-                        <input type="text" id="sondaDomUrlOtro" placeholder="https://… (si elegiste Otra)" style="min-width:280px;">
-                        <input type="text" id="sondaDomFecha" value="15-03-2024" placeholder="DD-MM-AAAA" style="width:110px;">
-                        <select id="sondaDomParam">
-                            <option value="date=DD-MM-YYYY">?date=DD-MM-AAAA</option>
-                            <option value="date=YYYY-MM-DD">?date=AAAA-MM-DD</option>
-                            <option value="fecha=YYYY-MM-DD">?fecha=AAAA-MM-DD</option>
-                            <option value="fecha=DD-MM-YYYY">?fecha=DD-MM-AAAA</option>
-                            <option value="">sin parámetro de fecha</option>
-                        </select>
-                        <button class="btn" onclick="_sondaDomProbar()" style="background: linear-gradient(135deg,#0e7490,#22d3ee);">🧪 Probar</button>
-                        <button class="btn" onclick="_sondaDomCopiar()" style="background: linear-gradient(135deg,#334155,#64748b);">📋 Copiar diagnóstico</button>
-                    </div>
-                    <div id="sondaDomEstado" style="margin-top:8px;font-size:12px;color:#fbbf24;"></div>
-                    <textarea id="sondaDomSalida" readonly style="width:100%;height:220px;margin-top:8px;font-family:monospace;font-size:11px;background:#0b1220;color:#d1fae5;border:1px solid #155e75;border-radius:6px;padding:6px;white-space:pre;"></textarea>
                 </div>
 
                 <!-- CALENDARIO POR GRUPOS -->
@@ -6387,7 +6353,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.267</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.268</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -8910,84 +8876,6 @@
         //   paginación ni filtro por fecha — no existe fuente pública
         //   de historial masivo para esta lotería
         // ══════════════════════════════════════════════════════════════
-        // V46.9.267 (pedido de Leo): SONDA de fuentes dominicanas — diagnóstico, no toca datos.
-        async function _sondaDomProbar() {
-            var est = document.getElementById('sondaDomEstado');
-            var out = document.getElementById('sondaDomSalida');
-            try {
-                var sel = document.getElementById('sondaDomUrl').value;
-                var base = (sel === '__otro__') ? (document.getElementById('sondaDomUrlOtro').value || '').trim() : sel;
-                if (!/^https?:\/\//.test(base)) { est.textContent = 'Escribí una dirección válida (https://…).'; return; }
-                var f = (document.getElementById('sondaDomFecha').value || '').trim();
-                var m = f.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
-                var dd = m ? m[1].padStart(2, '0') : '', mm = m ? m[2].padStart(2, '0') : '', yy = m ? m[3] : '';
-                var par = document.getElementById('sondaDomParam').value;
-                var url = base;
-                if (par && m) {
-                    var q = par.replace('DD-MM-YYYY', dd + '-' + mm + '-' + yy).replace('YYYY-MM-DD', yy + '-' + mm + '-' + dd);
-                    url = base + (base.indexOf('?') >= 0 ? '&' : '?') + q;
-                }
-                var proxies = [
-                    { n: 'corsproxy.io', u: 'https://corsproxy.io/?' + encodeURIComponent(url) },
-                    { n: 'allorigins', u: 'https://api.allorigins.win/raw?disableCache=true&url=' + encodeURIComponent(url) },
-                    { n: 'codetabs', u: 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url) },
-                    { n: 'corsproxy.org', u: 'https://corsproxy.org/?' + encodeURIComponent(url) }
-                ];
-                out.value = '';
-                var html = null, usado = '', errores = [];
-                for (var i = 0; i < proxies.length && !html; i++) {
-                    est.textContent = '⏳ Probando por ' + proxies[i].n + '…';
-                    try {
-                        var ctrl = new AbortController(); var to = setTimeout(function() { ctrl.abort(); }, 20000);
-                        var r = await fetch(proxies[i].u, { signal: ctrl.signal, cache: 'no-store' });
-                        clearTimeout(to);
-                        if (r.ok) { var tx = await r.text(); if (tx && tx.length > 300) { html = tx; usado = proxies[i].n; } else errores.push(proxies[i].n + ': respuesta vacía'); }
-                        else errores.push(proxies[i].n + ': HTTP ' + r.status);
-                    } catch (e1) { errores.push(proxies[i].n + ': ' + (e1 && e1.message || e1)); }
-                }
-                if (!html) { est.textContent = '❌ Ningún proxy pudo bajar la página.'; out.value = 'URL: ' + url + '\n' + errores.join('\n'); return; }
-                // 1) scripts y direcciones de API que aparezcan en el HTML crudo
-                var scripts = []; var re1 = /<script[^>]*src=["']([^"']+)["']/gi, m1;
-                while ((m1 = re1.exec(html)) !== null && scripts.length < 25) scripts.push(m1[1]);
-                var apis = {}; var re2 = /https?:\/\/[^"'\s<>)]*(?:api|ajax|json|result|sorteo|quiniela|histor)[^"'\s<>)]*/gi, m2;
-                while ((m2 = re2.exec(html)) !== null) { apis[m2[0]] = 1; if (Object.keys(apis).length > 40) break; }
-                var rel = {}; var re3 = /["'](\/[a-z0-9_\-\/]*(?:api|ajax|json|result|sorteo|quiniela|histor)[a-z0-9_\-\/?=&.]*)["']/gi, m3;
-                while ((m3 = re3.exec(html)) !== null) { rel[m3[1]] = 1; if (Object.keys(rel).length > 40) break; }
-                // 2) texto limpio: solo líneas con dígitos (fechas/números)
-                var txt = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-                    .replace(/<[^>]+>/g, '\n').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n');
-                var lineas = txt.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l && /\d/.test(l); });
-                var conFecha = lineas.filter(function(l) { return /\b\d{1,2}[-\/]\d{1,2}(?:[-\/]\d{2,4})?\b/.test(l) || /\b\d{4}-\d{2}-\d{2}\b/.test(l); });
-                var pideFecha = (dd + '-' + mm), pideFecha2 = (yy + '-' + mm + '-' + dd), pideFecha3 = (dd + '/' + mm);
-                var hallada = lineas.some(function(l) { return l.indexOf(pideFecha) >= 0 || l.indexOf(pideFecha2) >= 0 || l.indexOf(pideFecha3) >= 0; });
-                var rep = [];
-                rep.push('SONDA v46.9.267 · ' + new Date().toISOString());
-                rep.push('URL: ' + url);
-                rep.push('Proxy: ' + usado + ' · HTML ' + html.length + ' bytes · <title>: ' + ((html.match(/<title[^>]*>([^<]*)<\/title>/i) || [])[1] || '').trim());
-                rep.push('¿Aparece la fecha pedida (' + f + ') en el texto?: ' + (hallada ? 'SÍ' : 'NO'));
-                rep.push('¿Hay marcadores tipo "1 2 3" / "1 3 6"?: ' + ((/\b1 2 3\b/.test(txt) && /\b1 3 6\b/.test(txt)) ? 'SÍ (página dibujada por JavaScript)' : 'no'));
-                rep.push('');
-                rep.push('── Líneas con fecha (' + conFecha.length + ', se muestran hasta 60) ──');
-                rep = rep.concat(conFecha.slice(0, 60));
-                rep.push('');
-                rep.push('── Primeras 120 líneas con dígitos ──');
-                rep = rep.concat(lineas.slice(0, 120));
-                rep.push('');
-                rep.push('── Scripts (' + scripts.length + ') ──');
-                rep = rep.concat(scripts);
-                rep.push('');
-                rep.push('── Posibles direcciones de API/datos ──');
-                rep = rep.concat(Object.keys(apis)).concat(Object.keys(rel));
-                out.value = rep.join('\n');
-                est.textContent = '✅ Diagnóstico listo por ' + usado + ' — fecha pedida ' + (hallada ? 'ENCONTRADA' : 'NO encontrada') + '. Copialo y pegalo en el chat.';
-            } catch (e) { est.textContent = '❌ Error: ' + (e && e.message || e); }
-        }
-        function _sondaDomCopiar() {
-            var out = document.getElementById('sondaDomSalida');
-            if (!out || !out.value) { alert('Todavía no hay diagnóstico. Presioná Probar primero.'); return; }
-            try { navigator.clipboard.writeText(out.value).then(function() { alert('Diagnóstico copiado. Pegalo en el chat.'); }); }
-            catch (e) { out.select(); document.execCommand('copy'); alert('Diagnóstico copiado.'); }
-        }
         async function backfillLaPrimeraHistorico() {
             const statusDiv = document.getElementById('backfillLPStatus');
             
@@ -14456,7 +14344,7 @@ ${groups.map((g,i)=>`
         // nuevo de SISTEMA.html; si lo hay, lee el archivo por la API (sin caché),
         // compara la versión y, si es más nueva, recarga solo con un ?v= que salta
         // todas las cachés. Con archivo local (file://) no hace nada.
-        var _NGP_VERSION = 'v46.9.267';
+        var _NGP_VERSION = 'v46.9.268';
         function _ngpVerNum(v) { var m = /v(\d+)\.(\d+)\.(\d+)/.exec(v || ''); return m ? (parseInt(m[1], 10) * 1000000 + parseInt(m[2], 10) * 10000 + parseInt(m[3], 10)) : 0; }
         function _ngpAutoActualizar() {
             try {
