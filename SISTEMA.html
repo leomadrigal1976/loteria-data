@@ -1625,7 +1625,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.265</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.266</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6353,7 +6353,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.265</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.266</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -14344,7 +14344,7 @@ ${groups.map((g,i)=>`
         // nuevo de SISTEMA.html; si lo hay, lee el archivo por la API (sin caché),
         // compara la versión y, si es más nueva, recarga solo con un ?v= que salta
         // todas las cachés. Con archivo local (file://) no hace nada.
-        var _NGP_VERSION = 'v46.9.265';
+        var _NGP_VERSION = 'v46.9.266';
         function _ngpVerNum(v) { var m = /v(\d+)\.(\d+)\.(\d+)/.exec(v || ''); return m ? (parseInt(m[1], 10) * 1000000 + parseInt(m[2], 10) * 10000 + parseInt(m[3], 10)) : 0; }
         function _ngpAutoActualizar() {
             try {
@@ -31488,7 +31488,7 @@ function senalesDe(nn) {
                                             for (var x5i = 0; x5i < crX.top5.length; x5i++) { if (crX.top5[x5i].n === nn) { _enTop5H = true; break; } }
                                             if (crX.g === g && _enTop5H) {
                                                 scoreL += 3;
-                                                tiposL.push('💥 CRUCE FUERTE (+3): el ' + g + ' es de los 2 MÁS PEGADOS acá (' + (crX.dias === null ? 'nunca registrado' : crX.dias + 'd sin salir del todo') + ') Y de los 2 PREDOMINANTES de hoy (' + crX.cntHoy + ' salidas), y el ' + nn + ' es de sus top 5 salidores históricos en esta lotería');
+                                                tiposL.push('💥 CRUCE FUERTE (+3): el ' + g + ' es de los 2 MÁS PEGADOS acá (' + (crX.dias === null ? 'nunca registrado' : crX.dias + 'd sin salir del todo') + ') Y de los 2 PREDOMINANTES de hoy (' + crX.cntHoy + ' salidas), y el ' + nn + ' es de los 5 más salidores del ' + g + ' en esta lotería (×' + crX.top5[x5i].c + ')'); // V46.9.266: redacción sin ambigüedad
                                                 break;
                                             }
                                         }
@@ -31553,7 +31553,7 @@ function senalesDe(nn) {
                                     var gX5 = gpX[g];
                                     if (gX5 && gX5.excedido !== null && gX5.excedido >= 1.5 && gX5.top5set[nn] && ((ultPorNumLot[nn] || {})[L] !== hoyStr)) {
                                         scoreL += 2;
-                                        tiposL.push('📊 MUY EXCEDIDO (+2): el ' + g + ' pega acá cada ~' + Math.round(gX5.cada) + ' sorteos y ya lleva ' + gX5.sinSalir + ' sin pegar (' + gX5.excedido.toFixed(1) + '× su cadencia' + (gX5.ult ? ' · últ. ' + gX5.ult.split('-')[2] + '/' + gX5.ult.split('-')[1] : '') + ') — y el ' + nn + ' es de sus top 5 salidores históricos en esta lotería');
+                                        tiposL.push('📊 MUY EXCEDIDO (+2): el ' + g + ' pega acá cada ~' + Math.round(gX5.cada) + ' sorteos y ya lleva ' + gX5.sinSalir + ' sin pegar (' + gX5.excedido.toFixed(1) + '× su cadencia' + (gX5.ult ? ' · últ. ' + gX5.ult.split('-')[2] + '/' + gX5.ult.split('-')[1] : '') + ') — y el ' + nn + ' es de los 5 más salidores del ' + g + ' en esta lotería (×' + gX5.top5set[nn] + '), no del top general');  // V46.9.266: redacción sin ambigüedad
                                     }
                                     // V46.9.216 (pedido de Leo): 🧲 pareja 28·82 — salió una de
                                     // las dos en un sorteo reciente (ventana: 4 sorteos siguientes)

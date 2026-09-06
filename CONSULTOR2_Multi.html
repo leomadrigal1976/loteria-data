@@ -30504,7 +30504,7 @@ function senalesDe(nn) {
                                             for (var x5i = 0; x5i < crX.top5.length; x5i++) { if (crX.top5[x5i].n === nn) { _enTop5H = true; break; } }
                                             if (crX.g === g && _enTop5H) {
                                                 scoreL += 3;
-                                                tiposL.push('💥 CRUCE FUERTE (+3): el ' + g + ' es de los 2 MÁS PEGADOS acá (' + (crX.dias === null ? 'nunca registrado' : crX.dias + 'd sin salir del todo') + ') Y de los 2 PREDOMINANTES de hoy (' + crX.cntHoy + ' salidas), y el ' + nn + ' es de sus top 5 salidores históricos en esta lotería');
+                                                tiposL.push('💥 CRUCE FUERTE (+3): el ' + g + ' es de los 2 MÁS PEGADOS acá (' + (crX.dias === null ? 'nunca registrado' : crX.dias + 'd sin salir del todo') + ') Y de los 2 PREDOMINANTES de hoy (' + crX.cntHoy + ' salidas), y el ' + nn + ' es de los 5 más salidores del ' + g + ' en esta lotería (×' + crX.top5[x5i].c + ')'); // V46.9.266: redacción sin ambigüedad
                                                 break;
                                             }
                                         }
@@ -30569,7 +30569,7 @@ function senalesDe(nn) {
                                     var gX5 = gpX[g];
                                     if (gX5 && gX5.excedido !== null && gX5.excedido >= 1.5 && gX5.top5set[nn] && ((ultPorNumLot[nn] || {})[L] !== hoyStr)) {
                                         scoreL += 2;
-                                        tiposL.push('📊 MUY EXCEDIDO (+2): el ' + g + ' pega acá cada ~' + Math.round(gX5.cada) + ' sorteos y ya lleva ' + gX5.sinSalir + ' sin pegar (' + gX5.excedido.toFixed(1) + '× su cadencia' + (gX5.ult ? ' · últ. ' + gX5.ult.split('-')[2] + '/' + gX5.ult.split('-')[1] : '') + ') — y el ' + nn + ' es de sus top 5 salidores históricos en esta lotería');
+                                        tiposL.push('📊 MUY EXCEDIDO (+2): el ' + g + ' pega acá cada ~' + Math.round(gX5.cada) + ' sorteos y ya lleva ' + gX5.sinSalir + ' sin pegar (' + gX5.excedido.toFixed(1) + '× su cadencia' + (gX5.ult ? ' · últ. ' + gX5.ult.split('-')[2] + '/' + gX5.ult.split('-')[1] : '') + ') — y el ' + nn + ' es de los 5 más salidores del ' + g + ' en esta lotería (×' + gX5.top5set[nn] + '), no del top general');  // V46.9.266: redacción sin ambigüedad
                                     }
                                     // V46.9.216 (pedido de Leo): 🧲 pareja 28·82 — salió una de
                                     // las dos en un sorteo reciente (ventana: 4 sorteos siguientes)
@@ -75598,7 +75598,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r198 · v46.9.265</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r199 · v46.9.266</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
