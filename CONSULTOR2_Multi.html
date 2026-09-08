@@ -994,6 +994,13 @@
         tr:hover {
             background: #f8f9fa;
         }
+        /* V46.9.271 (pedido de Leo): tabla del Top 18 más vencidos — fondo oscuro sólido, contraste alto */
+        .ngp-venc { background: #1e1b4b; border: 1.5px solid #818cf8; border-radius: 9px; padding: 7px 10px; margin-bottom: 8px; color: #e0e7ff; }
+        .ngp-venc table { background: #1e1b4b; margin-top: 0; box-shadow: none; border-radius: 0; font-size: 10px; color: #e0e7ff; }
+        .ngp-venc th { background: #312e81; color: #c7d2fe; padding: 3px 5px; font-size: 9px; font-weight: bold; }
+        .ngp-venc td { padding: 3px 5px; border-bottom: 1px solid rgba(129,140,248,0.3); color: #e0e7ff; }
+        .ngp-venc tr:hover { background: #312e81; }
+        .ngp-venc tr.ngp-venc-hoy td { background: rgba(251,191,36,0.14); }
 
         .alert {
             padding: 15px 20px;
@@ -31792,20 +31799,20 @@ function senalesDe(nn) {
                 if (!window._ngpVencCerrado) { try { window._ngpVencCerrado = JSON.parse(localStorage.getItem('ngpVencCerrado') || '{}'); } catch (e0) { window._ngpVencCerrado = {}; } }
                 var cerrado = (window._ngpVencCerrado[L] === undefined) ? true : !!window._ngpVencCerrado[L]; // V46.9.270 (pedido de Leo): cerrado por defecto
                 var fmtF = function(d) { if (!d) return '—'; var p = d.split('-'); return p[2] + '/' + p[1] + '/' + p[0].substring(2); };
-                var h = '<div style="background:rgba(30,27,75,0.55);border:1.5px solid #818cf8;border-radius:9px;padding:7px 10px;margin-bottom:8px;">';
+                var h = '<div class="ngp-venc">';
                 h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;">';
                 h += '<span style="font-size:12px;font-weight:bold;color:#e0e7ff;">⏳ Top 18 más vencidos en ' + L + '</span>';
                 h += '<button data-vencbtn="' + L + '" onclick="_ngpVencToggle(\'' + L.replace(/'/g, "\\'") + '\')" style="background:#312e81;border:1px solid #a5b4fc;color:#e0e7ff;padding:2px 8px;border-radius:5px;cursor:pointer;font-size:9px;">' + (cerrado ? '▸ mostrar' : '▾ ocultar') + '</button>';
                 h += '</div>';
                 h += '<div data-venc="' + L + '" style="display:' + (cerrado ? 'none' : 'block') + ';overflow-x:auto;">';
                 h += '<div style="font-size:9px;color:#c7d2fe;margin:3px 0 5px;line-height:1.45;">Orden: <b style="color:#fff;">veces vencido</b> = sorteos sin salir ÷ cada cuántos sorteos suele pegar ese número en <b>' + L + '</b>. Un número puede llevar muchísimo sin salir y aun así no haber pasado su promedio (queda abajo o fuera del top); otro con menos sorteos puede estar más vencido porque acostumbra salir seguido. ☀️ = salió HOY en otra lotería (cuáles y a qué hora) · 🔮 = vibración de hoy · 🔮ᵐ = vibración de mañana.</div>';
-                h += '<table style="width:100%;border-collapse:collapse;font-size:10px;color:#e0e7ff;">';
+                h += '<table>';
                 h += '<tr style="color:#a5b4fc;font-size:9px;text-align:left;"><th style="padding:2px 4px;">#</th><th style="padding:2px 4px;">Nº</th><th style="padding:2px 4px;">Grupo</th><th style="padding:2px 4px;">Sin salir</th><th style="padding:2px 4px;">Desde</th><th style="padding:2px 4px;">Vencido</th><th style="padding:2px 4px;">Hoy en otras loterías</th><th style="padding:2px 4px;">Vib.</th></tr>';
                 v.top.forEach(function(x, i) {
                     var col = x.exc >= 2 ? '#f87171' : (x.exc >= 1.5 ? '#fb923c' : (x.exc >= 1 ? '#fbbf24' : '#94a3b8'));
                     var otras = x.hoyOtras.length ? x.hoyOtras.map(function(o) { return '<span style="display:inline-block;background:rgba(251,191,36,0.15);border:1px solid #fbbf24;border-radius:4px;padding:0 4px;margin:1px 2px 1px 0;color:#fde68a;white-space:nowrap;">☀️ ' + o.lot + ' ' + o.hora + '</span>'; }).join('') : '<span style="color:#64748b;">—</span>';
                     var vib = (x.vibHoy ? '🔮' : '') + (x.vibMan ? '🔮<sup>m</sup>' : '');
-                    h += '<tr style="border-top:1px solid rgba(129,140,248,0.25);' + (x.hoyOtras.length ? 'background:rgba(251,191,36,0.06);' : '') + '">';
+                    h += '<tr' + (x.hoyOtras.length ? ' class="ngp-venc-hoy"' : '') + '>';
                     h += '<td style="padding:2px 4px;color:#a5b4fc;">' + (i + 1) + '</td>';
                     h += '<td style="padding:2px 4px;font-size:13px;font-weight:bold;color:#fff;">' + x.n + '</td>';
                     h += '<td style="padding:2px 4px;color:#c7d2fe;white-space:nowrap;">' + x.g + '</td>';
@@ -75686,7 +75693,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r203 · v46.9.270</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r204 · v46.9.271</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
