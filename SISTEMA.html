@@ -1632,7 +1632,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.271</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.273</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6360,7 +6360,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.271</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.273</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -14351,7 +14351,7 @@ ${groups.map((g,i)=>`
         // nuevo de SISTEMA.html; si lo hay, lee el archivo por la API (sin caché),
         // compara la versión y, si es más nueva, recarga solo con un ?v= que salta
         // todas las cachés. Con archivo local (file://) no hace nada.
-        var _NGP_VERSION = 'v46.9.271';
+        var _NGP_VERSION = 'v46.9.273';
         function _ngpVerNum(v) { var m = /v(\d+)\.(\d+)\.(\d+)/.exec(v || ''); return m ? (parseInt(m[1], 10) * 1000000 + parseInt(m[2], 10) * 10000 + parseInt(m[3], 10)) : 0; }
         function _ngpAutoActualizar() {
             try {
@@ -29435,7 +29435,13 @@ function senalesDe(nn) {
                 // V46.9.220 (pedido de Leo, maqueta aprobada): botón flotante + ventana
                 // V46.9.222 (pedido de Leo): panel BACKTEST GRUPOS EXCEDIDOS
                 h += '<div id="ngpGrpExcPanel" style="display:none;background:rgba(127,29,29,0.25);border:1px solid #f87171;border-radius:9px;padding:10px;margin-top:9px;">';
-                h += '<div style="font-size:11px;font-weight:bold;color:#fecaca;margin-bottom:6px;">📊 BACKTEST GRUPOS EXCEDIDOS — cuando un grupo sobrepasa 1.5× su cadencia (el umbral de la señal MUY EXCEDIDO), ¿sale MÁS RÁPIDO que el azar? ¿En cuántos sorteos?</div>';
+                h += '<div style="font-size:11px;font-weight:bold;color:#fecaca;margin-bottom:6px;">📊 BACKTEST GRUPOS EXCEDIDOS — cuando un grupo sobrepasa <span id="ngpGrpExcUmbTxt">' + (window._ngpGrpExcUmbral || 0.85) + '×</span> su promedio de salidas, ¿sale MÁS RÁPIDO que el azar? ¿En cuántos sorteos?</div>';
+                // V46.9.273 (pedido de Leo): umbral elegible — por defecto 0,85× (supera el 85 % de su promedio)
+                h += '<div style="font-size:10px;color:#fecaca;margin-bottom:6px;">Umbral: <select onchange="_ngpGrpExcUmbralSet(this.value)" style="font-size:10px;padding:2px 4px;border-radius:4px;">';
+                [[0.8, '0,80× — a punto (80 % del promedio)'], [0.85, '0,85× — supera el 85 % del promedio (default)'], [1.0, '1,00× — pasó su promedio'], [1.5, '1,50× — muy excedido (señal 📊)'], [2.0, '2,00× — el doble de su promedio']].forEach(function(u9) {
+                    h += '<option value="' + u9[0] + '"' + (Math.abs((window._ngpGrpExcUmbral || 0.85) - u9[0]) < 0.001 ? ' selected' : '') + '>' + u9[1] + '</option>';
+                });
+                h += '</select> <span style="color:#94a3b8;">· la cadencia del grupo se calcula sólo con lo visto hasta cada sorteo (sin mirar el futuro); el azar de referencia es el tamaño del grupo ÷ 100.</span></div>';
                 h += '<div id="ngpGrpExcResultado"><div style="font-size:11px;color:#94a3b8;padding:6px;">Calculando…</div></div>';
                 h += '</div>';
                 // V46.9.229 (pedido de Leo): panel BACKTEST "DESPUÉS DE"
@@ -30158,9 +30164,10 @@ function senalesDe(nn) {
                 // del grupo cruza 1.5× esa cadencia (y el grupo ya tiene 5+ salidas de
                 // historial) se abre un EVENTO; se mide cuántos sorteos tarda el grupo
                 // en volver a salir. Azar de referencia: geométrico con p = tamaño/100.
-                function _ngpGrpExcBack() {
+                function _ngpGrpExcBack(umbral) {
                     try {
-                        var key = 'gx|' + _ngpDV();
+                        var umbX = parseFloat(umbral); if (!umbX || isNaN(umbX)) umbX = (window._ngpGrpExcUmbral || 0.85); // V46.9.273: umbral elegible (default 85 % del promedio)
+                        var key = 'gx|' + umbX + '|' + _ngpDV();
                         if (window._ngpGrpExcCache && window._ngpGrpExcCache.key === key) return window._ngpGrpExcCache.val;
                         var n2gX = {}, gSizeX = {};
                         Object.keys(NUMBER_GROUPS || {}).forEach(function(g0) {
@@ -30201,25 +30208,27 @@ function senalesDe(nn) {
                                     if (actX[g0] || !cntX[g0] || cntX[g0] < 5 || lastX[g0] === undefined) continue;
                                     var dr = ix - lastX[g0];
                                     var cadX = (ix + 1) / cntX[g0];
-                                    if (dr >= 1.5 * cadX) { actX[g0] = true; crossX[g0] = ix; }
+                                    if (dr >= umbX * cadX) { actX[g0] = true; crossX[g0] = ix; } // V46.9.273: umbral elegible
                                 }
                             });
                             GRPS_X.forEach(function(g0) {
                                 if (actX[g0]) eventos.push({ L: L, g: g0, wait: null, p: gSizeX[g0] / 100 });
                             });
                         });
-                        var nX = 0, censX = 0, hit5X = 0, hit10X = 0, exp5X = 0, exp10X = 0, sumWX = 0, nWX = 0, sumEWX = 0;
+                        var nX = 0, censX = 0, hit5X = 0, hit10X = 0, exp5X = 0, exp10X = 0, sumWX = 0, nWX = 0, sumEWX = 0, hit1X = 0, hit3X = 0, exp1X = 0, exp3X = 0; // V46.9.273: ventanas 1 y 3
                         var distX = { a: 0, b: 0, c: 0, d: 0 };
                         var filasLG = {};
                         eventos.forEach(function(ev) {
                             nX++;
                             exp5X += 1 - Math.pow(1 - ev.p, 5);
                             exp10X += 1 - Math.pow(1 - ev.p, 10);
+                            exp1X += ev.p; exp3X += 1 - Math.pow(1 - ev.p, 3); // V46.9.273
                             sumEWX += 1 / ev.p;
                             var k9 = ev.L + '|' + ev.g;
                             if (!filasLG[k9]) filasLG[k9] = { L: ev.L, g: ev.g, n: 0, h5: 0, sumW: 0, nw: 0, cens: 0, p: ev.p };
                             filasLG[k9].n++;
                             if (ev.wait === null) { censX++; filasLG[k9].cens++; return; }
+                            if (ev.wait <= 1) hit1X++; if (ev.wait <= 3) hit3X++; // V46.9.273
                             if (ev.wait <= 5) { hit5X++; filasLG[k9].h5++; }
                             if (ev.wait <= 10) hit10X++;
                             sumWX += ev.wait; nWX++;
@@ -30228,7 +30237,7 @@ function senalesDe(nn) {
                         });
                         var filasX = Object.keys(filasLG).map(function(k9) { return filasLG[k9]; })
                             .sort(function(a, b) { return b.n - a.n; }).slice(0, 12);
-                        var val = { n: nX, cens: censX, hit5: hit5X, hit10: hit10X, exp5: exp5X, exp10: exp10X, avgW: nWX ? (sumWX / nWX) : 0, expW: nX ? (sumEWX / nX) : 0, dist: distX, filas: filasX, nRes: nWX };
+                        var val = { umbral: umbX, hit1: hit1X, hit3: hit3X, exp1: exp1X, exp3: exp3X, n: nX, cens: censX, hit5: hit5X, hit10: hit10X, exp5: exp5X, exp10: exp10X, avgW: nWX ? (sumWX / nWX) : 0, expW: nX ? (sumEWX / nX) : 0, dist: distX, filas: filasX, nRes: nWX };
                         window._ngpGrpExcCache = { key: key, val: val };
                         return val;
                     } catch (e) { return { n: 0, cens: 0, hit5: 0, hit10: 0, exp5: 0, exp10: 0, avgW: 0, expW: 0, dist: { a: 0, b: 0, c: 0, d: 0 }, filas: [], nRes: 0 }; }
@@ -34353,6 +34362,24 @@ function senalesDe(nn) {
             ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
             if (abrir) _ngpGrpExcRender();
         }
+        // V46.9.273 (pedido de Leo): umbral del backtest (se recuerda) y acceso desde el panel de grupos rezagados
+        function _ngpGrpExcUmbralSet(v) {
+            var u = parseFloat(v); if (!u || isNaN(u)) u = 0.85;
+            window._ngpGrpExcUmbral = u;
+            try { localStorage.setItem('ngpGrpExcUmbral', String(u)); } catch (e) {}
+            document.querySelectorAll('[id="ngpGrpExcUmbTxt"]').forEach(function(x) { x.textContent = u + '×'; });
+            _ngpGrpExcRender();
+        }
+        try { var _uG0 = parseFloat(localStorage.getItem('ngpGrpExcUmbral') || ''); if (_uG0 && !isNaN(_uG0)) window._ngpGrpExcUmbral = _uG0; } catch (eU0) {}
+        function _ngpGrpExcDesdeFlot() {
+            try {
+                document.querySelectorAll('[id="ngpFlotOverlay"]').forEach(function(o) { o.style.display = 'none'; });
+                var ps = document.querySelectorAll('[id="ngpGrpExcPanel"]');
+                if (!ps.length) return;
+                if (ps[0].style.display === 'none') _ngpGrpExcToggle();
+                setTimeout(function() { try { var v = null; ps.forEach(function(p) { if (!v && p.offsetParent !== null) v = p; }); (v || ps[0]).scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e2) {} }, 80);
+            } catch (e) {}
+        }
         function _ngpGrpExcRender() {
             var conts = document.querySelectorAll('[id="ngpGrpExcResultado"]');
             if (!conts.length) return;
@@ -34361,7 +34388,7 @@ function senalesDe(nn) {
             var r = F0.grpExcBack();
             var html = '';
             if (!r.n) {
-                html = '<div style="font-size:11px;color:#94a3b8;padding:6px;">Todavía no hay eventos: ningún grupo con 5+ salidas de historial ha cruzado 1.5× su cadencia.</div>';
+                html = '<div style="font-size:11px;color:#94a3b8;padding:6px;">Todavía no hay eventos: ningún grupo con 5+ salidas de historial ha cruzado ' + r.umbral + '× su cadencia.</div>';
                 conts.forEach(function(x) { x.innerHTML = html; });
                 return;
             }
@@ -34370,9 +34397,19 @@ function senalesDe(nn) {
             var comp = (idx5 >= 1.15 && r.n >= 30);
             var lento = (idx5 <= 0.85 && r.n >= 30);
             var vCol = comp ? '#4ade80' : lento ? '#f87171' : '#fde68a';
-            var vTxt = comp ? '✅ SE COMPRUEBA: tras cruzar 1.5×, el grupo sale MÁS RÁPIDO que el azar (' + idx5.toFixed(2) + '× en los primeros 5 sorteos)' : lento ? '❌ OJO: tras cruzar 1.5×, el grupo sale MÁS LENTO que el azar — el atraso NO lo apura' : '⚠️ Ni claro ni descartado: sale prácticamente al ritmo del azar (' + idx5.toFixed(2) + '×' + (r.n < 30 ? ', pocos eventos aún' : '') + ')';
+            var vTxt = comp ? '✅ SE COMPRUEBA: tras cruzar ' + r.umbral + '×, el grupo sale MÁS RÁPIDO que el azar (' + idx5.toFixed(2) + '× en los primeros 5 sorteos)' : lento ? '❌ OJO: tras cruzar ' + r.umbral + '×, el grupo sale MÁS LENTO que el azar — el atraso NO lo apura' : '⚠️ Ni claro ni descartado: sale prácticamente al ritmo del azar (' + idx5.toFixed(2) + '×' + (r.n < 30 ? ', pocos eventos aún' : '') + ')';
             html += '<div style="background:rgba(0,0,0,0.3);border:2px solid ' + vCol + ';border-radius:9px;padding:9px 12px;margin-bottom:8px;">';
             html += '<div style="font-size:13px;font-weight:bold;color:' + vCol + ';margin-bottom:4px;">' + vTxt + '</div>';
+            // V46.9.273 (pedido de Leo): ventanas de 1 y 3 sorteos con su índice vs azar
+            try {
+                var r1 = r.hit1 / r.n, e1 = r.exp1 / r.n, r3 = r.hit3 / r.n, e3 = r.exp3 / r.n;
+                var iF = function(a9, b9) { var i9 = b9 > 0 ? a9 / b9 : 0; var c9 = i9 >= 1.15 ? '#4ade80' : i9 <= 0.85 ? '#f87171' : '#fde68a'; return '<strong style="color:' + c9 + ';">×' + i9.toFixed(2) + '</strong>'; };
+                html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">';
+                [['el sorteo SIGUIENTE', r1, e1], ['los 3 siguientes', r3, e3], ['los 5 siguientes', r5, e5], ['los 10 siguientes', r10, e10]].forEach(function(w9) {
+                    html += '<span style="background:rgba(0,0,0,0.35);border:1px solid rgba(248,113,113,0.5);border-radius:6px;padding:4px 9px;font-size:10px;color:#fecaca;">Sale en ' + w9[0] + ': <strong style="color:#fff;">' + (100 * w9[1]).toFixed(1) + '%</strong> vs azar ' + (100 * w9[2]).toFixed(1) + '% → ' + iF(w9[1], w9[2]) + '</span>';
+                });
+                html += '</div>';
+            } catch (eW9) {}
             html += '<div style="font-size:11px;color:#fecaca;line-height:1.6;">Eventos analizados: <strong style="color:#fff;">' + r.n + '</strong> cruces de umbral (todas las loterías y grupos, ' + r.cens + ' siguen abiertos hoy). Salió dentro de los <strong style="color:#fff;">5 sorteos</strong> siguientes: <strong style="color:' + vCol + ';">' + Math.round(100 * r5) + '%</strong> vs ' + Math.round(100 * e5) + '% azar · dentro de <strong style="color:#fff;">10</strong>: <strong style="color:' + vCol + ';">' + Math.round(100 * r10) + '%</strong> vs ' + Math.round(100 * e10) + '% azar · espera promedio real: <strong style="color:#fff;">' + r.avgW.toFixed(1) + '</strong> sorteos vs <strong style="color:#cbd5e1;">' + r.expW.toFixed(1) + '</strong> que esperaría el azar.</div>';
             html += '</div>';
             html += '<div style="font-size:10px;font-weight:bold;color:#fca5a5;margin-bottom:4px;">📍 CUANDO SALE, ¿CUÁNTO TARDA DESPUÉS DEL CRUCE? (' + r.nRes + ' eventos resueltos)</div>';
@@ -34449,6 +34486,103 @@ function senalesDe(nn) {
             conts.forEach(function(x) { x.innerHTML = html; });
         }
         // V46.9.220 (pedido de Leo, maqueta aprobada): botón flotante GRUPOS MÁS REZAGADOS
+        // ═══ V46.9.272 (pedido de Leo): apoyo del panel "2 grupos más rezagados" ═══
+        function _ngpFlotAbrirDesde(L) {
+            try {
+                window._ngpFlotSel = null; // todas por defecto
+                var ovs = document.querySelectorAll('[id="ngpFlotOverlay"]');
+                if (!ovs.length) return;
+                ovs.forEach(function(o) { o.style.display = 'block'; });
+                _ngpFlotRender();
+                setTimeout(function() {
+                    try {
+                        var el = null;
+                        ovs.forEach(function(o) { if (!el && o.offsetParent !== null) el = o.querySelector('[data-flotlot="' + L + '"]'); });
+                        if (!el) el = document.querySelector('[data-flotlot="' + L + '"]');
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    } catch (e2) {}
+                }, 60);
+            } catch (e) {}
+        }
+        // señales por número (el MISMO conteo del Resumen) para una lotería
+        function _ngpFlotScores(L) {
+            try {
+                var F = window._ngpFiltro; if (!F || !F.resumenCalc) return {};
+                var key = _ngpDV() + '|' + F.hoyStr;
+                if (!window._ngpResumenUltimo || window._ngpResumenUltimo.key !== key) window._ngpResumenUltimo = { key: key, rc: F.resumenCalc() };
+                var rk = null;
+                ((window._ngpResumenUltimo.rc || {}).ranking || []).forEach(function(r) { if (r.lot === L) rk = r; });
+                return (rk && rk.scores) ? rk.scores : {};
+            } catch (e) { return {}; }
+        }
+        // último número del grupo que salió en L (fecha y hora) y top 3 salidores del grupo
+        function _ngpFlotGrupoInfo(L, g) {
+            try {
+                var F = window._ngpFiltro; if (!F) return null;
+                var miembros = {}; ((F.NUMBER_GROUPS || {})[g] || []).forEach(function(n0) { miembros[n0] = true; });
+                var ult = null;
+                for (var i = (F.serie || []).length - 1; i >= 0; i--) {
+                    var s = F.serie[i];
+                    if (s.lot === L && miembros[s.n] && s.date <= F.hoyStr) { ult = s; break; }
+                }
+                var top3 = [];
+                try {
+                    var gp = F.grpPromDe ? (F.grpPromDe(L) || {})[g] : null;
+                    if (gp && gp.top5set) top3 = Object.keys(gp.top5set).map(function(n0) { return { n: n0, c: gp.top5set[n0] }; }).sort(function(a, b) { return b.c - a.c; }).slice(0, 3);
+                } catch (eT) {}
+                return { ult: ult, top3: top3 };
+            } catch (e) { return null; }
+        }
+        // decena y terminación más pegadas en L (por sorteos sin salir) y la que sigue
+        function _ngpDigRezDe(L) {
+            try {
+                var F = window._ngpFiltro; if (!F) return null;
+                var key = L + '|' + _ngpDV() + '|' + F.hoyStr;
+                window._ngpDigRezCache = window._ngpDigRezCache || {};
+                if (window._ngpDigRezCache[key]) return window._ngpDigRezCache[key];
+                var cntD = {}, cntT = {}, ixD = {}, ixT = {}, tot = 0, ultD = {}, ultT = {};
+                (F.serie || []).forEach(function(s) {
+                    if (s.lot !== L || s.date > F.hoyStr) return;
+                    var d = s.n[0], t = s.n[1];
+                    cntD[d] = (cntD[d] || 0) + 1; cntT[t] = (cntT[t] || 0) + 1;
+                    ixD[d] = tot; ixT[t] = tot; ultD[d] = s; ultT[t] = s; tot++;
+                });
+                var arma = function(cnt, ix, ult) {
+                    var arr = [];
+                    for (var d = 0; d <= 9; d++) {
+                        var k = String(d);
+                        var sin = (ix[k] === undefined) ? tot : (tot - 1 - ix[k]);
+                        var cad = cnt[k] ? tot / cnt[k] : null;
+                        arr.push({ d: k, sin: sin, cad: cad, exc: cad ? sin / cad : null, ult: ult[k] || null, veces: cnt[k] || 0 });
+                    }
+                    arr.sort(function(a, b) { return b.sin - a.sin; });
+                    return arr;
+                };
+                var out = { total: tot, dec: arma(cntD, ixD, ultD), term: arma(cntT, ixT, ultT) };
+                window._ngpDigRezCache[key] = out;
+                return out;
+            } catch (e) { return null; }
+        }
+        function _ngpDigRezHTML(L) {
+            try {
+                var dr = _ngpDigRezDe(L);
+                if (!dr || !dr.total) return '';
+                var fmt = function(s) { if (!s) return 'nunca'; var p = s.date.split('-'); var hh = s.time; try { if (typeof convertTo12Hour === 'function' && hh) hh = convertTo12Hour(hh); } catch (e1) {} return p[2] + '/' + p[1] + (hh ? ' ' + hh : '') + (s.n ? ' (' + s.n + ')' : ''); };
+                var item = function(x, i, tipo) {
+                    var col = (x.exc !== null && x.exc >= 2) ? '#f87171' : (x.exc !== null && x.exc >= 1.5) ? '#fb923c' : (x.exc !== null && x.exc >= 1) ? '#fbbf24' : '#cbd5e1';
+                    return '<span style="display:inline-block;background:rgba(0,0,0,0.35);border:1.5px solid ' + col + ';border-radius:7px;padding:3px 9px;margin:2px 4px 2px 0;">' +
+                        '<span style="font-size:8px;color:#94a3b8;">' + (i === 0 ? '🥇 MÁS PEGADA' : '🥈 le sigue') + '</span> ' +
+                        '<b style="font-family:monospace;font-size:16px;color:#fff;">' + (tipo === 'dec' ? x.d + 'x' : 'x' + x.d) + '</b> ' +
+                        '<span style="font-size:9px;color:#e2e8f0;">lleva <b style="color:#fff;">' + x.sin + '</b> sorteos sin salir' + (x.cad ? ' · sale cada ~' + Math.round(x.cad) + ' · <b style="color:' + col + ';">' + x.exc.toFixed(1) + '×</b>' : '') + ' · últ. ' + fmt(x.ult) + '</span></span>';
+                };
+                var h = '<div style="background:rgba(30,58,138,0.35);border:1.5px solid #60a5fa;border-radius:9px;padding:7px 10px;margin-bottom:9px;">';
+                h += '<div style="font-size:11px;font-weight:bold;color:#bfdbfe;margin-bottom:4px;">🔢 DECENA y TERMINACIÓN más pegadas en ' + L + ' <span style="font-size:8px;color:#93c5fd;font-weight:normal;">(por sorteos sin salir en esta lotería; ×  = veces su promedio)</span></div>';
+                h += '<div style="font-size:9px;color:#93c5fd;margin-bottom:2px;">Decenas:</div><div>' + item(dr.dec[0], 0, 'dec') + item(dr.dec[1], 1, 'dec') + '</div>';
+                h += '<div style="font-size:9px;color:#93c5fd;margin:4px 0 2px;">Terminaciones:</div><div>' + item(dr.term[0], 0, 'term') + item(dr.term[1], 1, 'term') + '</div>';
+                h += '</div>';
+                return h;
+            } catch (e) { return ''; }
+        }
         function _ngpFlotToggle() {
             var ovs = document.querySelectorAll('[id="ngpFlotOverlay"]');
             if (!ovs.length) return;
@@ -34486,6 +34620,7 @@ function senalesDe(nn) {
                 chips += '<span onclick="_ngpFlotSelLot(\'' + L9.replace(/'/g, '') + '\')" style="display:inline-block;background:' + (on9 ? 'rgba(34,211,238,0.25)' : 'rgba(168,85,247,0.15)') + ';border:1px solid ' + (on9 ? '#22d3ee' : '#a855f7') + ';color:' + (on9 ? '#fff' : '#e9d5ff') + ';border-radius:14px;padding:3px 11px;font-size:11px;font-weight:bold;cursor:pointer;margin:2px;">' + (on9 ? '✓ ' : '') + L9 + '</span>';
             });
             chips += ' <span style="font-size:9px;color:#94a3b8;">(picá una o varias; sin selección se muestran todas)</span>';
+            chips += ' <button onclick="_ngpGrpExcDesdeFlot()" title="¿Qué tan efectivo es apostar a un grupo cuando supera su promedio de salidas? Abre el backtest (umbral elegible, por defecto 0,85×)" style="background:linear-gradient(135deg,#7f1d1d,#f87171);border:1px solid #fecaca;color:#fff;padding:3px 9px;border-radius:6px;cursor:pointer;font-size:9px;font-weight:bold;margin-left:6px;">📊 Backtest: ¿sirve cuando supera el promedio?</button>'; // V46.9.273
             document.querySelectorAll('[id="ngpFlotChips"]').forEach(function(x) { x.innerHTML = chips; });
             // cuerpo
             var r = F.flotRez(sel);
@@ -34504,10 +34639,19 @@ function senalesDe(nn) {
                 var tt9 = x0.n + ': ' + (x0.ult ? 'última salida ' + x0.ult + ' (' + x0.dias + ' días)' : 'nunca ha salido en esta lotería') + (x0.cad ? ' · pega en promedio cada ~' + Math.round(x0.cad) + ' sorteos · ' + x0.exc.toFixed(1) + ' veces su cadencia' : '') + (x0.top ? ' · es de los 5 que MÁS salen de este grupo acá' : '') + (x0.vib ? ' · coincide con la VIBRACIÓN de la fecha en estudio' : '');
                 var st9 = pend9 ? 'background:rgba(251,191,36,0.10);border:1.5px solid #fbbf24;' : 'background:rgba(74,222,128,0.07);border:1px dashed rgba(74,222,128,0.55);opacity:0.78;';
                 var nc9 = pend9 ? 'color:#fde68a;text-shadow:0 0 8px rgba(251,191,36,0.5);' : 'color:#86efac;';
+                // V46.9.272 (pedido de Leo): cantidad de señales del número (conteo del Resumen)
+                try {
+                    var scN9 = window._ngpFlotScoresAct ? window._ngpFlotScoresAct[x0.n] : null;
+                    if (pend9) {
+                        extra += '<br><span style="display:inline-block;margin-top:2px;padding:0 5px;border-radius:4px;background:' + (scN9 && scN9.score > 0 ? 'rgba(34,197,94,0.25)' : 'rgba(148,163,184,0.15)') + ';color:' + (scN9 && scN9.score > 0 ? '#86efac' : '#94a3b8') + ';font-weight:bold;">' + (scN9 ? scN9.score : 0) + ' señ.</span>';
+                        if (scN9 && scN9.tipos && scN9.tipos.length) tt9 += ' · SEÑALES: ' + scN9.tipos.join(' | ');
+                    }
+                } catch (eS9) {}
                 return '<div title="' + tt9.replace(/"/g, '') + '" style="' + st9 + 'border-radius:8px;padding:5px 9px;min-width:64px;text-align:center;cursor:help;"><span style="font-family:monospace;font-size:20px;font-weight:bold;line-height:1;' + nc9 + '">' + x0.n + '</span><small style="display:block;font-size:8px;margin-top:2px;line-height:1.35;color:#cbd5e1;">' + det + extra + '</small></div>';
             };
             r.lots.forEach(function(lc) {
-                html += '<div style="background:rgba(0,0,0,0.3);border:2px solid #a855f7;border-radius:11px;padding:10px 12px;margin-bottom:13px;">';
+                window._ngpFlotScoresAct = _ngpFlotScores(lc.lot); // V46.9.272: señales del Resumen para esta lotería
+                html += '<div data-flotlot="' + lc.lot + '" style="background:rgba(0,0,0,0.3);border:2px solid #a855f7;border-radius:11px;padding:10px 12px;margin-bottom:13px;">';
                 html += '<div style="font-size:15px;font-weight:bold;color:#fff;margin-bottom:8px;">🎰 ' + lc.lot + '</div>';
                 lc.grupos.forEach(function(gc, gi9) {
                     var bd9 = gi9 === 0 ? '#f87171' : '#fb923c';
@@ -34524,6 +34668,18 @@ function senalesDe(nn) {
                         var oL9 = gc.hoyOtras.slice(0, 4).map(function(o9) { var hO = o9.time; try { if (typeof convertTo12Hour === 'function' && hO) hO = convertTo12Hour(hO); } catch (eO9) {} return o9.lot + ' (' + o9.n + (hO ? ' ' + hO : '') + ')'; }).join(' y ');
                         html += '<span class="ngp-parpadea" style="font-size:9px;font-weight:bold;border-radius:6px;padding:3px 9px;background:rgba(56,189,248,0.18);border:1.5px solid #38bdf8;color:#7dd3fc;">📈 ¡OJO! este grupo YA salió HOY en otras loterías: ' + oL9 + '</span>';
                     }
+                    // V46.9.272 (pedido de Leo): último número del grupo que salió + top 3 salidores del grupo
+                    try {
+                        var gi9x = _ngpFlotGrupoInfo(lc.lot, gc.g);
+                        if (gi9x) {
+                            var uT = gi9x.ult ? (function() { var p = gi9x.ult.date.split('-'); var hh = gi9x.ult.time; try { if (typeof convertTo12Hour === 'function' && hh) hh = convertTo12Hour(hh); } catch (e1) {} return '<b style="color:#fff;font-family:monospace;font-size:12px;">' + gi9x.ult.n + '</b> el ' + p[2] + '/' + p[1] + (hh ? ' ' + hh : ''); })() : '<span style="color:#94a3b8;">—</span>';
+                            html += '<span style="font-size:10px;color:#fecaca;">🔚 último en salir: ' + uT + '</span>';
+                            if (gi9x.top3.length) {
+                                var med = ['🥇', '🥈', '🥉'];
+                                html += '<span style="font-size:10px;color:#fde68a;">📈 más salen acá: ' + gi9x.top3.map(function(t, ti) { return med[ti] + ' <b style="color:#fff;font-family:monospace;font-size:12px;">' + t.n + '</b> <span style="color:#94a3b8;">(×' + t.c + ')</span>'; }).join(' · ') + '</span>';
+                            }
+                        }
+                    } catch (eGI) {}
                     if (gc.vibPend) html += '<span class="ngp-parpadea" style="font-size:9px;font-weight:bold;border-radius:6px;padding:3px 9px;background:rgba(249,115,22,0.2);border:1.5px solid #fb923c;color:#fdba74;">🔮 ' + gc.vibPend + ' pendiente(s) son VIBRACIÓN de la fecha en estudio</span>';
                     html += '</div>';
                     // V46.9.229 (pedido de Leo): ¿el grupo ya estuvo "pegado" (sin salir)
@@ -34552,6 +34708,7 @@ function senalesDe(nn) {
                     }
                     html += '</div>';
                 });
+                try { html += _ngpDigRezHTML(lc.lot); } catch (eDR) {} // V46.9.272 (pedido de Leo): decena y terminación más pegadas
                 html += '<div style="background:rgba(8,47,73,0.5);border:1px solid #38bdf8;border-radius:8px;padding:6px 9px;font-size:10px;color:#bae6fd;line-height:1.7;">';
                 html += '<b style="color:#7dd3fc;">➕ FACTORES EXTRA de ' + lc.lot + ' HOY:</b> ';
                 if (!lc.sorteosHoy) html += '<span style="color:#94a3b8;">aún sin sorteos hoy — todas las decenas y terminaciones pendientes.</span>';
@@ -36236,6 +36393,7 @@ function senalesDe(nn) {
             var F = window._ngpFiltro;
             var rc = F.resumenCalc();
             var ranking = rc.ranking, jugadas = rc.jugadas;
+            try { window._ngpResumenUltimo = { key: _ngpDV() + '|' + F.hoyStr, rc: rc }; } catch (eRU) {} // V46.9.272: para el panel de grupos rezagados
             var html = '<div style="font-size:12px;font-weight:bold;color:#e9d5ff;margin-bottom:8px;">🏆 TODAS LAS LOTERÍAS ordenadas por fuerza de señales <span style="font-size:9px;color:#94a3b8;font-weight:normal;">(fuerza = suma de señales de sus 5 números más fuertes + 3 por cada jale activo)</span></div>';
             // ═══ V46.9.180/199 (pedido de Leo, maqueta aprobada): PREDOMINIO DE
             // GRUPOS HOY en TARJETAS — una por grupo dominante: faltantes como
@@ -36493,6 +36651,8 @@ function senalesDe(nn) {
                 html += '</div>';
                 html += '<div style="flex:5;min-width:380px;">';
                 try { html += _ngpVencidosHTML(rk.lot); } catch (eVc) {} // V46.9.269 (pedido de Leo): top 18 más vencidos antes del análisis
+                // V46.9.272 (pedido de Leo): abrir el panel de los 2 grupos más rezagados (todas las loterías, con fichas para elegir)
+                html += '<div style="margin:0 0 7px;"><button onclick="_ngpFlotAbrirDesde(\'' + rk.lot.replace(/'/g, "\\'") + '\')" title="Abre el panel con los 2 grupos más rezagados de TODAS las loterías (podés elegir una o varias con las fichas) — con promedio, excedido, última salida, último número, top 3 salidores, señales y la decena/terminación más pegada" style="background:linear-gradient(135deg,#7f1d1d,#dc2626);border:1.5px solid #fca5a5;color:#fff;padding:5px 11px;border-radius:7px;cursor:pointer;font-size:10px;font-weight:bold;">🎲 2 grupos más rezagados por lotería · decena y terminación más pegadas</button></div>';
                 try { html += _ngpPegadosHTML(rk.lot, rk.scores || {}); } catch (ePg) {} // V46.9.264/265 (pedido de Leo): grupos pegados a punto de caer, con señales
                 html += '<div style="display:flex;gap:5px;margin-top:6px;">';
                 if (!rk.top.length) html += '<div style="font-size:10px;color:#64748b;padding:4px;">Sin candidatos (necesita más capturas de esta lotería).</div>';
