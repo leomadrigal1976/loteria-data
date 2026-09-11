@@ -31766,8 +31766,12 @@ function senalesDe(nn) {
                     var rf = F.resultadosDeFecha ? F.resultadosDeFecha(hoy) : null;
                     ((rf && rf.lots) || []).forEach(function(lo) {
                         if (lo.l === L) return;
-                        if (typeof _ngpEsLot3d === 'function' && _ngpEsLot3d(lo.l)) return;
+                        // V46.9.275 (pedido de Leo): las loterías de 3 dígitos (Monazos, Tripleta) NO cuentan acá
+                        var es3dV = false;
+                        try { (typeof LOTTERIES !== 'undefined' ? LOTTERIES : []).forEach(function(l3) { if (l3.name === lo.l && l3.digits === 3) es3dV = true; }); } catch (e3) {}
+                        if (es3dV || /monazo|tripleta/i.test(lo.l)) return;
                         (lo.items || []).forEach(function(it) {
+                            if (('' + it.n).length !== 2) return; // V46.9.275: solo números de 2 dígitos
                             var n2 = ('' + it.n).slice(-2);
                             if (!hoyOtras[n2]) hoyOtras[n2] = [];
                             hoyOtras[n2].push({ lot: lo.l, hora: (typeof convertTo12Hour === 'function' ? convertTo12Hour(it.time) : it.time) });
@@ -32907,7 +32911,9 @@ function senalesDe(nn) {
                     h7 += '<span style="display:flex;flex-wrap:wrap;gap:3px;flex:1;">';
                     if (!top10.length) h7 += '<span style="font-size:9px;color:#64748b;">sin historial del ' + f7.num + ' en esta lotería</span>';
                     top10.forEach(function(t7, ti7) {
-                        h7 += '<span title="el ' + t7.n + ' siguió ' + t7.c + ' vez/veces al ' + f7.num + ' en ' + L + '" style="font-family:monospace;font-size:14px;font-weight:bold;color:#fff;background:' + (ti7 < 3 ? 'rgba(56,189,248,0.28)' : 'rgba(255,255,255,0.05)') + ';border:1px solid ' + (ti7 < 3 ? '#38bdf8' : 'rgba(148,163,184,0.35)') + ';border-radius:5px;padding:2px 7px;cursor:help;">' + t7.n + '<sup style="font-size:7px;color:#7dd3fc;">' + t7.c + 'x</sup></span>';
+                        // V46.9.276 (pedido de Leo): sorteos sin salir, última salida y excedido de cada seguidor
+                        var es7 = _ngpEstadoNumDe(L, t7.n);
+                        h7 += '<span title="el ' + t7.n + ' siguió ' + t7.c + ' vez/veces al ' + f7.num + ' en ' + L + (es7 ? ' · ' + es7.tt : '') + '" style="display:inline-flex;flex-direction:column;align-items:center;font-family:monospace;font-size:14px;font-weight:bold;color:#fff;background:' + (ti7 < 3 ? 'rgba(56,189,248,0.28)' : 'rgba(255,255,255,0.05)') + ';border:1px solid ' + (es7 && es7.exc !== null && es7.exc >= 1 ? es7.col : (ti7 < 3 ? '#38bdf8' : 'rgba(148,163,184,0.35)')) + ';border-radius:5px;padding:2px 7px;cursor:help;line-height:1.1;">' + t7.n + '<sup style="font-size:7px;color:#7dd3fc;">' + t7.c + 'x</sup>' + (es7 ? '<span style="font-size:7px;font-weight:normal;font-family:system-ui,sans-serif;color:#cbd5e1;white-space:nowrap;margin-top:1px;">' + es7.linea + '</span>' : '') + '</span>';
                     });
                     h7 += '</span></div>';
                 });
@@ -32919,6 +32925,24 @@ function senalesDe(nn) {
         // Muestra el grupo de la fecha de hoy, sus números como fichas (verde ✓ los
         // que ya salieron hoy, con lotería y hora; ámbar los pendientes) y si el
         // grupo ya se activó / está insistiendo.
+        // V46.9.276 (pedido de Leo): estado de un número en una lotería — sorteos sin salir,
+        // última salida y veces excedido (para los chips de "después de").
+        function _ngpEstadoNumDe(L, nn) {
+            try {
+                var F = window._ngpFiltro; if (!F || !F.cadNum) return null;
+                var c = (F.cadNum(L) || {})[nn] || null;
+                var ult = ((F.ultPorNumLot || {})[nn] || {})[L] || null;
+                var dias = (ult && F.difDias) ? F.difDias(ult, F.hoyStr) : null;
+                if (!c && !ult) return null;
+                var exc = (c && c.exc !== null && c.exc !== undefined) ? c.exc : null;
+                var col = exc === null ? '#94a3b8' : exc >= 2 ? '#f87171' : exc >= 1.5 ? '#fb923c' : exc >= 1 ? '#fbbf24' : '#86efac';
+                var etq = exc === null ? '' : exc >= 1.5 ? 'MUY exc.' : exc >= 1 ? 'exc.' : 'le falta';
+                var ultTxt = ult ? (ult.split('-')[2] + '/' + ult.split('-')[1]) : 'nunca';
+                return { sin: c ? c.sin : null, cad: c ? c.cad : null, exc: exc, ult: ult, ultTxt: ultTxt, dias: dias, col: col, etq: etq,
+                    linea: (c ? '<b style="color:#fff;">' + c.sin + '</b> sin salir' : 'sin salir: ?') + ' · últ. ' + ultTxt + (dias !== null ? ' (' + dias + 'd)' : '') + (exc !== null ? ' · <b style="color:' + col + ';">' + exc.toFixed(1) + '× ' + etq + '</b>' : ''),
+                    tt: (c ? 'lleva ' + c.sin + ' sorteos sin salir en ' + L + ' (pega cada ~' + Math.round(c.cad) + ')' : 'sin cadencia en ' + L) + ' · última salida: ' + ultTxt + (dias !== null ? ' (' + dias + ' días)' : '') + (exc !== null ? ' · ' + exc.toFixed(2) + ' veces su promedio (' + etq + ')' : '') };
+            } catch (e) { return null; }
+        }
         function _ngpGrupoDiaHTML() {
             try {
                 var F0 = window._ngpFiltro;
@@ -34455,7 +34479,8 @@ function senalesDe(nn) {
                         html += '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:5px;padding-top:4px;border-top:1px dashed rgba(236,72,153,0.35);">';
                         html += '<span style="font-size:8px;font-weight:bold;color:#f9a8d4;white-space:nowrap;">🎯 Desp. del ' + _sg.ult + ':</span>';
                         _sg.lista5.forEach(function(e5) {
-                            html += '<span title="siguió ' + e5.c + ' vez/veces al ' + _sg.ult + ' en ' + rk.lot + '" style="background:rgba(219,39,119,0.15);border:1px solid rgba(236,72,153,0.5);border-radius:4px;padding:1px 6px;font-size:10px;font-family:monospace;font-weight:bold;color:#fbcfe8;cursor:help;">' + e5.n + '<sup style="font-size:7px;color:#f472b6;">' + e5.c + 'x</sup></span>';
+                            var es5 = (typeof _ngpEstadoNumDe === 'function') ? _ngpEstadoNumDe(rk.lot, e5.n) : null; // V46.9.276
+                            html += '<span title="siguió ' + e5.c + ' vez/veces al ' + _sg.ult + ' en ' + rk.lot + (es5 ? ' · ' + es5.tt : '') + '" style="display:inline-flex;flex-direction:column;align-items:center;background:rgba(219,39,119,0.15);border:1px solid ' + (es5 && es5.exc !== null && es5.exc >= 1 ? es5.col : 'rgba(236,72,153,0.5)') + ';border-radius:4px;padding:1px 6px;font-size:10px;font-family:monospace;font-weight:bold;color:#fbcfe8;cursor:help;line-height:1.1;">' + e5.n + '<sup style="font-size:7px;color:#f472b6;">' + e5.c + 'x</sup>' + (es5 ? '<span style="font-size:7px;font-weight:normal;font-family:system-ui,sans-serif;color:#e2e8f0;white-space:nowrap;">' + es5.linea + '</span>' : '') + '</span>';
                         });
                         html += '</div>';
                     }
@@ -75847,7 +75872,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r207 · v46.9.274</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r209 · v46.9.276</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {

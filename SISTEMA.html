@@ -1632,7 +1632,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.274</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.276</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6360,7 +6360,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.274</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.276</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -14351,7 +14351,7 @@ ${groups.map((g,i)=>`
         // nuevo de SISTEMA.html; si lo hay, lee el archivo por la API (sin caché),
         // compara la versión y, si es más nueva, recarga solo con un ?v= que salta
         // todas las cachés. Con archivo local (file://) no hace nada.
-        var _NGP_VERSION = 'v46.9.274';
+        var _NGP_VERSION = 'v46.9.276';
         function _ngpVerNum(v) { var m = /v(\d+)\.(\d+)\.(\d+)/.exec(v || ''); return m ? (parseInt(m[1], 10) * 1000000 + parseInt(m[2], 10) * 10000 + parseInt(m[3], 10)) : 0; }
         function _ngpAutoActualizar() {
             try {
@@ -32753,8 +32753,12 @@ function senalesDe(nn) {
                     var rf = F.resultadosDeFecha ? F.resultadosDeFecha(hoy) : null;
                     ((rf && rf.lots) || []).forEach(function(lo) {
                         if (lo.l === L) return;
-                        if (typeof _ngpEsLot3d === 'function' && _ngpEsLot3d(lo.l)) return;
+                        // V46.9.275 (pedido de Leo): las loterías de 3 dígitos (Monazos, Tripleta) NO cuentan acá
+                        var es3dV = false;
+                        try { (typeof LOTTERIES !== 'undefined' ? LOTTERIES : []).forEach(function(l3) { if (l3.name === lo.l && l3.digits === 3) es3dV = true; }); } catch (e3) {}
+                        if (es3dV || /monazo|tripleta/i.test(lo.l)) return;
                         (lo.items || []).forEach(function(it) {
+                            if (('' + it.n).length !== 2) return; // V46.9.275: solo números de 2 dígitos
                             var n2 = ('' + it.n).slice(-2);
                             if (!hoyOtras[n2]) hoyOtras[n2] = [];
                             hoyOtras[n2].push({ lot: lo.l, hora: (typeof convertTo12Hour === 'function' ? convertTo12Hour(it.time) : it.time) });
@@ -33938,7 +33942,9 @@ function senalesDe(nn) {
                     h7 += '<span style="display:flex;flex-wrap:wrap;gap:3px;flex:1;">';
                     if (!top10.length) h7 += '<span style="font-size:9px;color:#64748b;">sin historial del ' + f7.num + ' en esta lotería</span>';
                     top10.forEach(function(t7, ti7) {
-                        h7 += '<span title="el ' + t7.n + ' siguió ' + t7.c + ' vez/veces al ' + f7.num + ' en ' + L + '" style="font-family:monospace;font-size:14px;font-weight:bold;color:#fff;background:' + (ti7 < 3 ? 'rgba(56,189,248,0.28)' : 'rgba(255,255,255,0.05)') + ';border:1px solid ' + (ti7 < 3 ? '#38bdf8' : 'rgba(148,163,184,0.35)') + ';border-radius:5px;padding:2px 7px;cursor:help;">' + t7.n + '<sup style="font-size:7px;color:#7dd3fc;">' + t7.c + 'x</sup></span>';
+                        // V46.9.276 (pedido de Leo): sorteos sin salir, última salida y excedido de cada seguidor
+                        var es7 = _ngpEstadoNumDe(L, t7.n);
+                        h7 += '<span title="el ' + t7.n + ' siguió ' + t7.c + ' vez/veces al ' + f7.num + ' en ' + L + (es7 ? ' · ' + es7.tt : '') + '" style="display:inline-flex;flex-direction:column;align-items:center;font-family:monospace;font-size:14px;font-weight:bold;color:#fff;background:' + (ti7 < 3 ? 'rgba(56,189,248,0.28)' : 'rgba(255,255,255,0.05)') + ';border:1px solid ' + (es7 && es7.exc !== null && es7.exc >= 1 ? es7.col : (ti7 < 3 ? '#38bdf8' : 'rgba(148,163,184,0.35)')) + ';border-radius:5px;padding:2px 7px;cursor:help;line-height:1.1;">' + t7.n + '<sup style="font-size:7px;color:#7dd3fc;">' + t7.c + 'x</sup>' + (es7 ? '<span style="font-size:7px;font-weight:normal;font-family:system-ui,sans-serif;color:#cbd5e1;white-space:nowrap;margin-top:1px;">' + es7.linea + '</span>' : '') + '</span>';
                     });
                     h7 += '</span></div>';
                 });
@@ -33950,6 +33956,24 @@ function senalesDe(nn) {
         // Muestra el grupo de la fecha de hoy, sus números como fichas (verde ✓ los
         // que ya salieron hoy, con lotería y hora; ámbar los pendientes) y si el
         // grupo ya se activó / está insistiendo.
+        // V46.9.276 (pedido de Leo): estado de un número en una lotería — sorteos sin salir,
+        // última salida y veces excedido (para los chips de "después de").
+        function _ngpEstadoNumDe(L, nn) {
+            try {
+                var F = window._ngpFiltro; if (!F || !F.cadNum) return null;
+                var c = (F.cadNum(L) || {})[nn] || null;
+                var ult = ((F.ultPorNumLot || {})[nn] || {})[L] || null;
+                var dias = (ult && F.difDias) ? F.difDias(ult, F.hoyStr) : null;
+                if (!c && !ult) return null;
+                var exc = (c && c.exc !== null && c.exc !== undefined) ? c.exc : null;
+                var col = exc === null ? '#94a3b8' : exc >= 2 ? '#f87171' : exc >= 1.5 ? '#fb923c' : exc >= 1 ? '#fbbf24' : '#86efac';
+                var etq = exc === null ? '' : exc >= 1.5 ? 'MUY exc.' : exc >= 1 ? 'exc.' : 'le falta';
+                var ultTxt = ult ? (ult.split('-')[2] + '/' + ult.split('-')[1]) : 'nunca';
+                return { sin: c ? c.sin : null, cad: c ? c.cad : null, exc: exc, ult: ult, ultTxt: ultTxt, dias: dias, col: col, etq: etq,
+                    linea: (c ? '<b style="color:#fff;">' + c.sin + '</b> sin salir' : 'sin salir: ?') + ' · últ. ' + ultTxt + (dias !== null ? ' (' + dias + 'd)' : '') + (exc !== null ? ' · <b style="color:' + col + ';">' + exc.toFixed(1) + '× ' + etq + '</b>' : ''),
+                    tt: (c ? 'lleva ' + c.sin + ' sorteos sin salir en ' + L + ' (pega cada ~' + Math.round(c.cad) + ')' : 'sin cadencia en ' + L) + ' · última salida: ' + ultTxt + (dias !== null ? ' (' + dias + ' días)' : '') + (exc !== null ? ' · ' + exc.toFixed(2) + ' veces su promedio (' + etq + ')' : '') };
+            } catch (e) { return null; }
+        }
         function _ngpGrupoDiaHTML() {
             try {
                 var F0 = window._ngpFiltro;
@@ -36732,7 +36756,8 @@ function senalesDe(nn) {
                         html += '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:5px;padding-top:4px;border-top:1px dashed rgba(236,72,153,0.35);">';
                         html += '<span style="font-size:8px;font-weight:bold;color:#f9a8d4;white-space:nowrap;">🎯 Desp. del ' + _sg.ult + ':</span>';
                         _sg.lista5.forEach(function(e5) {
-                            html += '<span title="siguió ' + e5.c + ' vez/veces al ' + _sg.ult + ' en ' + rk.lot + '" style="background:rgba(219,39,119,0.15);border:1px solid rgba(236,72,153,0.5);border-radius:4px;padding:1px 6px;font-size:10px;font-family:monospace;font-weight:bold;color:#fbcfe8;cursor:help;">' + e5.n + '<sup style="font-size:7px;color:#f472b6;">' + e5.c + 'x</sup></span>';
+                            var es5 = (typeof _ngpEstadoNumDe === 'function') ? _ngpEstadoNumDe(rk.lot, e5.n) : null; // V46.9.276
+                            html += '<span title="siguió ' + e5.c + ' vez/veces al ' + _sg.ult + ' en ' + rk.lot + (es5 ? ' · ' + es5.tt : '') + '" style="display:inline-flex;flex-direction:column;align-items:center;background:rgba(219,39,119,0.15);border:1px solid ' + (es5 && es5.exc !== null && es5.exc >= 1 ? es5.col : 'rgba(236,72,153,0.5)') + ';border-radius:4px;padding:1px 6px;font-size:10px;font-family:monospace;font-weight:bold;color:#fbcfe8;cursor:help;line-height:1.1;">' + e5.n + '<sup style="font-size:7px;color:#f472b6;">' + e5.c + 'x</sup>' + (es5 ? '<span style="font-size:7px;font-weight:normal;font-family:system-ui,sans-serif;color:#e2e8f0;white-space:nowrap;">' + es5.linea + '</span>' : '') + '</span>';
                         });
                         html += '</div>';
                     }
