@@ -34483,9 +34483,41 @@ function senalesDe(nn) {
                     var dV = new Date(parseInt(hpV[0], 10), parseInt(hpV[1], 10) - 1, parseInt(hpV[2], 10));
                     html += '<div style="background:linear-gradient(135deg,rgba(124,45,18,0.6),rgba(154,52,18,0.4));border:2px solid #f97316;border-radius:9px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
                     html += '<span style="font-size:12px;font-weight:bold;color:#fdba74;">🔮 VIBRACIONES DEL DÍA — ' + DIAS_V[dV.getDay()] + ' ' + dV.getDate() + ' de ' + MES_V[dV.getMonth()] + ':</span>';
+                    // V46.9.279 (pedido de Leo): la vibración de HOY también muestra cuáles YA salieron
+                    // (verde, con lotería y hora) y una alerta de "predominando" con las salidas y los pendientes.
+                    var _vhSal = {}, _vhTot = 0;
+                    try {
+                        var _rfV = F.resultadosDeFecha ? F.resultadosDeFecha(F.hoyStr) : null;
+                        ((_rfV && _rfV.lots) || []).forEach(function(loV) {
+                            var es3V = false; try { (typeof LOTTERIES !== 'undefined' ? LOTTERIES : []).forEach(function(l3) { if (l3.name === loV.l && l3.digits === 3) es3V = true; }); } catch (e3V) {}
+                            if (es3V || /monazo|tripleta/i.test(loV.l)) return;
+                            (loV.items || []).forEach(function(itV) {
+                                var nV = '' + itV.n; if (nV.length !== 2 || !F.vibHoy[nV]) return;
+                                var hV = itV.time; try { if (typeof convertTo12Hour === 'function' && hV) hV = convertTo12Hour(hV); } catch (ehV) {}
+                                (_vhSal[nV] = _vhSal[nV] || []).push({ l: loV.l, h: hV, m: (typeof _ngpRepMin === 'function') ? _ngpRepMin(itV.time) : 0 });
+                                _vhTot++;
+                            });
+                        });
+                    } catch (eVH) {}
                     _vibKeys.forEach(function(vk) {
-                        html += '<span style="font-family:monospace;font-size:18px;font-weight:bold;color:#fff;background:rgba(249,115,22,0.25);border:1px solid #fdba74;border-radius:6px;padding:3px 10px;">' + vk + '</span>';
+                        var sV = _vhSal[vk];
+                        if (sV && sV.length) {
+                            sV.sort(function(a9, b9) { return a9.m - b9.m; });
+                            html += '<span title="' + vk + ' YA salió hoy: ' + sV.map(function(s9) { return s9.l + ' ' + s9.h; }).join(', ').replace(/"/g, '') + '" style="display:inline-flex;flex-direction:column;align-items:center;font-family:monospace;font-size:18px;font-weight:bold;color:#fff;background:rgba(34,197,94,0.28);border:1.5px solid #4ade80;border-radius:6px;padding:2px 10px;line-height:1.1;cursor:help;">' + vk + (sV.length > 1 ? '<sup style="font-size:9px;color:#bbf7d0;">×' + sV.length + '</sup>' : '') + '<span style="font-size:8px;font-weight:bold;font-family:system-ui,sans-serif;color:#bbf7d0;white-space:nowrap;">✓ ' + sV[0].l + ' ' + sV[0].h + (sV.length > 1 ? ' +' + (sV.length - 1) : '') + '</span></span>';
+                        } else {
+                            html += '<span style="font-family:monospace;font-size:18px;font-weight:bold;color:#fff;background:rgba(249,115,22,0.25);border:1px solid #fdba74;border-radius:6px;padding:3px 10px;">' + vk + '</span>';
+                        }
                     });
+                    try {
+                        var _vhNums = Object.keys(_vhSal).sort(), _vhPend = _vibKeys.filter(function(k9) { return !_vhSal[k9]; });
+                        if (_vhTot) {
+                            var _vhFuerte = _vhTot >= 3;
+                            html += '<span style="flex-basis:100%;height:0;"></span>';
+                            html += '<span title="' + _vhNums.map(function(n9) { return n9 + ' (' + _vhSal[n9].map(function(s9) { return s9.l + ' ' + s9.h; }).join(', ') + ')'; }).join(' · ').replace(/"/g, '') + '" style="' + (_vhFuerte ? 'animation:ngpParpadeo 1.2s infinite;' : '') + 'font-size:10px;font-weight:bold;color:#fff;background:linear-gradient(135deg,#9a3412,#f97316);border:1.5px solid #fdba74;border-radius:6px;padding:3px 10px;cursor:help;">🔥 ¡La vibración de HOY está ' + (_vhFuerte ? 'PREDOMINANDO' : 'activa') + '! Ya salieron: ' + _vhNums.map(function(n9) { return n9 + (_vhSal[n9].length > 1 ? ' ×' + _vhSal[n9].length : '') + ' <span style="font-weight:normal;color:#fed7aa;">(' + _vhSal[n9].map(function(s9) { return s9.l + ' ' + s9.h; }).join(', ') + ')</span>'; }).join(' · ') + ' (' + _vhTot + ' salida' + (_vhTot > 1 ? 's' : '') + ')' + (_vhPend.length ? ' → pendientes: <span style="font-family:monospace;">' + _vhPend.join(' ') + '</span>' : ' → ya salieron todas') + '</span>';
+                        } else {
+                            html += '<span style="font-size:9px;font-weight:bold;color:#fdba74;background:rgba(249,115,22,0.10);border:1px dashed #fdba74;border-radius:5px;padding:2px 7px;">ℹ️ ninguna vibración de hoy ha salido todavía</span>';
+                        }
+                    } catch (eVB) {}
                     html += '<span style="font-size:9px;color:#fed7aa;">(son las mismas que suman señal de vibración en los candidatos' + (window._ngpFechaEstudio ? ' — calculadas para la FECHA DE ESTUDIO elegida' : '') + ')</span>';
                     // V46.9.207 (pedido de Leo): vibración de MAÑANA junto a la de hoy
                     try {
@@ -76105,7 +76137,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r211 · v46.9.278</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r212 · v46.9.279</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
