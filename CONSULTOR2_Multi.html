@@ -29804,6 +29804,14 @@ function senalesDe(nn) {
                             }
                             outF.push({ lot: L, grupos: grpsF, decPend: decP, termPend: terP, sorteosHoy: !!hoyDigF[L] });
                         });
+                        // V46.9.278 (pedido de Leo): más pegado PRIMERO — por veces excedido de su grupo
+                        // más rezagado (sorteos sin salir ÷ promedio, comparable entre loterías); empate: sorteos sin salir.
+                        var _pegOrd = function(lc) {
+                            var mx = -1, ms = -1;
+                            (lc.grupos || []).forEach(function(g9) { var e9 = (g9.exc === null || g9.exc === undefined) ? -1 : g9.exc; if (e9 > mx) { mx = e9; ms = (g9.sin === null ? -1 : g9.sin); } else if (e9 === mx && (g9.sin || 0) > ms) ms = g9.sin; });
+                            return { e: mx, s: ms };
+                        };
+                        outF.sort(function(a, b) { var oa = _pegOrd(a), ob = _pegOrd(b); return ob.e !== oa.e ? ob.e - oa.e : ob.s - oa.s; });
                         return { lots: outF, excl: exclF };
                     } catch (e) { return { lots: [], excl: 2 }; }
                 }
@@ -33934,7 +33942,7 @@ function senalesDe(nn) {
                 }
                 html += '</div></div>';
             });
-            html += '<div style="font-size:9px;color:#64748b;line-height:1.6;margin-top:4px;">📝 Cada lotería muestra SUS 2 grupos con más sorteos sin salir del todo. La cadencia del grupo y de cada número es histórica de ESA lotería; el semáforo: 🚨 muy excedido (1.5×+), excedido (1×+), o todavía le falta. ⭐ = de los 5 que más salen del grupo acá · 🔮 = coincide con la vibración de la fecha en estudio. Todo respeta la fecha de estudio elegida en el módulo.</div>';
+            html += '<div style="font-size:9px;color:#64748b;line-height:1.6;margin-top:4px;">📝 Orden de las loterías: la más pegada primero (según cuántas veces su grupo más rezagado excede su promedio de salida). Cada lotería muestra SUS 2 grupos con más sorteos sin salir del todo. La cadencia del grupo y de cada número es histórica de ESA lotería; el semáforo: 🚨 muy excedido (1.5×+), excedido (1×+), o todavía le falta. ⭐ = de los 5 que más salen del grupo acá · 🔮 = coincide con la vibración de la fecha en estudio. Todo respeta la fecha de estudio elegida en el módulo.</div>';
             document.querySelectorAll('[id="ngpFlotBody"]').forEach(function(x) { x.innerHTML = html; });
         }
         // ═══ V46.9.229 (pedido de Leo): BACKTEST "DESPUÉS DE" — ¿el top 10 de ═══
@@ -76097,7 +76105,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r210 · v46.9.277</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r211 · v46.9.278</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
