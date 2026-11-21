@@ -1632,7 +1632,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.279</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.281</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6360,7 +6360,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.279</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.281</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -14357,7 +14357,7 @@ ${groups.map((g,i)=>`
         // nuevo de SISTEMA.html; si lo hay, lee el archivo por la API (sin caché),
         // compara la versión y, si es más nueva, recarga solo con un ?v= que salta
         // todas las cachés. Con archivo local (file://) no hace nada.
-        var _NGP_VERSION = 'v46.9.279';
+        var _NGP_VERSION = 'v46.9.281';
         function _ngpVerNum(v) { var m = /v(\d+)\.(\d+)\.(\d+)/.exec(v || ''); return m ? (parseInt(m[1], 10) * 1000000 + parseInt(m[2], 10) * 10000 + parseInt(m[3], 10)) : 0; }
         function _ngpAutoActualizar() {
             try {
@@ -29257,6 +29257,7 @@ function senalesDe(nn) {
                 h += '<button onclick="_ngpFriosToggle()" style="background:linear-gradient(135deg,#334155,#64748b);border:1px solid #cbd5e1;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">📉 Fríos por Lotería</button>'; // V46.9.210 (pedido de Leo)
                 h += '<button onclick="_ngpAusToggle()" style="background:linear-gradient(135deg,#155e75,#06b6d4);border:1px solid #a5f3fc;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🔎 Ausencias</button>'; // V46.9.210 (pedido de Leo)
                 h += '<button onclick="_ngpF2882Toggle()" style="background:linear-gradient(135deg,#0e7490,#22d3ee);border:1px solid #a5f3fc;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🧲 Backtest 28·82</button>'; // V46.9.217 (pedido de Leo)
+                h += '<button onclick="_ngpRegToggle()" title="Números y grupos que estuvieron pegados en TODAS las loterías y volvieron a salir en los últimos 3 días — con backtest" style="background:linear-gradient(135deg,#065f46,#10b981);border:1px solid #a7f3d0;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🔄 Regresos</button>'; // V46.9.280
                 h += '<button onclick="_ngpRepToggle()" title="Probar si un número, tras salir en cualquier lotería, tiende a repetir o darse vuelta en los sorteos siguientes del mismo día; vigilados 28·82·77·98 con alerta en las tarjetas" style="background:linear-gradient(135deg,#831843,#ec4899);border:1px solid #fbcfe8;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🔁 Repite / Vuelta</button>'; // V46.9.277
                 h += '<button onclick="_ngpGrpExcToggle()" style="background:linear-gradient(135deg,#7f1d1d,#f87171);border:1px solid #fecaca;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">📊 Backtest Grupos Excedidos</button>'; // V46.9.222 (pedido de Leo)
                 h += '<button onclick="_ngpDdeBackToggle()" style="background:linear-gradient(135deg,#134e4a,#2dd4bf);border:1px solid #99f6e4;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🎯 Backtest "Después de"</button>'; // V46.9.229 (pedido de Leo)
@@ -29441,6 +29442,12 @@ function senalesDe(nn) {
                 h += '</div>';
                 // V46.9.220 (pedido de Leo, maqueta aprobada): botón flotante + ventana
                 // V46.9.222 (pedido de Leo): panel BACKTEST GRUPOS EXCEDIDOS
+                // V46.9.280 (pedido de Leo): panel REGRESOS tras sequía global
+                h += '<div id="ngpRegPanel" style="display:none;background:rgba(6,78,59,0.3);border:1px solid #34d399;border-radius:9px;padding:10px;margin-top:9px;">';
+                h += '<div style="font-size:11px;font-weight:bold;color:#a7f3d0;margin-bottom:6px;">🔄 REGRESOS — números y grupos que estuvieron sin salir en TODAS las loterías más tiempo de la cuenta y volvieron a salir (anteayer, ayer u hoy). ¿Es común? ¿Se cumple?</div>';
+                h += '<div style="font-size:10px;color:#d1fae5;margin-bottom:6px;">Sequía mínima: <select id="ngpRegTSel" onchange="_ngpRegTSet(this.value)" style="font-size:10px;padding:2px 4px;border-radius:4px;"><option value="1.5">1,5× su promedio</option><option value="2">2× su promedio (default)</option><option value="3">3× su promedio</option><option value="4">4× su promedio</option></select> <span style="color:#94a3b8;">· promedio de un número = 1 de cada 100 sorteos (de todas las loterías juntas); de un grupo = según su tamaño.</span></div>';
+                h += '<div id="ngpRegResultado"><div style="font-size:11px;color:#94a3b8;padding:6px;">Calculando…</div></div>';
+                h += '</div>';
                 // V46.9.277 (pedido de Leo): panel REPITE / VUELTA por número
                 h += '<div id="ngpRepPanel" style="display:none;background:rgba(131,24,67,0.28);border:1px solid #f472b6;border-radius:9px;padding:10px;margin-top:9px;">';
                 h += '<div style="font-size:11px;font-weight:bold;color:#fbcfe8;margin-bottom:6px;">🔁 REPITE / VUELTA — cuando un número sale en cualquier lotería, ¿vuelve a salir (o su vuelta) en los sorteos que siguen ese mismo día? Probá un número, mirá dónde cae su repetición y dónde se podría jugar hoy.</div>';
@@ -31409,7 +31416,15 @@ function senalesDe(nn) {
                                     for (var _ip = 0; _ip < _pgL.length; _ip++) { if (_pgL[_ip].g === g) { pegC9 = _pgL[_ip]; break; } }
                                     esPeg9 = !!(pegC9 && ((ultPorNumLot[nn] || {})[L] !== hoyStr) && !salioReciente);
                                 } catch (ePg0) {}
-                                if (!esRezagoL && !(tieneSenalesL && pos !== null && !salioReciente) && !esSigue10 && !esEco9 && !esE24 && !esJC9 && !esPeg9) return;
+                                // V46.9.281 (pedido de Leo): 🔄 REGRESO tras sequía global, pendiente en esta lotería (+2)
+                                var esReg9 = false, regC9 = null, regP9 = null;
+                                try {
+                                    var _RG = (typeof _ngpRegresos === 'function' && window._ngpFiltro) ? _ngpRegresos() : null;
+                                    if (_RG) for (var _ir = 0; _ir < _RG.nums.length; _ir++) { if (_RG.nums[_ir].k === nn) { regC9 = _RG.nums[_ir]; break; } }
+                                    if (regC9) regP9 = regC9.pend.filter(function(x9) { return x9.L === L; })[0] || null;
+                                    esReg9 = !!(regC9 && regP9 && ((ultPorNumLot[nn] || {})[L] !== hoyStr));
+                                } catch (eRg0) {}
+                                if (!esRezagoL && !(tieneSenalesL && pos !== null && !salioReciente) && !esSigue10 && !esEco9 && !esE24 && !esJC9 && !esPeg9 && !esReg9) return;
                                 var scoreL = 0, tiposL = [];
                                 (sn0.porLoteria || []).forEach(function(cf) {
                                     if (cf.lot === L) { scoreL += cf.score; cf.tipos.forEach(function(t) { tiposL.push(t); }); }
@@ -31623,6 +31638,12 @@ function senalesDe(nn) {
                                         try { if (typeof convertTo12Hour === 'function') { if (hEc9) hEc9 = convertTo12Hour(hEc9); if (pEc9) pEc9 = convertTo12Hour(pEc9); } } catch (eEc2) {}
                                         scoreL += 4; // V46.9.251: +2→+4 (la señal más sólida: ×1.56, z=4.5)
                                         tiposL.push('🔁 ECO INMEDIATO (+4): en esta lotería el número recién salido REPITE en el sorteo siguiente del MISMO día ' + ecoC9.idx.toFixed(1) + '× más que el azar (' + ecoC9.h + ' de ' + ecoC9.c + ' casos del historial) — el último salido HOY fue este ' + nn + (hEc9 ? ' (' + hEc9 + ')' : '') + ' y es posibilidad para el sorteo de las ' + pEc9);
+                                    }
+                                    // V46.9.281 (pedido de Leo): 🔄 REGRESO (+2)
+                                    if (esReg9 && regC9) {
+                                        scoreL += 2;
+                                        var _fR9 = function(d9) { var p9 = d9.split('-'); return p9[2] + '/' + p9[1]; };
+                                        tiposL.push('🔄 REGRESO (+2): estuvo ' + regC9.gap + ' sorteos (≈' + regC9.dias + ' días) sin salir en NINGUNA lotería (' + regC9.exc.toFixed(1) + '× su promedio, desde ' + _fR9(regC9.desde) + ') y volvió: ' + regC9.apps.map(function(a9) { return a9.lot + ' ' + _fR9(a9.date) + ' ' + a9.hora; }).join(', ') + ' — acá sigue pendiente: ' + regP9.sin + ' sorteos sin salir (' + regP9.exc.toFixed(1) + '×)' + (regC9.fecha ? ' · ⭐ es del ' + regC9.grupo + ', el grupo de la FECHA' : ''));
                                     }
                                     // V46.9.264 (pedido de Leo): 🚨 GRUPO PEGADO A PUNTO DE CAER (+2)
                                     if (esPeg9 && pegC9) {
@@ -32070,7 +32091,7 @@ function senalesDe(nn) {
                 html += '</div>';
             }
             // V46.9.269 (pedido de Leo): top 18 más vencidos por lotería elegida, antes del análisis
-            sel.forEach(function(Lv) { try { html += _ngpRepAlertaHTML(Lv); } catch (eRf) {} try { html += _ngpVencidosHTML(Lv); } catch (eVf) {} }); // V46.9.277: alerta 🔁 + top 18
+            sel.forEach(function(Lv) { try { html += _ngpRegAlertaHTML(Lv); } catch (eRgf) {} try { html += _ngpRepAlertaHTML(Lv); } catch (eRf) {} try { html += _ngpVencidosHTML(Lv); } catch (eVf) {} }); // V46.9.277: alerta 🔁 + top 18
             html += '<div style="display:flex;align-items:stretch;gap:0;">';
             // franja vertical — el nombre se repite para llenar todo el alto y salir
             // completo en las capturas de pantalla (V46.9.126, pedido de Leo)
@@ -32143,7 +32164,7 @@ function senalesDe(nn) {
             cont.innerHTML = html;
         }
         // V46.9.155: cierre mutuo de los 5 paneles del módulo
-        var _NGP_PANELES = ['ngpRepPanel', 'ngpFiltroPanel', 'ngpExtractoPanel', 'ngpResumenPanel', 'ngpDespuesPanel', 'ngpBuscarPanel', 'ngpAntesPanel', 'ngpDgPanel', 'ngpDgtPanel', 'ngpFechaPanel', 'ngpGrpPromPanel', 'ngpTermRepPanel', 'ngpSum9Panel', 'ngpTopMesPanel', 'ngpFriosPanel', 'ngpAusPanel', 'ngpF2882Panel', 'ngpGrpExcPanel', 'ngpDdeBackPanel', 'ngpActGrpPanel', 'p23Panel', 'ngpCalPanel']; // V46.9.229 · V46.9.238
+        var _NGP_PANELES = ['ngpRegPanel', 'ngpRepPanel', 'ngpFiltroPanel', 'ngpExtractoPanel', 'ngpResumenPanel', 'ngpDespuesPanel', 'ngpBuscarPanel', 'ngpAntesPanel', 'ngpDgPanel', 'ngpDgtPanel', 'ngpFechaPanel', 'ngpGrpPromPanel', 'ngpTermRepPanel', 'ngpSum9Panel', 'ngpTopMesPanel', 'ngpFriosPanel', 'ngpAusPanel', 'ngpF2882Panel', 'ngpGrpExcPanel', 'ngpDdeBackPanel', 'ngpActGrpPanel', 'p23Panel', 'ngpCalPanel']; // V46.9.229 · V46.9.238
         function _ngpCerrarOtros(salvo) {
             _NGP_PANELES.forEach(function(id) {
                 if (id === salvo) return;
@@ -34616,6 +34637,206 @@ function senalesDe(nn) {
                 conts.forEach(function(x) { x.innerHTML = html; });
             } catch (e) { console.error('[REP]', e); }
         }
+        // ═══ V46.9.280 (pedido de Leo): 🔄 REGRESOS tras sequía global ═══════════════
+        function _ngpRegT() { try { var t = parseFloat(localStorage.getItem('ngpRegT') || ''); return (t && !isNaN(t)) ? t : 2; } catch (e) { return 2; } }
+        function _ngpRegTSet(v) { try { localStorage.setItem('ngpRegT', String(parseFloat(v) || 2)); } catch (e) {} window._ngpRegCache = null; _ngpRegRender(); try { if (typeof _ngpResumenRender === 'function') _ngpResumenRender(); } catch (e2) {} }
+        function _ngpRegFechaMas(ds, k) { var p = ds.split('-'); var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10)); d.setDate(d.getDate() + k); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+        function _ngpRegGrupoFecha(ds) { try { var F = window._ngpFiltro; var dia = ds.substring(8, 10); var g0 = null; Object.keys(F.NUMBER_GROUPS || {}).forEach(function(g) { if ((F.NUMBER_GROUPS[g] || []).indexOf(dia) >= 0) g0 = g; }); return g0; } catch (e) { return null; } }
+        function _ngpRegresos() {
+            try {
+                var F = window._ngpFiltro; if (!F || !F.serie) return null;
+                var T = _ngpRegT();
+                var key = T + '|' + _ngpDV() + '|' + F.hoyStr;
+                if (window._ngpRegCache && window._ngpRegCache.key === key) return window._ngpRegCache.val;
+                var hoy = F.hoyStr, d0 = _ngpRegFechaMas(hoy, -2);
+                var gOf = {}, gSize = {};
+                Object.keys(F.NUMBER_GROUPS || {}).forEach(function(g) { (F.NUMBER_GROUPS[g] || []).forEach(function(n0) { gOf[n0] = g; }); gSize[g] = (F.NUMBER_GROUPS[g] || []).length; });
+                var ser = F.serie.filter(function(s) { return s.date <= hoy && /^\d\d$/.test(s.n); });
+                var lastN = {}, lastG = {}, winN = {}, winG = {};
+                var h12 = function(t) { try { return (typeof convertTo12Hour === 'function' && t) ? convertTo12Hour(t) : t; } catch (e) { return t; } };
+                ser.forEach(function(s, i) {
+                    var g = gOf[s.n];
+                    if (s.date >= d0) {
+                        var ap = { lot: s.lot, date: s.date, hora: h12(s.time), n: s.n, i: i };
+                        if (!winN[s.n]) winN[s.n] = { prev: (lastN[s.n] === undefined ? null : lastN[s.n]), apps: [] };
+                        winN[s.n].apps.push(ap);
+                        if (g) { if (!winG[g]) winG[g] = { prev: (lastG[g] === undefined ? null : lastG[g]), apps: [] }; winG[g].apps.push(ap); }
+                    }
+                    lastN[s.n] = i; if (g) lastG[g] = i;
+                });
+                var arma = function(k, w, p) {
+                    if (w.prev === null) return null;
+                    var gap = w.apps[0].i - w.prev - 1, exc = gap * p;
+                    if (exc < T) return null;
+                    var pv = ser[w.prev];
+                    return { k: k, gap: gap, exc: exc, desde: pv.date, desdeLot: pv.lot, desdeN: pv.n, dias: F.difDias(pv.date, w.apps[0].date), apps: w.apps, prom: Math.round(1 / p) };
+                };
+                var gd = (F.grupoDelDia && F.grupoDelDia.grupo) ? F.grupoDelDia.grupo : null;
+                var lots2 = [];
+                try { (typeof LOTTERIES !== 'undefined' ? LOTTERIES : []).forEach(function(l) { if (l.digits === 3 || /monazo|tripleta/i.test(l.name)) return; var px = (typeof _ngpProxHoraDe === 'function') ? _ngpProxHoraDe(l.name) : null; if (px) lots2.push({ L: l.name, prox: px }); }); } catch (eL) {}
+                var nums = [];
+                Object.keys(winN).forEach(function(n0) {
+                    var r = arma(n0, winN[n0], 0.01); if (!r) return;
+                    r.grupo = gOf[n0] || ''; r.fecha = !!(gd && r.grupo === gd);
+                    r.pend = [];
+                    lots2.forEach(function(o) {
+                        var c = (F.cadNum ? (F.cadNum(o.L) || {}) : {})[n0];
+                        if (!c || c.exc === null || c.exc === undefined || c.exc < 1) return;
+                        if (((F.ultPorNumLot || {})[n0] || {})[o.L] === hoy) return;
+                        r.pend.push({ L: o.L, exc: c.exc, sin: c.sin, prox: o.prox.fmt });
+                    });
+                    r.pend.sort(function(a, b) { return b.exc - a.exc; });
+                    nums.push(r);
+                });
+                nums.sort(function(a, b) { return b.exc - a.exc; });
+                var grps = [];
+                Object.keys(winG).forEach(function(g) {
+                    var r = arma(g, winG[g], gSize[g] / 100); if (!r) return;
+                    r.fecha = !!(gd && g === gd);
+                    r.pend = [];
+                    lots2.forEach(function(o) {
+                        var gp = F.grpPromDe ? (F.grpPromDe(o.L) || {})[g] : null;
+                        if (gp && gp.excedido !== null && gp.excedido !== undefined && gp.excedido >= 1) r.pend.push({ L: o.L, exc: gp.excedido, sin: gp.sinSalir, prox: o.prox.fmt });
+                    });
+                    r.pend.sort(function(a, b) { return b.exc - a.exc; });
+                    grps.push(r);
+                });
+                grps.sort(function(a, b) { return b.exc - a.exc; });
+                var val = { T: T, d0: d0, nums: nums, grps: grps, gd: gd };
+                window._ngpRegCache = { key: key, val: val };
+                return val;
+            } catch (e) { console.error('[REG]', e); return null; }
+        }
+        function _ngpRegFmtD(d) { if (!d) return '—'; var p = d.split('-'); return p[2] + '/' + p[1]; }
+        // tarjeta global (Resumen)
+        function _ngpRegresosHTML() {
+            try {
+                var R = _ngpRegresos(); if (!R || (!R.nums.length && !R.grps.length)) return '';
+                var F = window._ngpFiltro;
+                var h = '<div style="background:linear-gradient(135deg,rgba(6,78,59,0.55),rgba(20,83,45,0.35));border:2px solid #34d399;border-radius:9px;padding:8px 12px;margin-bottom:10px;">';
+                h += '<div style="font-size:12px;font-weight:bold;color:#a7f3d0;margin-bottom:5px;">🔄 REGRESOS — estuvieron pegados en TODAS las loterías (≥ ' + R.T + '× su promedio) y volvieron a salir entre el ' + _ngpRegFmtD(R.d0) + ' y hoy' + (R.gd ? ' · grupo de la fecha: <span style="color:#fde68a;">' + R.gd + '</span>' : '') + '</div>';
+                R.nums.slice(0, 8).forEach(function(r) {
+                    h += '<div style="display:flex;gap:9px;align-items:flex-start;background:rgba(0,0,0,0.25);border:1px solid ' + (r.fecha ? '#fde68a' : 'rgba(52,211,153,0.5)') + ';border-radius:7px;padding:4px 8px;margin-bottom:4px;">';
+                    h += '<span style="font-family:monospace;font-size:20px;font-weight:bold;color:#fff;min-width:30px;">' + r.k + '</span>';
+                    h += '<span style="font-size:10px;color:#d1fae5;line-height:1.5;">estuvo <b style="color:#fff;">' + r.gap + ' sorteos</b> (≈' + r.dias + ' días) sin salir en NINGUNA lotería — <b style="color:#fbbf24;">' + r.exc.toFixed(1) + '×</b> su promedio (~' + r.prom + '); antes había salido el ' + _ngpRegFmtD(r.desde) + ' en ' + r.desdeLot + '.';
+                    h += '<br>↩️ volvió: ' + r.apps.map(function(a) { return '<b style="color:#fff;">' + a.lot + '</b> ' + _ngpRegFmtD(a.date) + ' ' + a.hora; }).join(' · ') + (r.apps.length > 1 ? ' <span style="color:#fbbf24;">(' + r.apps.length + ' salidas)</span>' : '');
+                    if (r.fecha) h += '<br><b style="color:#fde68a;">⭐ es del ' + r.grupo + ', el grupo de la FECHA de hoy</b>';
+                    if (r.pend.length) h += '<br>⏳ pendiente en: ' + r.pend.slice(0, 5).map(function(p) { return '<b style="color:#fff;">' + p.L + '</b> (' + p.exc.toFixed(1) + '×, próx. ' + p.prox + ')'; }).join(' · ') + (r.pend.length > 5 ? ' +' + (r.pend.length - 5) : '');
+                    h += '</span></div>';
+                });
+                if (R.nums.length > 8) h += '<div style="font-size:9px;color:#6ee7b7;">+' + (R.nums.length - 8) + ' número(s) más con regreso (ver botón 🔄 Regresos).</div>';
+                if (R.grps.length) {
+                    h += '<div style="font-size:10px;color:#d1fae5;margin-top:4px;"><b style="color:#a7f3d0;">Grupos que regresaron:</b> ' + R.grps.map(function(r) { return '<span style="display:inline-block;background:rgba(0,0,0,0.25);border:1px solid ' + (r.fecha ? '#fde68a' : 'rgba(52,211,153,0.5)') + ';border-radius:5px;padding:1px 7px;margin:1px 3px 1px 0;"><b style="color:#fff;">' + r.k + '</b> ' + r.gap + ' sorteos sin salir (' + r.exc.toFixed(1) + '×) desde ' + _ngpRegFmtD(r.desde) + ' · volvió ' + r.apps[0].lot + ' ' + _ngpRegFmtD(r.apps[0].date) + ' ' + r.apps[0].hora + (r.apps.length > 1 ? ' (+' + (r.apps.length - 1) + ')' : '') + (r.fecha ? ' ⭐ fecha' : '') + '</span>'; }).join('') + '</div>';
+                }
+                h += '<div style="font-size:8px;color:#6ee7b7;margin-top:4px;">En la lotería donde siguen pendientes suman la señal 🔄 REGRESO (+2). El backtest (botón 🔄 Regresos) mide si históricamente estos regresos siguen saliendo más que el azar.</div>';
+                h += '</div>';
+                return h;
+            } catch (e) { return ''; }
+        }
+        // alerta en la tarjeta de una lotería
+        function _ngpRegAlertaHTML(L) {
+            try {
+                var R = _ngpRegresos(); if (!R) return '';
+                var nums = R.nums.filter(function(r) { return r.pend.some(function(p) { return p.L === L; }); });
+                var grps = R.grps.filter(function(r) { return r.pend.some(function(p) { return p.L === L; }); });
+                if (!nums.length && !grps.length) return '';
+                var h = '<div style="background:linear-gradient(135deg,rgba(6,78,59,0.5),rgba(20,83,45,0.3));border:1.5px solid #34d399;border-radius:8px;padding:6px 10px;margin-bottom:7px;font-size:10px;color:#d1fae5;line-height:1.5;">';
+                h += '<b style="font-size:11px;color:#fff;">🔄 REGRESO pendiente en ' + L + ':</b> ';
+                h += nums.slice(0, 4).map(function(r) {
+                    var p = r.pend.filter(function(x) { return x.L === L; })[0];
+                    return '<span style="display:inline-block;margin:1px 6px 1px 0;"><b style="font-family:monospace;font-size:14px;color:#fff;">' + r.k + '</b> estuvo ' + r.gap + ' sorteos sin salir en ninguna lotería (' + r.exc.toFixed(1) + '×, desde ' + _ngpRegFmtD(r.desde) + '), volvió en ' + r.apps.map(function(a) { return a.lot + ' ' + _ngpRegFmtD(a.date); }).join(', ') + ' → acá lleva ' + p.sin + ' sin salir (<b style="color:#fbbf24;">' + p.exc.toFixed(1) + '×</b>)' + (r.fecha ? ' <b style="color:#fde68a;">⭐ grupo de la fecha</b>' : '') + '</span>';
+                }).join(' · ') + (nums.length > 4 ? ' <span style="color:#6ee7b7;">+' + (nums.length - 4) + ' más</span>' : '');
+                if (grps.length) h += (nums.length ? '<br>' : '') + 'Grupos: ' + grps.map(function(r) { var p = r.pend.filter(function(x) { return x.L === L; })[0]; return '<b style="color:#fff;">' + r.k + '</b> (sequía global ' + r.exc.toFixed(1) + '×, volvió ' + r.apps[0].lot + ' ' + _ngpRegFmtD(r.apps[0].date) + '; acá ' + p.exc.toFixed(1) + '×' + (r.fecha ? ' ⭐ fecha' : '') + ')'; }).join(' · ');
+                h += ' <span style="color:#6ee7b7;">· próx. sorteo ' + ((nums[0] && nums[0].pend.filter(function(x) { return x.L === L; })[0]) || (grps[0] && grps[0].pend.filter(function(x) { return x.L === L; })[0]) || { prox: '' }).prox + ' · suma 🔄 REGRESO (+2) en estos números.</span>';
+                h += '</div>';
+                return h;
+            } catch (e) { return ''; }
+        }
+        // ── BACKTEST (desde 2022): ¿el número que regresa tras sequía global sigue saliendo? ──
+        function _ngpRegBack(T) {
+            try {
+                var F = window._ngpFiltro; if (!F || !F.serie) return null;
+                var key = 'rb|' + T + '|' + _ngpDV();
+                if (window._ngpRegBackCache && window._ngpRegBackCache.key === key) return window._ngpRegBackCache.val;
+                var gOf = {}; Object.keys(F.NUMBER_GROUPS || {}).forEach(function(g) { (F.NUMBER_GROUPS[g] || []).forEach(function(n0) { gOf[n0] = g; }); });
+                var S = F.serie.filter(function(s) { return s.date >= '2022-01-01' && s.date <= F.hoyStr && /^\d\d$/.test(s.n); });
+                var finDia = {}, fechas = [];
+                S.forEach(function(s, i) { if (finDia[s.date] === undefined) fechas.push(s.date); finDia[s.date] = i; });
+                var fIx = {}; fechas.forEach(function(f, k) { fIx[f] = k; });
+                var LI = {}; S.forEach(function(s, i) { (LI[s.lot] = LI[s.lot] || []).push(i); });
+                var lotes = Object.keys(LI);
+                var posL = {}, lastPL = {}; lotes.forEach(function(L) { posL[L] = 0; lastPL[L] = {}; });
+                var lastG = {}, grpDia = {};
+                var gF = function(ds) { if (grpDia[ds] === undefined) grpDia[ds] = gOf[ds.substring(8, 10)] || null; return grpDia[ds]; };
+                var A = { ev: 0, h50: 0, e50: 0 }, P = { h: 0, e: 0 }, PF = { h: 0, e: 0 }, PO = { h: 0, e: 0 };
+                var brk = {}, R2 = { ev: 0, h: 0, e: 0 };
+                for (var i = 0; i < S.length; i++) {
+                    var s = S[i], n = s.n, prev = lastG[n];
+                    if (prev !== undefined && (i - prev - 1) * 0.01 >= T) {
+                        // global: próximos 50 sorteos
+                        if (i + 50 < S.length) { A.ev++; A.e50 += 0.5; for (var j = i + 1; j <= i + 50; j++) if (S[j].n === n) A.h50++; }
+                        brk[n] = { f: s.date, c: 0 };
+                        // pendiente en otra lotería → sus sorteos hasta el fin de D+2
+                        var kf = fIx[s.date] + 2; var fin = finDia[fechas[Math.min(kf, fechas.length - 1)]];
+                        if (kf < fechas.length) {
+                            for (var a = 0; a < lotes.length; a++) {
+                                var L = lotes[a]; if (L === s.lot) continue;
+                                var lp = lastPL[L][n], cur = posL[L];
+                                var gapL = (lp === undefined) ? cur : (cur - 1 - lp);
+                                if (gapL * 0.01 < 1) continue;
+                                var arr = LI[L];
+                                for (var q = cur; q < arr.length && arr[q] <= fin; q++) {
+                                    var sj = S[arr[q]], hit = (sj.n === n) ? 1 : 0;
+                                    P.h += hit; P.e += 0.01;
+                                    var o = (gF(sj.date) === gOf[n]) ? PF : PO; o.h += hit; o.e += 0.01;
+                                }
+                            }
+                        }
+                    }
+                    // racha: ya salió 2 veces dentro de 3 días tras la sequía
+                    if (brk[n]) {
+                        if (fIx[s.date] - fIx[brk[n].f] <= 2) {
+                            brk[n].c++;
+                            if (brk[n].c === 2 && i + 50 < S.length) { R2.ev++; R2.e += 0.5; for (var j2 = i + 1; j2 <= i + 50; j2++) if (S[j2].n === n) R2.h++; }
+                        } else delete brk[n];
+                    }
+                    lastG[n] = i; lastPL[s.lot][n] = posL[s.lot]; posL[s.lot]++;
+                }
+                var val = { T: T, A: A, P: P, PF: PF, PO: PO, R2: R2, desde: S.length ? S[0].date : '' };
+                window._ngpRegBackCache = { key: key, val: val };
+                return val;
+            } catch (e) { console.error('[REGBACK]', e); return null; }
+        }
+        function _ngpRegToggle() {
+            var ps = document.querySelectorAll('[id="ngpRegPanel"]');
+            if (!ps.length) return;
+            var abrir = (ps[0].style.display === 'none');
+            _ngpCerrarOtros('ngpRegPanel');
+            ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
+            if (abrir) _ngpRegRender();
+        }
+        function _ngpRegRender() {
+            try {
+                var conts = document.querySelectorAll('[id="ngpRegResultado"]');
+                if (!conts.length) return;
+                var T = _ngpRegT();
+                document.querySelectorAll('[id="ngpRegTSel"]').forEach(function(x) { x.value = String(T); });
+                var html = _ngpRegresosHTML() || '<div style="font-size:11px;color:#94a3b8;padding:6px;">Ningún número ni grupo regresó en los últimos 3 días tras una sequía global ≥ ' + T + '×.</div>';
+                var B = _ngpRegBack(T);
+                if (B && B.A.ev) {
+                    var ix = function(h, e) { var v = e > 0 ? h / e : 0; var c = v >= 1.15 ? '#4ade80' : v <= 0.85 ? '#f87171' : '#fde68a'; return '<b style="color:' + c + ';">×' + v.toFixed(2) + '</b>'; };
+                    html += '<div style="background:rgba(0,0,0,0.3);border:1px solid #34d399;border-radius:8px;padding:7px 10px;font-size:10px;color:#d1fae5;line-height:1.7;">';
+                    html += '<b style="color:#a7f3d0;">📊 BACKTEST desde ' + _ngpRegFmtD(B.desde) + '/' + B.desde.substring(0, 4) + ' (sequía global ≥ ' + T + '×):</b><br>';
+                    html += '• Cuántas veces pasa: <b style="color:#fff;">' + B.A.ev + '</b> regresos de un número (≈ ' + (B.A.ev / Math.max(1, (Date.now() - new Date(B.desde + 'T12:00:00').getTime()) / 86400000)).toFixed(1) + ' por día) — es muy común.<br>';
+                    html += '• Tras regresar, ¿vuelve a salir en los 50 sorteos siguientes (todas las loterías)? <b style="color:#fff;">' + B.A.h50 + '</b> veces vs ' + B.A.e50.toFixed(0) + ' por azar → ' + ix(B.A.h50, B.A.e50) + '<br>';
+                    html += '• Si ya salió 2 veces en los 3 días del regreso, ¿sigue saliendo? <b style="color:#fff;">' + B.R2.h + '</b> vs ' + B.R2.e.toFixed(0) + ' → ' + ix(B.R2.h, B.R2.e) + ' (' + B.R2.ev + ' casos)<br>';
+                    html += '• En las loterías donde estaba PENDIENTE (≥1× su promedio ahí), dentro de los 3 días: <b style="color:#fff;">' + B.P.h + '</b> aciertos vs ' + B.P.e.toFixed(0) + ' → ' + ix(B.P.h, B.P.e) + '<br>';
+                    html += '&nbsp;&nbsp;– en días cuya FECHA es de su grupo: ' + B.PF.h + ' vs ' + B.PF.e.toFixed(0) + ' → ' + ix(B.PF.h, B.PF.e) + ' · en los demás días: ' + B.PO.h + ' vs ' + B.PO.e.toFixed(0) + ' → ' + ix(B.PO.h, B.PO.e) + '<br>';
+                    html += '<span style="color:#94a3b8;">×1.00 = lo mismo que el azar · verde ≥1.15 · rojo ≤0.85. La señal 🔄 REGRESO suma +2 por decisión tuya.</span></div>';
+                }
+                conts.forEach(function(x) { x.innerHTML = html; });
+            } catch (e) { console.error('[REG]', e); }
+        }
         function _ngpGrpExcToggle() {
             var ps = document.querySelectorAll('[id="ngpGrpExcPanel"]');
             if (!ps.length) return;
@@ -36845,6 +37066,7 @@ function senalesDe(nn) {
                     html += '</div>';
                 }
             } catch (eVib) {}
+            try { html += _ngpRegresosHTML(); } catch (eReg) {} // V46.9.280 (pedido de Leo): 🔄 regresos tras sequía global
             // V46.9.216 (pedido de Leo): 🧲 alerta PAREJA 28·82 (ventana de 4 sorteos)
             try {
                 var f28B = (F.fam2882) ? F.fam2882() : null;
@@ -36938,6 +37160,7 @@ function senalesDe(nn) {
                 html += _ngpTopsDiaHTML(rk.lot); // V46.9.182 (pedido de Leo): tops del día en el encabezado
                 html += '</div>';
                 html += '<div style="flex:5;min-width:380px;">';
+                try { html += _ngpRegAlertaHTML(rk.lot); } catch (eRg) {} // V46.9.280: regreso pendiente en esta lotería
                 try { html += _ngpRepAlertaHTML(rk.lot); } catch (eRp) {} // V46.9.277 (pedido de Leo): alerta 🔁 repite/vuelta (sin puntos)
                 try { html += _ngpVencidosHTML(rk.lot); } catch (eVc) {} // V46.9.269 (pedido de Leo): top 18 más vencidos antes del análisis
                 // V46.9.272 (pedido de Leo): abrir el panel de los 2 grupos más rezagados (todas las loterías, con fichas para elegir)
