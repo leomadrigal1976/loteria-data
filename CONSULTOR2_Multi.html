@@ -1001,6 +1001,8 @@
         .ngp-venc td { padding: 3px 5px; border-bottom: 1px solid rgba(129,140,248,0.3); color: #e0e7ff; }
         .ngp-venc tr:hover { background: #312e81; }
         .ngp-venc tr.ngp-venc-hoy td { background: rgba(251,191,36,0.14); }
+        /* V46.9.283: tabla del historial de REGRESOS — sin el hover blanco global */
+        .ngp-regtab tr:hover { background: rgba(52,211,153,0.15) !important; }
 
         .alert {
             padding: 15px 20px;
@@ -28523,7 +28525,7 @@ function senalesDe(nn) {
                 // V46.9.280 (pedido de Leo): panel REGRESOS tras sequía global
                 h += '<div id="ngpRegPanel" style="display:none;background:rgba(6,78,59,0.3);border:1px solid #34d399;border-radius:9px;padding:10px;margin-top:9px;">';
                 h += '<div style="font-size:11px;font-weight:bold;color:#a7f3d0;margin-bottom:6px;">🔄 REGRESOS — números y grupos que estuvieron sin salir en TODAS las loterías más tiempo de la cuenta y volvieron a salir (anteayer, ayer u hoy). ¿Es común? ¿Se cumple?</div>';
-                h += '<div style="font-size:10px;color:#d1fae5;margin-bottom:6px;">Sequía mínima: <select id="ngpRegTSel" onchange="_ngpRegTSet(this.value)" style="font-size:10px;padding:2px 4px;border-radius:4px;"><option value="1.5">1,5× su promedio</option><option value="2">2× su promedio (default)</option><option value="3">3× su promedio</option><option value="4">4× su promedio</option></select> · Días a considerar: <select id="ngpRegDSel" onchange="_ngpRegDiasSet(this.value)" style="font-size:10px;padding:2px 4px;border-radius:4px;"><option value="1">1 (solo hoy)</option><option value="2">2 (hoy y ayer)</option><option value="3">3 (hoy, ayer y anteayer — default)</option><option value="4">4 días</option><option value="5">5 días</option><option value="7">7 días</option><option value="10">10 días</option><option value="14">14 días</option></select> <span style="color:#94a3b8;">· promedio de un número = 1 de cada 100 sorteos (de todas las loterías juntas); de un grupo = según su tamaño.</span></div>';
+                h += '<div style="font-size:10px;color:#d1fae5;margin-bottom:6px;">Sequía mínima: <select id="ngpRegTSel" onchange="_ngpRegTSet(this.value)" style="width:auto;display:inline-block;margin:0 4px;font-size:10px;padding:2px 4px;border-radius:4px;"><option value="1.5">1,5× su promedio</option><option value="2">2× su promedio (default)</option><option value="3">3× su promedio</option><option value="4">4× su promedio</option></select> · Días a considerar: <select id="ngpRegDSel" onchange="_ngpRegDiasSet(this.value)" style="width:auto;display:inline-block;margin:0 4px;font-size:10px;padding:2px 4px;border-radius:4px;"><option value="1">1 (solo hoy)</option><option value="2">2 (hoy y ayer)</option><option value="3">3 (hoy, ayer y anteayer — default)</option><option value="4">4 días</option><option value="5">5 días</option><option value="7">7 días</option><option value="10">10 días</option><option value="14">14 días</option></select> <span style="color:#94a3b8;">· promedio de un número = 1 de cada 100 sorteos (de todas las loterías juntas); de un grupo = según su tamaño.</span></div>';
                 h += '<div id="ngpRegResultado"><div style="font-size:11px;color:#94a3b8;padding:6px;">Calculando…</div></div>';
                 h += '</div>';
                 // V46.9.277 (pedido de Leo): panel REPITE / VUELTA por número
@@ -33829,7 +33831,7 @@ function senalesDe(nn) {
                         html += '<b style="color:#a7f3d0;">📜 HISTORIAL DE ACIERTOS — últimos 30 días</b> (ventana de ' + W + ' día' + (W > 1 ? 's' : '') + ' desde cada regreso)<br>';
                         html += '• Regresos: <b style="color:#fff;">' + R3.ev + '</b>' + (R3.abiertas ? ' (' + R3.abiertas + ' con la ventana todavía abierta)' : '') + ' · volvieron a salir en cualquier lotería dentro de la ventana: <b style="color:#fff;">' + R3.volvio + '</b> vs ' + R3.expV.toFixed(0) + ' por azar → ' + ix(R3.volvio, R3.expV) + '<br>';
                         html += '• La señal (+2) en las loterías donde estaba pendiente: <b style="color:#fff;">' + R3.hits + '</b> aciertos en ' + R3.opp + ' sorteos vs ' + (R3.opp * 0.01).toFixed(1) + ' por azar → ' + ix(R3.hits, R3.opp * 0.01) + '<br>';
-                        html += '<div style="overflow-x:auto;margin-top:5px;"><table style="width:100%;border-collapse:collapse;font-size:10px;color:#d1fae5;background:transparent;margin:0;box-shadow:none;">';
+                        html += '<div style="overflow-x:auto;margin-top:5px;"><table class="ngp-regtab" style="width:100%;border-collapse:collapse;font-size:10px;color:#d1fae5;background:transparent;margin:0;box-shadow:none;">';
                         html += '<tr><th style="background:#064e3b;color:#a7f3d0;padding:3px 5px;font-size:9px;">Nº</th><th style="background:#064e3b;color:#a7f3d0;padding:3px 5px;font-size:9px;">Regresó</th><th style="background:#064e3b;color:#a7f3d0;padding:3px 5px;font-size:9px;">Sequía</th><th style="background:#064e3b;color:#a7f3d0;padding:3px 5px;font-size:9px;">Pendiente en</th><th style="background:#064e3b;color:#a7f3d0;padding:3px 5px;font-size:9px;">Después, dentro de la ventana</th></tr>';
                         var h12r = function(t) { try { return (typeof convertTo12Hour === 'function' && t) ? convertTo12Hour(t) : t; } catch (e) { return t; } };
                         B.rec.slice(0, 40).forEach(function(r) {
@@ -76406,7 +76408,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r215 · v46.9.282</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r216 · v46.9.283</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
