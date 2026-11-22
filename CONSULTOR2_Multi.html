@@ -28523,7 +28523,7 @@ function senalesDe(nn) {
                 // V46.9.280 (pedido de Leo): panel REGRESOS tras sequía global
                 h += '<div id="ngpRegPanel" style="display:none;background:rgba(6,78,59,0.3);border:1px solid #34d399;border-radius:9px;padding:10px;margin-top:9px;">';
                 h += '<div style="font-size:11px;font-weight:bold;color:#a7f3d0;margin-bottom:6px;">🔄 REGRESOS — números y grupos que estuvieron sin salir en TODAS las loterías más tiempo de la cuenta y volvieron a salir (anteayer, ayer u hoy). ¿Es común? ¿Se cumple?</div>';
-                h += '<div style="font-size:10px;color:#d1fae5;margin-bottom:6px;">Sequía mínima: <select id="ngpRegTSel" onchange="_ngpRegTSet(this.value)" style="font-size:10px;padding:2px 4px;border-radius:4px;"><option value="1.5">1,5× su promedio</option><option value="2">2× su promedio (default)</option><option value="3">3× su promedio</option><option value="4">4× su promedio</option></select> <span style="color:#94a3b8;">· promedio de un número = 1 de cada 100 sorteos (de todas las loterías juntas); de un grupo = según su tamaño.</span></div>';
+                h += '<div style="font-size:10px;color:#d1fae5;margin-bottom:6px;">Sequía mínima: <select id="ngpRegTSel" onchange="_ngpRegTSet(this.value)" style="font-size:10px;padding:2px 4px;border-radius:4px;"><option value="1.5">1,5× su promedio</option><option value="2">2× su promedio (default)</option><option value="3">3× su promedio</option><option value="4">4× su promedio</option></select> · Días a considerar: <select id="ngpRegDSel" onchange="_ngpRegDiasSet(this.value)" style="font-size:10px;padding:2px 4px;border-radius:4px;"><option value="1">1 (solo hoy)</option><option value="2">2 (hoy y ayer)</option><option value="3">3 (hoy, ayer y anteayer — default)</option><option value="4">4 días</option><option value="5">5 días</option><option value="7">7 días</option><option value="10">10 días</option><option value="14">14 días</option></select> <span style="color:#94a3b8;">· promedio de un número = 1 de cada 100 sorteos (de todas las loterías juntas); de un grupo = según su tamaño.</span></div>';
                 h += '<div id="ngpRegResultado"><div style="font-size:11px;color:#94a3b8;padding:6px;">Calculando…</div></div>';
                 h += '</div>';
                 // V46.9.277 (pedido de Leo): panel REPITE / VUELTA por número
@@ -33608,15 +33608,19 @@ function senalesDe(nn) {
         // ═══ V46.9.280 (pedido de Leo): 🔄 REGRESOS tras sequía global ═══════════════
         function _ngpRegT() { try { var t = parseFloat(localStorage.getItem('ngpRegT') || ''); return (t && !isNaN(t)) ? t : 2; } catch (e) { return 2; } }
         function _ngpRegTSet(v) { try { localStorage.setItem('ngpRegT', String(parseFloat(v) || 2)); } catch (e) {} window._ngpRegCache = null; _ngpRegRender(); try { if (typeof _ngpResumenRender === 'function') _ngpResumenRender(); } catch (e2) {} }
+        // V46.9.282 (pedido de Leo): días a considerar (1 = solo hoy; 3 = hoy, ayer y anteayer)
+        function _ngpRegDias() { try { var d = parseInt(localStorage.getItem('ngpRegDias') || '', 10); return (d && d >= 1 && d <= 30) ? d : 3; } catch (e) { return 3; } }
+        function _ngpRegDiasSet(v) { try { localStorage.setItem('ngpRegDias', String(parseInt(v, 10) || 3)); } catch (e) {} window._ngpRegCache = null; window._ngpRegBackCache = null; _ngpRegRender(); try { if (typeof _ngpResumenRender === 'function') _ngpResumenRender(); } catch (e2) {} }
         function _ngpRegFechaMas(ds, k) { var p = ds.split('-'); var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10)); d.setDate(d.getDate() + k); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
         function _ngpRegGrupoFecha(ds) { try { var F = window._ngpFiltro; var dia = ds.substring(8, 10); var g0 = null; Object.keys(F.NUMBER_GROUPS || {}).forEach(function(g) { if ((F.NUMBER_GROUPS[g] || []).indexOf(dia) >= 0) g0 = g; }); return g0; } catch (e) { return null; } }
         function _ngpRegresos() {
             try {
                 var F = window._ngpFiltro; if (!F || !F.serie) return null;
                 var T = _ngpRegT();
-                var key = T + '|' + _ngpDV() + '|' + F.hoyStr;
+                var W = _ngpRegDias();
+                var key = T + '|' + W + '|' + _ngpDV() + '|' + F.hoyStr;
                 if (window._ngpRegCache && window._ngpRegCache.key === key) return window._ngpRegCache.val;
-                var hoy = F.hoyStr, d0 = _ngpRegFechaMas(hoy, -2);
+                var hoy = F.hoyStr, d0 = _ngpRegFechaMas(hoy, -(W - 1));
                 var gOf = {}, gSize = {};
                 Object.keys(F.NUMBER_GROUPS || {}).forEach(function(g) { (F.NUMBER_GROUPS[g] || []).forEach(function(n0) { gOf[n0] = g; }); gSize[g] = (F.NUMBER_GROUPS[g] || []).length; });
                 var ser = F.serie.filter(function(s) { return s.date <= hoy && /^\d\d$/.test(s.n); });
@@ -33670,7 +33674,7 @@ function senalesDe(nn) {
                     grps.push(r);
                 });
                 grps.sort(function(a, b) { return b.exc - a.exc; });
-                var val = { T: T, d0: d0, nums: nums, grps: grps, gd: gd };
+                var val = { T: T, W: W, d0: d0, nums: nums, grps: grps, gd: gd };
                 window._ngpRegCache = { key: key, val: val };
                 return val;
             } catch (e) { console.error('[REG]', e); return null; }
@@ -33724,7 +33728,8 @@ function senalesDe(nn) {
         function _ngpRegBack(T) {
             try {
                 var F = window._ngpFiltro; if (!F || !F.serie) return null;
-                var key = 'rb|' + T + '|' + _ngpDV();
+                var W = _ngpRegDias(), hace30 = _ngpRegFechaMas(F.hoyStr, -30);
+                var key = 'rb|' + T + '|' + W + '|' + _ngpDV();
                 if (window._ngpRegBackCache && window._ngpRegBackCache.key === key) return window._ngpRegBackCache.val;
                 var gOf = {}; Object.keys(F.NUMBER_GROUPS || {}).forEach(function(g) { (F.NUMBER_GROUPS[g] || []).forEach(function(n0) { gOf[n0] = g; }); });
                 var S = F.serie.filter(function(s) { return s.date >= '2022-01-01' && s.date <= F.hoyStr && /^\d\d$/.test(s.n); });
@@ -33738,39 +33743,53 @@ function senalesDe(nn) {
                 var gF = function(ds) { if (grpDia[ds] === undefined) grpDia[ds] = gOf[ds.substring(8, 10)] || null; return grpDia[ds]; };
                 var A = { ev: 0, h50: 0, e50: 0 }, P = { h: 0, e: 0 }, PF = { h: 0, e: 0 }, PO = { h: 0, e: 0 };
                 var brk = {}, R2 = { ev: 0, h: 0, e: 0 };
+                var rec = [], act = {}; // V46.9.282: historial de los últimos 30 días
                 for (var i = 0; i < S.length; i++) {
                     var s = S[i], n = s.n, prev = lastG[n];
+                    // V46.9.282: salidas posteriores de un regreso reciente dentro de su ventana
+                    if (act[n]) {
+                        if (fIx[s.date] - fIx[act[n].date] <= W - 1) act[n].apps.push({ lot: s.lot, date: s.date, time: s.time, pend: !!act[n].pend[s.lot] });
+                        else delete act[n];
+                    }
                     if (prev !== undefined && (i - prev - 1) * 0.01 >= T) {
                         // global: próximos 50 sorteos
                         if (i + 50 < S.length) { A.ev++; A.e50 += 0.5; for (var j = i + 1; j <= i + 50; j++) if (S[j].n === n) A.h50++; }
                         brk[n] = { f: s.date, c: 0 };
                         // pendiente en otra lotería → sus sorteos hasta el fin de D+2
-                        var kf = fIx[s.date] + 2; var fin = finDia[fechas[Math.min(kf, fechas.length - 1)]];
-                        if (kf < fechas.length) {
-                            for (var a = 0; a < lotes.length; a++) {
-                                var L = lotes[a]; if (L === s.lot) continue;
-                                var lp = lastPL[L][n], cur = posL[L];
-                                var gapL = (lp === undefined) ? cur : (cur - 1 - lp);
-                                if (gapL * 0.01 < 1) continue;
-                                var arr = LI[L];
-                                for (var q = cur; q < arr.length && arr[q] <= fin; q++) {
-                                    var sj = S[arr[q]], hit = (sj.n === n) ? 1 : 0;
-                                    P.h += hit; P.e += 0.01;
-                                    var o = (gF(sj.date) === gOf[n]) ? PF : PO; o.h += hit; o.e += 0.01;
-                                }
+                        var kf = fIx[s.date] + (W - 1); var fin = finDia[fechas[Math.min(kf, fechas.length - 1)]];
+                        var cerrada = (kf < fechas.length);
+                        var esRec = (s.date >= hace30), evR = null;
+                        if (esRec) { evR = { n: n, date: s.date, lot: s.lot, time: s.time, gap: i - prev - 1, exc: (i - prev - 1) * 0.01, pend: {}, opp: 0, apps: [], abierta: !cerrada, prevD: S[prev].date }; rec.push(evR); act[n] = evR; }
+                        for (var a = 0; a < lotes.length; a++) {
+                            var L = lotes[a]; if (L === s.lot) continue;
+                            var lp = lastPL[L][n], cur = posL[L];
+                            var gapL = (lp === undefined) ? cur : (cur - 1 - lp);
+                            if (gapL * 0.01 < 1) continue;
+                            if (evR) evR.pend[L] = true;
+                            var arr = LI[L];
+                            for (var q = cur; q < arr.length && arr[q] <= fin; q++) {
+                                if (evR) evR.opp++;
+                                if (!cerrada) continue;
+                                var sj = S[arr[q]], hit = (sj.n === n) ? 1 : 0;
+                                P.h += hit; P.e += 0.01;
+                                var o = (gF(sj.date) === gOf[n]) ? PF : PO; o.h += hit; o.e += 0.01;
                             }
                         }
+                        if (evR) evR.todo = Math.max(0, fin - i); // sorteos (todas las loterías) dentro de la ventana
                     }
                     // racha: ya salió 2 veces dentro de 3 días tras la sequía
                     if (brk[n]) {
-                        if (fIx[s.date] - fIx[brk[n].f] <= 2) {
+                        if (fIx[s.date] - fIx[brk[n].f] <= W - 1) {
                             brk[n].c++;
                             if (brk[n].c === 2 && i + 50 < S.length) { R2.ev++; R2.e += 0.5; for (var j2 = i + 1; j2 <= i + 50; j2++) if (S[j2].n === n) R2.h++; }
                         } else delete brk[n];
                     }
                     lastG[n] = i; lastPL[s.lot][n] = posL[s.lot]; posL[s.lot]++;
                 }
-                var val = { T: T, A: A, P: P, PF: PF, PO: PO, R2: R2, desde: S.length ? S[0].date : '' };
+                var R30 = { ev: rec.length, volvio: 0, expV: 0, opp: 0, hits: 0, abiertas: 0 };
+                rec.forEach(function(r) { if (r.apps.length) R30.volvio++; R30.expV += 1 - Math.pow(0.99, r.todo || 0); R30.opp += r.opp; r.apps.forEach(function(a) { if (a.pend) R30.hits++; }); if (r.abierta) R30.abiertas++; });
+                rec.sort(function(a, b) { return a.date !== b.date ? (a.date < b.date ? 1 : -1) : (a.time < b.time ? 1 : -1); });
+                var val = { T: T, W: W, A: A, P: P, PF: PF, PO: PO, R2: R2, desde: S.length ? S[0].date : '', rec: rec, R30: R30 };
                 window._ngpRegBackCache = { key: key, val: val };
                 return val;
             } catch (e) { console.error('[REGBACK]', e); return null; }
@@ -33789,18 +33808,40 @@ function senalesDe(nn) {
                 if (!conts.length) return;
                 var T = _ngpRegT();
                 document.querySelectorAll('[id="ngpRegTSel"]').forEach(function(x) { x.value = String(T); });
-                var html = _ngpRegresosHTML() || '<div style="font-size:11px;color:#94a3b8;padding:6px;">Ningún número ni grupo regresó en los últimos 3 días tras una sequía global ≥ ' + T + '×.</div>';
+                var W = _ngpRegDias();
+                document.querySelectorAll('[id="ngpRegDSel"]').forEach(function(x) { x.value = String(W); });
+                var html = _ngpRegresosHTML() || '<div style="font-size:11px;color:#94a3b8;padding:6px;">Ningún número ni grupo regresó en ' + (W === 1 ? 'el día de hoy' : 'los últimos ' + W + ' días') + ' tras una sequía global ≥ ' + T + '×.</div>';
                 var B = _ngpRegBack(T);
                 if (B && B.A.ev) {
                     var ix = function(h, e) { var v = e > 0 ? h / e : 0; var c = v >= 1.15 ? '#4ade80' : v <= 0.85 ? '#f87171' : '#fde68a'; return '<b style="color:' + c + ';">×' + v.toFixed(2) + '</b>'; };
                     html += '<div style="background:rgba(0,0,0,0.3);border:1px solid #34d399;border-radius:8px;padding:7px 10px;font-size:10px;color:#d1fae5;line-height:1.7;">';
-                    html += '<b style="color:#a7f3d0;">📊 BACKTEST desde ' + _ngpRegFmtD(B.desde) + '/' + B.desde.substring(0, 4) + ' (sequía global ≥ ' + T + '×):</b><br>';
+                    html += '<b style="color:#a7f3d0;">📊 BACKTEST desde ' + _ngpRegFmtD(B.desde) + '/' + B.desde.substring(0, 4) + ' (sequía global ≥ ' + T + '× · ventana de ' + W + ' día' + (W > 1 ? 's' : '') + '):</b><br>';
                     html += '• Cuántas veces pasa: <b style="color:#fff;">' + B.A.ev + '</b> regresos de un número (≈ ' + (B.A.ev / Math.max(1, (Date.now() - new Date(B.desde + 'T12:00:00').getTime()) / 86400000)).toFixed(1) + ' por día) — es muy común.<br>';
                     html += '• Tras regresar, ¿vuelve a salir en los 50 sorteos siguientes (todas las loterías)? <b style="color:#fff;">' + B.A.h50 + '</b> veces vs ' + B.A.e50.toFixed(0) + ' por azar → ' + ix(B.A.h50, B.A.e50) + '<br>';
-                    html += '• Si ya salió 2 veces en los 3 días del regreso, ¿sigue saliendo? <b style="color:#fff;">' + B.R2.h + '</b> vs ' + B.R2.e.toFixed(0) + ' → ' + ix(B.R2.h, B.R2.e) + ' (' + B.R2.ev + ' casos)<br>';
-                    html += '• En las loterías donde estaba PENDIENTE (≥1× su promedio ahí), dentro de los 3 días: <b style="color:#fff;">' + B.P.h + '</b> aciertos vs ' + B.P.e.toFixed(0) + ' → ' + ix(B.P.h, B.P.e) + '<br>';
+                    html += '• Si ya salió 2 veces en los ' + W + ' días del regreso, ¿sigue saliendo? <b style="color:#fff;">' + B.R2.h + '</b> vs ' + B.R2.e.toFixed(0) + ' → ' + ix(B.R2.h, B.R2.e) + ' (' + B.R2.ev + ' casos)<br>';
+                    html += '• En las loterías donde estaba PENDIENTE (≥1× su promedio ahí), dentro de los ' + W + ' días: <b style="color:#fff;">' + B.P.h + '</b> aciertos vs ' + B.P.e.toFixed(0) + ' → ' + ix(B.P.h, B.P.e) + '<br>';
                     html += '&nbsp;&nbsp;– en días cuya FECHA es de su grupo: ' + B.PF.h + ' vs ' + B.PF.e.toFixed(0) + ' → ' + ix(B.PF.h, B.PF.e) + ' · en los demás días: ' + B.PO.h + ' vs ' + B.PO.e.toFixed(0) + ' → ' + ix(B.PO.h, B.PO.e) + '<br>';
                     html += '<span style="color:#94a3b8;">×1.00 = lo mismo que el azar · verde ≥1.15 · rojo ≤0.85. La señal 🔄 REGRESO suma +2 por decisión tuya.</span></div>';
+                    // V46.9.282 (pedido de Leo): HISTORIAL DE ACIERTOS — últimos 30 días
+                    var R3 = B.R30;
+                    if (R3 && R3.ev) {
+                        html += '<div style="background:rgba(0,0,0,0.3);border:1px solid #34d399;border-radius:8px;padding:7px 10px;font-size:10px;color:#d1fae5;line-height:1.6;margin-top:7px;">';
+                        html += '<b style="color:#a7f3d0;">📜 HISTORIAL DE ACIERTOS — últimos 30 días</b> (ventana de ' + W + ' día' + (W > 1 ? 's' : '') + ' desde cada regreso)<br>';
+                        html += '• Regresos: <b style="color:#fff;">' + R3.ev + '</b>' + (R3.abiertas ? ' (' + R3.abiertas + ' con la ventana todavía abierta)' : '') + ' · volvieron a salir en cualquier lotería dentro de la ventana: <b style="color:#fff;">' + R3.volvio + '</b> vs ' + R3.expV.toFixed(0) + ' por azar → ' + ix(R3.volvio, R3.expV) + '<br>';
+                        html += '• La señal (+2) en las loterías donde estaba pendiente: <b style="color:#fff;">' + R3.hits + '</b> aciertos en ' + R3.opp + ' sorteos vs ' + (R3.opp * 0.01).toFixed(1) + ' por azar → ' + ix(R3.hits, R3.opp * 0.01) + '<br>';
+                        html += '<div style="overflow-x:auto;margin-top:5px;"><table style="width:100%;border-collapse:collapse;font-size:10px;color:#d1fae5;background:transparent;margin:0;box-shadow:none;">';
+                        html += '<tr><th style="background:#064e3b;color:#a7f3d0;padding:3px 5px;font-size:9px;">Nº</th><th style="background:#064e3b;color:#a7f3d0;padding:3px 5px;font-size:9px;">Regresó</th><th style="background:#064e3b;color:#a7f3d0;padding:3px 5px;font-size:9px;">Sequía</th><th style="background:#064e3b;color:#a7f3d0;padding:3px 5px;font-size:9px;">Pendiente en</th><th style="background:#064e3b;color:#a7f3d0;padding:3px 5px;font-size:9px;">Después, dentro de la ventana</th></tr>';
+                        var h12r = function(t) { try { return (typeof convertTo12Hour === 'function' && t) ? convertTo12Hour(t) : t; } catch (e) { return t; } };
+                        B.rec.slice(0, 40).forEach(function(r) {
+                            var np = Object.keys(r.pend).length;
+                            var desp = r.apps.length ? r.apps.map(function(a) { return '<span style="display:inline-block;margin:1px 3px 1px 0;padding:0 5px;border-radius:4px;' + (a.pend ? 'background:rgba(34,197,94,0.3);border:1px solid #4ade80;color:#fff;font-weight:bold;' : 'background:rgba(148,163,184,0.15);border:1px solid rgba(148,163,184,0.4);') + '">' + (a.pend ? '✅ ' : '↩️ ') + a.lot + ' ' + _ngpRegFmtD(a.date) + ' ' + h12r(a.time) + '</span>'; }).join('') : '<span style="color:#64748b;">— no volvió' + (r.abierta ? ' (ventana abierta)' : '') + '</span>';
+                            html += '<tr style="border-top:1px solid rgba(52,211,153,0.25);"><td style="padding:3px 5px;font-family:monospace;font-size:13px;font-weight:bold;color:#fff;border:none;">' + r.n + '</td><td style="padding:3px 5px;white-space:nowrap;border:none;">' + _ngpRegFmtD(r.date) + ' ' + h12r(r.time) + ' · ' + r.lot + '</td><td style="padding:3px 5px;white-space:nowrap;border:none;">' + r.gap + ' sorteos (' + r.exc.toFixed(1) + '×) desde ' + _ngpRegFmtD(r.prevD) + '</td><td style="padding:3px 5px;border:none;">' + np + ' lotería' + (np === 1 ? '' : 's') + '</td><td style="padding:3px 5px;border:none;">' + desp + '</td></tr>';
+                        });
+                        html += '</table></div>';
+                        if (B.rec.length > 40) html += '<div style="color:#6ee7b7;font-size:9px;">Se muestran los 40 más recientes de ' + B.rec.length + '.</div>';
+                        html += '<div style="color:#94a3b8;font-size:9px;margin-top:3px;">✅ = volvió a salir en una lotería donde estaba pendiente (ahí la señal 🔄 REGRESO sumaba +2: acierto) · ↩️ = volvió a salir en otra lotería.</div>';
+                        html += '</div>';
+                    }
                 }
                 conts.forEach(function(x) { x.innerHTML = html; });
             } catch (e) { console.error('[REG]', e); }
@@ -76365,7 +76406,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r214 · v46.9.281</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r215 · v46.9.282</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
