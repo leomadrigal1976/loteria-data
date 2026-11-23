@@ -1003,6 +1003,8 @@
         .ngp-venc tr.ngp-venc-hoy td { background: rgba(251,191,36,0.14); }
         /* V46.9.283: tabla del historial de REGRESOS — sin el hover blanco global */
         .ngp-regtab tr:hover { background: rgba(52,211,153,0.15) !important; }
+        /* V46.9.286: número y su vuelta juntos en el TOP 5 */
+        .ngp-par-vuelta { outline: 3px solid #22d3ee; outline-offset: 2px; box-shadow: 0 0 12px rgba(34,211,238,0.85) !important; }
 
         .alert {
             padding: 15px 20px;
@@ -32674,6 +32676,32 @@ function senalesDe(nn) {
                 h0 += '<span style="font-size:11px;font-weight:bold;color:#fcd34d;letter-spacing:0.4px;">👁️ EN ESPERA HOY — ' + diaNom + ' ' + ep.domHoy + ' de ' + mesNom + '</span>';
                 h0 += '<span style="font-size:9px;color:#fde68a;display:flex;align-items:center;gap:4px;">📅 Día TOPE del período: <input type="number" min="1" max="28" value="' + ep.tope + '" onchange="_ngpEsperaTopeSet(this)" title="Escribí hasta qué día del mes se vigila el período. Ej: 10 = se vigila del día 1 al día 10 de cada mes. Se guarda automáticamente." style="width:44px;background:#3a1d00;color:#fff;border:1px solid #f59e0b;border-radius:4px;font-size:11px;text-align:center;padding:1px 2px;font-weight:bold;"> <span style="color:#fcd34d;">→ se vigila del 1 al ' + ep.tope + ' de cada mes</span> <span style="color:#b45309;">(se guarda)</span></span>';
                 h0 += '</div>';
+                // V46.9.286 (pedido de Leo): ⭐ COINCIDENCIA DE TOPS (3 o más)
+                var _coin9 = {};
+                try {
+                    var _addC9 = function(n9, etq9) { if (!n9) return; n9 = ('' + n9).slice(-2); (_coin9[n9] = _coin9[n9] || []).push(etq9); };
+                    ep.filas.forEach(function(f6) {
+                        var e6 = f6.tipo === 'sem' ? 'de los ' + diaPl : f6.tipo === 'per' ? 'del período del mes' : f6.tipo === 'dia' ? 'de fecha ' + ep.domHoy : 'de los que más repiten acá';
+                        f6.nums.forEach(function(x6, i6) { _addC9(x6.n, 'Nº' + (i6 + 1) + ' ' + e6); });
+                    });
+                    var _td9 = F0.topsDia ? F0.topsDia(L) : null;
+                    if (_td9) {
+                        (_td9.vib || []).forEach(function(x6) { _addC9(x6.n, 'Top de Vibración'); });
+                        if (_td9.lider && _td9.lider.nums) _td9.lider.nums.forEach(function(x6) { _addC9(x6.n, 'Grupo TOP general (' + _td9.lider.g + ')'); });
+                    }
+                } catch (eC9) {}
+                var _coinL9 = Object.keys(_coin9).filter(function(k9) { return _coin9[k9].length >= 3; }).sort(function(a, b) { return _coin9[b].length - _coin9[a].length; });
+                _coinL9.forEach(function(n9) {
+                    var sal9 = null;
+                    ep.filas.forEach(function(f6) { f6.nums.forEach(function(x6) { if (x6.n === n9 && x6.salio && x6.salio.date === F0.hoyStr) sal9 = x6.salio; }); });
+                    if (!sal9) { try { (F0.serie || []).forEach(function(s9) { if (s9.lot === L && s9.date === F0.hoyStr && s9.n === n9) sal9 = s9; }); } catch (eS9) {} }
+                    h0 += '<div class="' + (sal9 ? '' : 'ngp-parpadea') + '" style="display:flex;align-items:center;gap:8px;background:linear-gradient(90deg,rgba(250,204,21,0.28),rgba(0,0,0,0.35));border:2px solid #facc15;border-radius:7px;padding:4px 8px;margin-top:5px;">';
+                    h0 += '<span style="font-family:monospace;font-size:24px;font-weight:bold;color:#fef08a;text-shadow:0 0 9px rgba(250,204,21,0.7);min-width:34px;text-align:center;line-height:1;">' + n9 + _cadTxt9(n9) + '</span>';
+                    h0 += '<span style="font-size:10px;line-height:1.45;color:#fef9c3;flex:1;"><strong style="color:#fff;">⭐ COINCIDE EN ' + _coin9[n9].length + ' TOPS:</strong> ' + _coin9[n9].join(' · ') + '</span>';
+                    h0 += sal9 ? '<span style="font-size:9px;font-weight:bold;padding:3px 8px;border-radius:5px;white-space:nowrap;background:rgba(16,185,129,0.2);border:1px solid #34d399;color:#a7f3d0;">✅ SALIÓ ' + fmtH(sal9.time) + '</span>'
+                               : '<span style="font-size:9px;font-weight:bold;padding:3px 8px;border-radius:5px;white-space:nowrap;background:rgba(250,204,21,0.25);border:1px solid #facc15;color:#fef08a;">⭐ EN ESPERA</span>';
+                    h0 += '</div>';
+                });
                 ep.filas.forEach(function(f5) {
                     var etq = '', pendTxt = '';
                     if (f5.tipo === 'sem') { etq = 'Nº1 y Nº2 de los ' + diaPl; pendTxt = 'hoy es ' + diaNom + ' y aún no sale(n)'; }
@@ -32695,6 +32723,7 @@ function senalesDe(nn) {
                             // era de la fila y confundía) + última salida siempre visible debajo.
                             h0 += '<span title="' + x0.n + ': ' + x0.veces + ' veces en este patrón · última salida en esta lotería (cualquier día): ' + (x0.ult || 'sin registro') + ' · aún en espera" style="font-family:monospace;font-size:22px;font-weight:bold;min-width:34px;text-align:center;line-height:1;color:#fbbf24;text-shadow:0 0 8px rgba(251,191,36,0.5);cursor:help;">' + x0.n + '<small style="display:block;font-family:\'Segoe UI\',Arial,sans-serif;font-size:8px;font-weight:bold;letter-spacing:0.5px;margin-top:2px;color:#b45309;">Nº' + (xi0 + 1) + ' · últ ' + fmtF(x0.ult) + '</small>' + _cadTxt9(x0.n) + '</span>';
                         }
+                        if (_coin9[x0.n] && _coin9[x0.n].length >= 3) h0 += '<span title="' + x0.n + ' coincide en ' + _coin9[x0.n].length + ' tops: ' + _coin9[x0.n].join(', ').replace(/"/g, '') + '" style="font-size:10px;font-weight:bold;color:#1c1917;background:#facc15;border-radius:9px;padding:1px 6px;margin-left:-3px;cursor:help;">⭐' + _coin9[x0.n].length + '</span>'; // V46.9.286
                     });
                     h0 += '</span>';
                     h0 += '<span style="font-size:10px;line-height:1.4;color:#fde68a;flex:1;"><strong style="color:#fff;">' + etq + '</strong> (' + vecesTxt + ')' + (pend.length ? ' · ' + pendTxt : ' · patrón cumplido') + '</span>';
@@ -35116,19 +35145,24 @@ function senalesDe(nn) {
                 html += '<div style="display:flex;gap:5px;margin-top:6px;">';
                 if (!rk.top.length) html += '<div style="font-size:10px;color:#64748b;padding:4px;">Sin candidatos (necesita más capturas de esta lotería).</div>';
                 var _hayT5 = false;
+                var _t5n = {}; rk.top.forEach(function(x) { _t5n[x.num] = true; }); // V46.9.286
                 rk.top.forEach(function(x) {
+                    var _rv9 = x.num.split('').reverse().join('');
+                    var _par9 = (_rv9 !== x.num && !!_t5n[_rv9]);
                     // V46.9.166 (pedido de Leo): distintivo claro si coincide con el top-5 "después de"
                     var _t5 = x.tipos.some(function(t) { return t.indexOf('(top-5 después-de)') > 0; });
                     var _horR = x.tipos.some(function(t) { return t.indexOf('FALTA HOY') > 0; }); // V46.9.169
                     var _pdM = x.tipos.some(function(t) { return t.indexOf('📈') === 0; }); // V46.9.181: coincide con grupo dominante pendiente
                     var _ctM = x.tipos.some(function(t) { return t.indexOf('⚡') === 0; }); // V46.9.195: contagio del grupo recién salido
                     if (_t5) _hayT5 = true;
-                    html += '<div title="' + x.tipos.join(' · ').replace(/"/g, '') + '" style="background:' + (_t5 ? 'rgba(219,39,119,0.3)' : 'rgba(220,38,38,0.2)') + ';border:' + (_t5 ? '2px solid #ec4899;box-shadow:0 0 7px rgba(236,72,153,0.6)' : '1px solid #f87171') + ';border-radius:6px;padding:4px 8px;text-align:center;flex:1;cursor:help;">';
+                    html += '<div class="' + (_par9 ? 'ngp-par-vuelta' : '') + '" title="' + (_par9 ? '↔ ' + x.num + ' y su vuelta ' + _rv9 + ' están los dos en el TOP 5 · ' : '') + x.tipos.join(' · ').replace(/"/g, '') + '" style="background:' + (_t5 ? 'rgba(219,39,119,0.3)' : 'rgba(220,38,38,0.2)') + ';border:' + (_t5 ? '2px solid #ec4899;box-shadow:0 0 7px rgba(236,72,153,0.6)' : '1px solid #f87171') + ';border-radius:6px;padding:4px 8px;text-align:center;flex:1;cursor:help;">';
                     html += '<div style="font-family:monospace;font-size:19px;font-weight:bold;color:#fff;line-height:1;">' + (_t5 ? '🎯' : '') + x.num + '</div>';
                     html += '<div style="font-size:8px;color:' + (_t5 ? '#f9a8d4' : '#fca5a5') + ';">' + x.score + ' señ.' + (_t5 ? ' · top-5 desp.' : '') + (_horR ? ' · <span style="color:#5eead4;font-weight:bold;">🕐 hor. salidor</span>' : '') + (_pdM ? ' · <span style="color:#7dd3fc;font-weight:bold;">📈 grupo dom.</span>' : '') + (_ctM ? ' · <span style="color:#fca5a5;font-weight:bold;">⚡ contagio</span>' : '') + '</div>';
+                    if (_par9) html += '<div style="font-size:9px;font-weight:bold;color:#0c4a6e;background:#67e8f9;border-radius:4px;padding:0 4px;margin-top:2px;">↔ con ' + _rv9 + '</div>'; // V46.9.286
                     html += '</div>';
                 });
                 html += '</div>';
+                if (rk.top.some(function(x) { var r9 = x.num.split('').reverse().join(''); return r9 !== x.num && _t5n[r9]; })) html += '<div style="font-size:9px;color:#67e8f9;margin-top:3px;">↔ Contorno celeste = el número y su vuelta están los dos en el TOP 5 de señales.</div>'; // V46.9.286
                 // V46.9.174 (pedido de Leo, maqueta aprobada): TOP 5 DE CADA GRUPO —
                 // una fila por grupo con sus 5 mejores números por señales (mayor → menor).
                 if (rk.topGrupos && rk.topGrupos.length) {
@@ -76591,7 +76625,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r218 · v46.9.285</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r219 · v46.9.286</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
