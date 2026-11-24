@@ -1004,6 +1004,9 @@
         /* V46.9.283: tabla del historial de REGRESOS — sin el hover blanco global */
         .ngp-regtab tr:hover { background: rgba(52,211,153,0.15) !important; }
         /* V46.9.286: número y su vuelta juntos en el TOP 5 */
+        /* V46.9.287: pulso de la alerta MISMO DÍA (brillo, sin perder lectura) */
+        @keyframes ngpMDPulso { 0%,100% { box-shadow: 0 0 6px rgba(103,232,249,0.5); } 50% { box-shadow: 0 0 26px rgba(103,232,249,1), 0 0 4px #fff inset; } }
+        .ngp-md-pulso { animation: ngpMDPulso 1.3s ease-in-out infinite; }
         .ngp-par-vuelta { outline: 3px solid #22d3ee; outline-offset: 2px; box-shadow: 0 0 12px rgba(34,211,238,0.85) !important; }
 
         .alert {
@@ -30435,6 +30438,9 @@ function senalesDe(nn) {
                                     for (var _ip = 0; _ip < _pgL.length; _ip++) { if (_pgL[_ip].g === g) { pegC9 = _pgL[_ip]; break; } }
                                     esPeg9 = !!(pegC9 && ((ultPorNumLot[nn] || {})[L] !== hoyStr) && !salioReciente);
                                 } catch (ePg0) {}
+                                // V46.9.288 (pedido de Leo): 🔂 PATRÓN MISMO DÍA (+4 mismo/vuelta, +2 conversión)
+                                var esMD9 = false, mdC9 = null;
+                                try { mdC9 = (typeof _ngpMDFamHoy === 'function' && window._ngpFiltro) ? (_ngpMDFamHoy(L)[nn] || null) : null; esMD9 = !!mdC9; } catch (eMD0) {}
                                 // V46.9.281 (pedido de Leo): 🔄 REGRESO tras sequía global, pendiente en esta lotería (+2)
                                 var esReg9 = false, regC9 = null, regP9 = null;
                                 try {
@@ -30443,7 +30449,7 @@ function senalesDe(nn) {
                                     if (regC9) regP9 = regC9.pend.filter(function(x9) { return x9.L === L; })[0] || null;
                                     esReg9 = !!(regC9 && regP9 && ((ultPorNumLot[nn] || {})[L] !== hoyStr));
                                 } catch (eRg0) {}
-                                if (!esRezagoL && !(tieneSenalesL && pos !== null && !salioReciente) && !esSigue10 && !esEco9 && !esE24 && !esJC9 && !esPeg9 && !esReg9) return;
+                                if (!esRezagoL && !(tieneSenalesL && pos !== null && !salioReciente) && !esSigue10 && !esEco9 && !esE24 && !esJC9 && !esPeg9 && !esReg9 && !esMD9) return;
                                 var scoreL = 0, tiposL = [];
                                 (sn0.porLoteria || []).forEach(function(cf) {
                                     if (cf.lot === L) { scoreL += cf.score; cf.tipos.forEach(function(t) { tiposL.push(t); }); }
@@ -30657,6 +30663,13 @@ function senalesDe(nn) {
                                         try { if (typeof convertTo12Hour === 'function') { if (hEc9) hEc9 = convertTo12Hour(hEc9); if (pEc9) pEc9 = convertTo12Hour(pEc9); } } catch (eEc2) {}
                                         scoreL += 4; // V46.9.251: +2→+4 (la señal más sólida: ×1.56, z=4.5)
                                         tiposL.push('🔁 ECO INMEDIATO (+4): en esta lotería el número recién salido REPITE en el sorteo siguiente del MISMO día ' + ecoC9.idx.toFixed(1) + '× más que el azar (' + ecoC9.h + ' de ' + ecoC9.c + ' casos del historial) — el último salido HOY fue este ' + nn + (hEc9 ? ' (' + hEc9 + ')' : '') + ' y es posibilidad para el sorteo de las ' + pEc9);
+                                    }
+                                    // V46.9.288 (pedido de Leo): 🔂 PATRÓN MISMO DÍA
+                                    if (esMD9 && mdC9) {
+                                        var _pMD9 = (mdC9.tipo === 'conversión') ? 2 : 4;
+                                        var _stMD9 = (typeof _ngpMDActiva === 'function') ? _ngpMDActiva(L) : null;
+                                        scoreL += _pMD9;
+                                        tiposL.push('🔂 PATRÓN MISMO DÍA (+' + _pMD9 + '): hoy salió el ' + mdC9.origen + ' a las ' + mdC9.hora + ' en ' + L + ' y el ' + nn + ' es su ' + (mdC9.tipo === 'mismo' ? 'repetición' : mdC9.tipo) + ' — acá el número del día repite, da vuelta o se convierte en un sorteo posterior' + (_stMD9 ? ' ×' + _stMD9.idx.toFixed(2) + ' el azar (3 años)' : ''));
                                     }
                                     // V46.9.281 (pedido de Leo): 🔄 REGRESO (+2)
                                     if (esReg9 && regC9) {
@@ -33971,6 +33984,15 @@ function senalesDe(nn) {
         // ═══ V46.9.285 (pedido de Leo): 🔂 MISMO DÍA en la misma lotería ═══════════
         // ¿el número que salió temprano vuelve a salir (él o su vuelta) en los sorteos
         // que quedan ese día en ESA lotería? Medido contra el azar por lotería.
+        // V46.9.287: familia de un número para el patrón del mismo día
+        function _ngpMDRel(n) {
+            var SW = { '3': '8', '8': '3', '4': '7', '7': '4' };
+            var cv = function(x) { var a = [x[0]].concat(SW[x[0]] ? [SW[x[0]]] : []), b = [x[1]].concat(SW[x[1]] ? [SW[x[1]]] : []), o = []; a.forEach(function(p) { b.forEach(function(q) { o.push(p + q); }); }); return o; };
+            var rev = n[1] + n[0], res = {};
+            res[n] = 'mismo'; if (rev !== n) res[rev] = 'vuelta';
+            cv(n).concat(cv(rev)).forEach(function(x) { if (!res[x]) res[x] = 'conversión'; });
+            return res;
+        }
         function _ngpMDStat(L, d0, d1) {
             try {
                 var F = window._ngpFiltro; if (!F || !F.serie) return null;
@@ -33980,21 +34002,61 @@ function senalesDe(nn) {
                 if (window._ngpMDCache[key]) return window._ngpMDCache[key];
                 var porDia = {};
                 F.serie.forEach(function(s) { if (s.lot !== L || s.date < d0 || s.date >= d1 || s.date > F.hoyStr || !/^\d\d$/.test(s.n)) return; (porDia[s.date] = porDia[s.date] || []).push(s); });
-                var c = 0, h = 0, e = 0, mismo = 0, vuelta = 0, ej = [];
+                var c = 0, h = 0, e = 0, cat = { mismo: 0, vuelta: 0, 'conversión': 0 }, ej = [], evDays = [], nDias = 0;
                 Object.keys(porDia).sort().forEach(function(d) {
                     var arr = porDia[d].sort(function(a, b) { return a.time < b.time ? -1 : a.time > b.time ? 1 : 0; });
+                    if (arr.length < 2) return;
+                    nDias++;
+                    var hubo = false;
                     for (var i = 0; i < arr.length - 1; i++) {
-                        var n = arr[i].n, rev = n.split('').reverse().join(''), fut = arr.slice(i + 1), p = (rev === n ? 1 : 2) / 100;
+                        var n = arr[i].n, R = _ngpMDRel(n), fut = arr.slice(i + 1), p = Object.keys(R).length / 100;
                         c++; e += 1 - Math.pow(1 - p, fut.length);
-                        var hit = fut.filter(function(f) { return f.n === n || f.n === rev; });
-                        if (hit.length) { h++; if (hit.some(function(f) { return f.n === n; })) mismo++; else vuelta++; ej.push({ d: d, n: n, t: arr[i].time, a: hit[0].n, ta: hit[0].time }); }
+                        var hit = fut.filter(function(f) { return !!R[f.n]; });
+                        if (hit.length) { h++; hubo = true; cat[R[hit[0].n]]++; ej.push({ d: d, n: n, t: arr[i].time, a: hit[0].n, ta: hit[0].time, tipo: R[hit[0].n] }); }
                     }
+                    if (hubo) evDays.push(d);
                 });
                 var z = (c && e) ? (h - e) / Math.sqrt(e * (1 - e / c)) : 0;
-                var val = { L: L, c: c, h: h, e: e, idx: e ? h / e : 0, z: z, mismo: mismo, vuelta: vuelta, ej: ej };
+                var val = { L: L, c: c, h: h, e: e, idx: e ? h / e : 0, z: z, mismo: cat.mismo, vuelta: cat.vuelta, conv: cat['conversión'], ej: ej, evDays: evDays, nDias: nDias };
                 window._ngpMDCache[key] = val;
                 return val;
             } catch (err) { return null; }
+        }
+        // cadencia del patrón en los últimos 120 días
+        function _ngpMDCad(L) {
+            try {
+                var F = window._ngpFiltro; var d120 = _ngpRegFechaMas(F.hoyStr, -120);
+                var st = _ngpMDStat(L, d120); if (!st || !st.nDias) return null;
+                var ev = st.evDays.length;
+                var prom = ev ? st.nDias / ev : null, promAzar = st.e ? st.nDias / st.e : null;
+                var ult = ev ? st.evDays[ev - 1] : null;
+                var desde = ult ? F.difDias(ult, F.hoyStr) : null;
+                var ejU = ult ? st.ej.filter(function(x) { return x.d === ult; }) : [];
+                return { prom: prom, promAzar: promAzar, ult: ult, desde: desde, exc: (prom && desde !== null) ? desde / prom : null, ev: ev, nDias: st.nDias, ejU: ejU };
+            } catch (e) { return null; }
+        }
+        // V46.9.288: candidatos del patrón MISMO DÍA hoy en L → { n: {tipo, origen, hora} }
+        function _ngpMDFamHoy(L) {
+            try {
+                var F = window._ngpFiltro; if (!F || !F.serie) return {};
+                var key = L + '|' + _ngpDV() + '|' + F.hoyStr;
+                window._ngpMDFamCache = window._ngpMDFamCache || {};
+                if (window._ngpMDFamCache[key]) return window._ngpMDFamCache[key];
+                var out = {};
+                if (_ngpMDActiva(L) && _ngpMDRestantes(L).length) {
+                    var hoyL = F.serie.filter(function(s) { return s.lot === L && s.date === F.hoyStr && /^\d\d$/.test(s.n); });
+                    var salidos = {}; hoyL.forEach(function(s) { salidos[s.n] = true; });
+                    var peso = { mismo: 0, vuelta: 0, 'conversión': 1 };
+                    hoyL.forEach(function(s) {
+                        var R = _ngpMDRel(s.n), h = s.time; try { if (typeof convertTo12Hour === 'function' && h) h = convertTo12Hour(h); } catch (e1) {}
+                        Object.keys(R).forEach(function(x) {
+                            if (!out[x] || peso[R[x]] < peso[out[x].tipo]) out[x] = { tipo: R[x], origen: s.n, hora: h };
+                        });
+                    });
+                }
+                window._ngpMDFamCache[key] = out;
+                return out;
+            } catch (e) { return {}; }
         }
         function _ngpMDActiva(L) {
             var F = window._ngpFiltro; if (!F) return null;
@@ -34017,7 +34079,7 @@ function senalesDe(nn) {
                 }).map(function(hh) { try { return (typeof convertTo12Hour === 'function') ? convertTo12Hour(hh) : hh; } catch (e) { return hh; } });
             } catch (e) { return []; }
         }
-        function _ngpMDAlertaHTML(L) {
+        function _ngpMDAlertaHTML(L, compacto) {
             try {
                 var F = window._ngpFiltro; if (!F) return '';
                 var st = _ngpMDActiva(L); if (!st) return '';
@@ -34025,20 +34087,48 @@ function senalesDe(nn) {
                 if (!hoyL.length) return '';
                 var rest = _ngpMDRestantes(L);
                 var h12 = function(t) { try { return (typeof convertTo12Hour === 'function' && t) ? convertTo12Hour(t) : t; } catch (e) { return t; } };
-                var stT = _ngpMDStat(L, '0000'), d90 = (typeof _ngpRegFechaMas === 'function') ? _ngpRegFechaMas(F.hoyStr, -90) : '0000', st90 = _ngpMDStat(L, d90);
-                var filas = [];
+                var fmtD = function(d) { var p = d.split('-'); return p[2] + '/' + p[1]; };
+                var d90 = _ngpRegFechaMas(F.hoyStr, -90), st90 = _ngpMDStat(L, d90), cad = _ngpMDCad(L);
+                var filas = [], hayPend = false;
                 hoyL.forEach(function(s, i) {
-                    var rev = s.n.split('').reverse().join('');
-                    var despues = hoyL.slice(i + 1).filter(function(f) { return f.n === s.n || f.n === rev; });
-                    if (despues.length) filas.push('<b style="color:#4ade80;">✅ ya se dio: ' + s.n + ' (' + h12(s.time) + ') → ' + despues[0].n + ' (' + h12(despues[0].time) + ')</b>');
-                    else if (rest.length) filas.push('salió el <b style="font-family:monospace;font-size:14px;color:#fff;">' + s.n + '</b> a las ' + h12(s.time) + ' → ojo con <b style="font-family:monospace;font-size:14px;color:#fde68a;">' + s.n + (rev !== s.n ? '</b> o <b style="font-family:monospace;font-size:14px;color:#fde68a;">' + rev : '') + '</b> en los sorteos que quedan (' + rest.join(', ') + ')');
+                    var R = _ngpMDRel(s.n);
+                    var despues = hoyL.slice(i + 1).filter(function(f) { return !!R[f.n]; });
+                    var fila = '<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:3px 0;">';
+                    fila += '<span style="font-size:11px;color:#e0f2fe;">salió</span><span style="font-family:monospace;font-size:' + (compacto ? 18 : 24) + 'px;font-weight:bold;color:#fff;">' + s.n + '</span><span style="font-size:11px;color:#e0f2fe;">a las ' + h12(s.time) + ' →</span>';
+                    if (despues.length) fila += despues.map(function(f) { return '<span style="background:#16a34a;border:2px solid #86efac;border-radius:6px;padding:1px 7px;font-weight:bold;color:#fff;font-size:12px;">✅ ' + f.n + ' (' + R[f.n] + ', ' + h12(f.time) + ')</span>'; }).join(' ');
+                    if (rest.length) {
+                        hayPend = true;
+                        var orden = Object.keys(R).sort(function(a, b) { var w = { mismo: 0, vuelta: 1, 'conversión': 2 }; return w[R[a]] - w[R[b]]; });
+                        fila += orden.map(function(x) {
+                            var c = R[x] === 'conversión' ? '#c4b5fd' : '#fde68a';
+                            return '<span style="display:inline-flex;flex-direction:column;align-items:center;background:rgba(0,0,0,0.35);border:2px solid ' + c + ';border-radius:7px;padding:1px 8px;line-height:1.05;"><b style="font-family:monospace;font-size:' + (compacto ? 16 : 22) + 'px;color:' + c + ';">' + x + '</b><span style="font-size:7px;color:#e0f2fe;">' + R[x] + '</span></span>';
+                        }).join('');
+                    }
+                    fila += '</div>';
+                    if (despues.length || rest.length) filas.push(fila);
                 });
                 if (!filas.length) return '';
-                var h = '<div style="background:linear-gradient(135deg,rgba(30,64,175,0.45),rgba(30,58,138,0.3));border:1.5px solid #60a5fa;border-radius:8px;padding:6px 10px;margin-bottom:7px;font-size:10px;color:#dbeafe;line-height:1.55;">';
-                h += '<b style="font-size:11px;color:#fff;">🔂 MISMO DÍA en ' + L + ':</b> ' + filas.join(' · ');
-                h += '<br><span style="color:#93c5fd;">📈 Acá el número del día repite o da vuelta en un sorteo posterior ×' + st.idx.toFixed(2) + ' vs azar en los últimos 3 años (' + st.h + ' de ' + st.e.toFixed(0) + ' esperadas)' + (st90 && st90.c >= 20 ? ' · últimos 90 días ×' + st90.idx.toFixed(2) + ' (' + st90.h + ' de ' + st90.e.toFixed(1) + ')' : '') + '. Alerta informativa: no suma puntos.</span>';
+                var h = '<div class="' + (hayPend ? 'ngp-md-pulso' : '') + '" style="background:linear-gradient(135deg,#1e3a8a,#0e7490);border:3px solid #67e8f9;box-shadow:0 0 16px rgba(103,232,249,0.6);border-radius:10px;padding:' + (compacto ? '6px 10px' : '8px 12px') + ';margin-bottom:8px;color:#e0f2fe;">';
+                h += '<div style="font-size:' + (compacto ? 12 : 14) + 'px;font-weight:bold;color:#fff;letter-spacing:0.3px;">🔂 PATRÓN MISMO DÍA — ' + L.toUpperCase() + (rest.length ? ' <span style="font-size:11px;color:#a5f3fc;">· quedan: ' + rest.join(', ') + '</span>' : '') + '</div>';
+                h += filas.join('');
+                if (!compacto) {
+                    h += '<div style="font-size:10px;color:#cffafe;margin-top:4px;line-height:1.5;">📈 Acá el número del día repite, da vuelta o se convierte (3↔8, 4↔7) en un sorteo posterior <b style="color:#fff;">×' + st.idx.toFixed(2) + '</b> el azar en los últimos 3 años (' + st.h + ' de ' + st.e.toFixed(0) + ' esperadas: ' + st.mismo + ' mismo · ' + st.vuelta + ' vuelta · ' + st.conv + ' conversión)' + (st90 && st90.c >= 20 ? ' · últimos 90 días <b style="color:#fff;">×' + st90.idx.toFixed(2) + '</b> (' + st90.h + ' de ' + st90.e.toFixed(1) + ')' : '') + '.</div>';
+                    if (cad && cad.prom) {
+                        var ec = cad.exc === null ? '#cffafe' : cad.exc >= 1.5 ? '#f87171' : cad.exc >= 1 ? '#fbbf24' : '#86efac';
+                        h += '<div style="font-size:11px;color:#fff;margin-top:3px;">⏱ Lo hace cada <b>~' + cad.prom.toFixed(1) + ' días</b>' + (cad.promAzar ? ' (por azar sería cada ~' + cad.promAzar.toFixed(1) + ')' : '') + ' · la última vez: <b>' + fmtD(cad.ult) + '</b>' + (cad.ejU.length ? ' (' + cad.ejU.map(function(x) { return x.n + '→' + x.a; }).join(', ') + ')' : '') + (cad.desde === 0 ? ', <b>hoy mismo</b>' : ', hace <b>' + cad.desde + ' día' + (cad.desde === 1 ? '' : 's') + '</b> → <b style="color:' + ec + ';">' + cad.exc.toFixed(1) + '× su promedio' + (cad.exc >= 1 ? ' — YA LO SUPERÓ' : ' — todavía le falta') + '</b>') + '</div>';
+                    }
+                    h += '<div style="font-size:9px;color:#a5f3fc;margin-top:2px;">Amarillo = mismo número o vuelta (suman +4) · lila = conversión (suma +2) · ✅ = ya se dio hoy. Es señal 🔂 en los candidatos de esta lotería.</div>';
+                }
                 h += '</div>';
                 return h;
+            } catch (e) { return ''; }
+        }
+        // banner arriba del Resumen con todas las loterías donde el patrón está activo hoy
+        function _ngpMDGlobalHTML() {
+            try {
+                var out = '';
+                (typeof LOTTERIES !== 'undefined' ? LOTTERIES : []).forEach(function(l) { if (l.digits === 3 || /monazo|tripleta/i.test(l.name)) return; out += _ngpMDAlertaHTML(l.name, true); });
+                return out;
             } catch (e) { return ''; }
         }
         function _ngpMDTablaHTML() {
@@ -34047,14 +34137,19 @@ function senalesDe(nn) {
                 var lots = [];
                 try { (typeof LOTTERIES !== 'undefined' ? LOTTERIES : []).forEach(function(l) { if (l.digits === 3 || /monazo|tripleta/i.test(l.name)) return; lots.push(l.name); }); } catch (e) {}
                 var d3 = _ngpRegFechaMas(F.hoyStr, -1095), d90 = _ngpRegFechaMas(F.hoyStr, -90);
-                var filas = lots.map(function(L) { return { L: L, t: _ngpMDStat(L, '0000'), a3: _ngpMDStat(L, d3), a90: _ngpMDStat(L, d90), on: !!_ngpMDActiva(L) }; }).filter(function(r) { return r.t && r.t.c >= 30; });
+                var filas = lots.map(function(L) { return { L: L, a3: _ngpMDStat(L, d3), a90: _ngpMDStat(L, d90), cad: _ngpMDCad(L), on: !!_ngpMDActiva(L) }; }).filter(function(r) { return r.a3 && r.a3.c >= 30; });
                 filas.sort(function(a, b) { return (b.on - a.on) || (b.a3.idx - a.a3.idx); });
                 var cel = function(s) { if (!s || s.c < 20) return '<td style="padding:2px 5px;border:none;color:#64748b;">—</td>'; var c = s.idx >= 1.4 && s.z >= 2 ? '#4ade80' : s.idx >= 1.15 ? '#fde68a' : s.idx <= 0.85 ? '#f87171' : '#cbd5e1'; return '<td style="padding:2px 5px;border:none;white-space:nowrap;"><b style="color:' + c + ';">×' + s.idx.toFixed(2) + '</b> <span style="color:#94a3b8;">' + s.h + '/' + s.e.toFixed(1) + ' · z ' + s.z.toFixed(1) + '</span></td>'; };
+                var th = function(t) { return '<th style="background:#1e3a8a;color:#bfdbfe;padding:3px 5px;font-size:9px;">' + t + '</th>'; };
                 var h = '<div style="background:rgba(0,0,0,0.3);border:1px solid #60a5fa;border-radius:8px;padding:7px 10px;margin-top:8px;font-size:10px;color:#dbeafe;">';
-                h += '<b style="color:#93c5fd;">🔂 MISMO DÍA, MISMA LOTERÍA — ¿el número que salió repite o da vuelta en un sorteo posterior ese día?</b> (aciertos / esperados por azar)';
-                h += '<div style="overflow-x:auto;"><table class="ngp-regtab" style="width:100%;border-collapse:collapse;font-size:10px;color:#dbeafe;background:transparent;margin:4px 0 0;box-shadow:none;"><tr><th style="background:#1e3a8a;color:#bfdbfe;padding:3px 5px;font-size:9px;">Lotería</th><th style="background:#1e3a8a;color:#bfdbfe;padding:3px 5px;font-size:9px;">Todo el historial</th><th style="background:#1e3a8a;color:#bfdbfe;padding:3px 5px;font-size:9px;">Últimos 3 años</th><th style="background:#1e3a8a;color:#bfdbfe;padding:3px 5px;font-size:9px;">Últimos 90 días</th><th style="background:#1e3a8a;color:#bfdbfe;padding:3px 5px;font-size:9px;">Alerta</th></tr>';
-                filas.forEach(function(r) { h += '<tr style="border-top:1px solid rgba(96,165,250,0.25);"><td style="padding:2px 5px;border:none;font-weight:bold;color:#fff;">' + r.L + '</td>' + cel(r.t) + cel(r.a3) + cel(r.a90) + '<td style="padding:2px 5px;border:none;">' + (r.on ? '<b style="color:#4ade80;">🔂 ACTIVA</b>' : '<span style="color:#64748b;">—</span>') + '</td></tr>'; });
-                h += '</table></div><div style="color:#94a3b8;font-size:9px;margin-top:3px;">La alerta se enciende sola en las loterías con ≥1,4× el azar y z ≥ 2 en los últimos 3 años (respaldo estadístico), y se apaga si la tendencia desaparece. Verde = respaldada · amarillo = algo arriba · rojo = por debajo del azar.</div></div>';
+                h += '<b style="color:#93c5fd;">🔂 MISMO DÍA, MISMA LOTERÍA — ¿el número que salió repite, da vuelta o se convierte (3↔8, 4↔7) en un sorteo posterior ese día?</b> (aciertos / esperados por azar)';
+                h += '<div style="overflow-x:auto;"><table class="ngp-regtab" style="width:100%;border-collapse:collapse;font-size:10px;color:#dbeafe;background:transparent;margin:4px 0 0;box-shadow:none;"><tr>' + th('Lotería') + th('Últimos 3 años') + th('Mismo · vuelta · conv.') + th('Últimos 90 días') + th('Cada cuánto (120 días)') + th('Alerta') + '</tr>';
+                var fmtD = function(d) { var p = d.split('-'); return p[2] + '/' + p[1]; };
+                filas.forEach(function(r) {
+                    var cd = r.cad && r.cad.prom ? '~' + r.cad.prom.toFixed(1) + ' d · últ. ' + fmtD(r.cad.ult) + ' (' + r.cad.desde + ' d, <b style="color:' + (r.cad.exc >= 1 ? '#fbbf24' : '#86efac') + ';">' + r.cad.exc.toFixed(1) + '×</b>)' : '—';
+                    h += '<tr style="border-top:1px solid rgba(96,165,250,0.25);"><td style="padding:2px 5px;border:none;font-weight:bold;color:#fff;">' + r.L + '</td>' + cel(r.a3) + '<td style="padding:2px 5px;border:none;color:#cbd5e1;">' + r.a3.mismo + ' · ' + r.a3.vuelta + ' · ' + r.a3.conv + '</td>' + cel(r.a90) + '<td style="padding:2px 5px;border:none;white-space:nowrap;color:#cbd5e1;">' + cd + '</td><td style="padding:2px 5px;border:none;">' + (r.on ? '<b style="color:#4ade80;">🔂 ACTIVA</b>' : '<span style="color:#64748b;">—</span>') + '</td></tr>';
+                });
+                h += '</table></div><div style="color:#94a3b8;font-size:9px;margin-top:3px;">La alerta se enciende sola en las loterías con ≥1,4× el azar y z ≥ 2 en los últimos 3 años, y se apaga si la tendencia desaparece. "Cada cuánto" = días con sorteos ÷ días en que se dio el patrón (últimos 120 días).</div></div>';
                 return h;
             } catch (e) { return ''; }
         }
@@ -35041,6 +35136,7 @@ function senalesDe(nn) {
                     html += '</div>';
                 }
             } catch (eVib) {}
+            try { html += _ngpMDGlobalHTML(); } catch (eMDg) {} // V46.9.287: 🔂 patrón mismo día (banner)
             try { html += _ngpRegresosHTML(); } catch (eReg) {} // V46.9.280 (pedido de Leo): 🔄 regresos tras sequía global
             // V46.9.216 (pedido de Leo): 🧲 alerta PAREJA 28·82 (ventana de 4 sorteos)
             try {
@@ -76625,7 +76721,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r219 · v46.9.286</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r221 · v46.9.288</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
