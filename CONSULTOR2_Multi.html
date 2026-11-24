@@ -30438,6 +30438,9 @@ function senalesDe(nn) {
                                     for (var _ip = 0; _ip < _pgL.length; _ip++) { if (_pgL[_ip].g === g) { pegC9 = _pgL[_ip]; break; } }
                                     esPeg9 = !!(pegC9 && ((ultPorNumLot[nn] || {})[L] !== hoyStr) && !salioReciente);
                                 } catch (ePg0) {}
+                                // V46.9.289 (pedido de Leo): 🔁 TERMINACIÓN 4↔7 (+1) — sólo el día de estudio
+                                var esT479 = false, t47C9 = null;
+                                try { var _T47 = (typeof _ngpT47Hoy === 'function' && window._ngpFiltro) ? _ngpT47Hoy() : null; t47C9 = _T47 ? (_T47.porL[L] || null) : null; esT479 = !!(t47C9 && nn[1] === t47C9.obj && ((ultPorNumLot[nn] || {})[L] !== hoyStr)); } catch (eT470) {}
                                 // V46.9.288 (pedido de Leo): 🔂 PATRÓN MISMO DÍA (+4 mismo/vuelta, +2 conversión)
                                 var esMD9 = false, mdC9 = null;
                                 try { mdC9 = (typeof _ngpMDFamHoy === 'function' && window._ngpFiltro) ? (_ngpMDFamHoy(L)[nn] || null) : null; esMD9 = !!mdC9; } catch (eMD0) {}
@@ -30449,7 +30452,7 @@ function senalesDe(nn) {
                                     if (regC9) regP9 = regC9.pend.filter(function(x9) { return x9.L === L; })[0] || null;
                                     esReg9 = !!(regC9 && regP9 && ((ultPorNumLot[nn] || {})[L] !== hoyStr));
                                 } catch (eRg0) {}
-                                if (!esRezagoL && !(tieneSenalesL && pos !== null && !salioReciente) && !esSigue10 && !esEco9 && !esE24 && !esJC9 && !esPeg9 && !esReg9 && !esMD9) return;
+                                if (!esRezagoL && !(tieneSenalesL && pos !== null && !salioReciente) && !esSigue10 && !esEco9 && !esE24 && !esJC9 && !esPeg9 && !esReg9 && !esMD9 && !esT479) return;
                                 var scoreL = 0, tiposL = [];
                                 (sn0.porLoteria || []).forEach(function(cf) {
                                     if (cf.lot === L) { scoreL += cf.score; cf.tipos.forEach(function(t) { tiposL.push(t); }); }
@@ -30663,6 +30666,11 @@ function senalesDe(nn) {
                                         try { if (typeof convertTo12Hour === 'function') { if (hEc9) hEc9 = convertTo12Hour(hEc9); if (pEc9) pEc9 = convertTo12Hour(pEc9); } } catch (eEc2) {}
                                         scoreL += 4; // V46.9.251: +2→+4 (la señal más sólida: ×1.56, z=4.5)
                                         tiposL.push('🔁 ECO INMEDIATO (+4): en esta lotería el número recién salido REPITE en el sorteo siguiente del MISMO día ' + ecoC9.idx.toFixed(1) + '× más que el azar (' + ecoC9.h + ' de ' + ecoC9.c + ' casos del historial) — el último salido HOY fue este ' + nn + (hEc9 ? ' (' + hEc9 + ')' : '') + ' y es posibilidad para el sorteo de las ' + pEc9);
+                                    }
+                                    // V46.9.289 (pedido de Leo): 🔁 TERMINACIÓN 4↔7 (+1)
+                                    if (esT479 && t47C9) {
+                                        scoreL += 1;
+                                        tiposL.push('🔁 TERMINACIÓN 4↔7 (+1): el último sorteo de hoy en ' + L + ' fue el ' + t47C9.origen + ' (' + t47C9.hora + ', terminación ' + t47C9.term + ') → para el próximo, terminación ' + t47C9.obj + (t47C9.reforzado ? ' · reforzado: hoy ya salieron ' + t47C9.otras.length + ' con terminación ' + t47C9.obj + ' en otras loterías' : ''));
                                     }
                                     // V46.9.288 (pedido de Leo): 🔂 PATRÓN MISMO DÍA
                                     if (esMD9 && mdC9) {
@@ -34069,8 +34077,15 @@ function senalesDe(nn) {
                 var F = window._ngpFiltro, tsP = null;
                 for (var i = 0; i < LOTTERIES.length; i++) { if (LOTTERIES[i].name === L) { tsP = LOTTERIES[i].times || []; break; } }
                 if (!tsP) return [];
-                var capt = {};
-                (F.serie || []).forEach(function(s) { if (s.lot === L && s.date === F.hoyStr) capt[('' + s.time).substring(0, 5)] = true; });
+                var capt = {}, vistoDia = {}, hayVisto = false;
+                // V46.9.289: sólo horarios que esta lotería sí jugó en el mismo día de semana (últimas 5 semanas)
+                var _dw = new Date(F.hoyStr + 'T12:00:00').getDay(), _d35 = _ngpRegFechaMas(F.hoyStr, -35);
+                (F.serie || []).forEach(function(s) {
+                    if (s.lot !== L) return;
+                    if (s.date === F.hoyStr) capt[('' + s.time).substring(0, 5)] = true;
+                    else if (s.date >= _d35 && new Date(s.date + 'T12:00:00').getDay() === _dw) { vistoDia[('' + s.time).substring(0, 5)] = true; hayVisto = true; }
+                });
+                if (hayVisto) tsP = tsP.filter(function(hh) { return vistoDia[hh] || capt[hh]; });
                 var ah = new Date(), nowMin = ah.getHours() * 60 + ah.getMinutes(), esHoy = (F.hoyStr === getLocalDateString());
                 return tsP.filter(function(hh) {
                     if (capt[hh]) return false;
@@ -34151,6 +34166,84 @@ function senalesDe(nn) {
                 });
                 h += '</table></div><div style="color:#94a3b8;font-size:9px;margin-top:3px;">La alerta se enciende sola en las loterías con ≥1,4× el azar y z ≥ 2 en los últimos 3 años, y se apaga si la tendencia desaparece. "Cada cuánto" = días con sorteos ÷ días en que se dio el patrón (últimos 120 días).</div></div>';
                 return h;
+            } catch (e) { return ''; }
+        }
+        // ═══ V46.9.289 (pedido de Leo): 🔁 TERMINACIÓN 4↔7 en el día de estudio ═══
+        function _ngpT47Es3d(l) { try { var r = false; (typeof LOTTERIES !== 'undefined' ? LOTTERIES : []).forEach(function(x) { if (x.name === l && x.digits === 3) r = true; }); return r || /monazo|tripleta/i.test(l); } catch (e) { return false; } }
+        function _ngpT47Hoy() {
+            try {
+                var F = window._ngpFiltro; if (!F || !F.serie) return null;
+                var key = _ngpDV() + '|' + F.hoyStr;
+                if (window._ngpT47Cache && window._ngpT47Cache.key === key) return window._ngpT47Cache.val;
+                var h12 = function(t) { try { return (typeof convertTo12Hour === 'function' && t) ? convertTo12Hour(t) : t; } catch (e) { return t; } };
+                var hoy = F.serie.filter(function(s) { return s.date === F.hoyStr && /^\d\d$/.test(s.n) && !_ngpT47Es3d(s.lot); }).sort(function(a, b) { return a.time < b.time ? -1 : 1; });
+                var c = { '4': [], '7': [] }, ultL = {};
+                hoy.forEach(function(s) { var t = s.n[1]; if (c[t]) c[t].push({ lot: s.lot, n: s.n, hora: h12(s.time) }); ultL[s.lot] = s; });
+                var porL = {};
+                Object.keys(ultL).forEach(function(L) {
+                    var s = ultL[L], t = s.n[1]; if (t !== '4' && t !== '7') return;
+                    var rest = (typeof _ngpMDRestantes === 'function') ? _ngpMDRestantes(L) : [];
+                    if (!rest.length) return;
+                    var obj = (t === '4') ? '7' : '4';
+                    var otras = c[obj].filter(function(x) { return x.lot !== L; });
+                    porL[L] = { origen: s.n, hora: h12(s.time), term: t, obj: obj, prox: rest[0], reforzado: otras.length >= 2, otras: otras };
+                });
+                var val = { c: c, porL: porL };
+                window._ngpT47Cache = { key: key, val: val };
+                return val;
+            } catch (e) { return null; }
+        }
+        // histórico (desde 2023): tras terminación 4 (7) en una lotería, su siguiente sorteo del mismo día termina en 7 (4)
+        function _ngpT47Hist() {
+            try {
+                var F = window._ngpFiltro; var key = _ngpDV();
+                if (window._ngpT47HistCache && window._ngpT47HistCache.key === key) return window._ngpT47HistCache.val;
+                var porLD = {};
+                F.serie.forEach(function(s) { if (s.date < '2023-01-01' || s.date > F.hoyStr || !/^\d\d$/.test(s.n) || _ngpT47Es3d(s.lot)) return; var k = s.lot + '|' + s.date; (porLD[k] = porLD[k] || []).push(s); });
+                var r = { '4': { c: 0, h: 0 }, '7': { c: 0, h: 0 } };
+                Object.keys(porLD).forEach(function(k) {
+                    var arr = porLD[k].sort(function(a, b) { return a.time < b.time ? -1 : 1; });
+                    for (var i = 0; i < arr.length - 1; i++) { var t = arr[i].n[1]; if (r[t]) { r[t].c++; if (arr[i + 1].n[1] === (t === '4' ? '7' : '4')) r[t].h++; } }
+                });
+                window._ngpT47HistCache = { key: key, val: r };
+                return r;
+            } catch (e) { return null; }
+        }
+        function _ngpT47MejoresDe(L, obj) {
+            var sc = (typeof _ngpFlotScores === 'function') ? _ngpFlotScores(L) : {};
+            return Object.keys(sc).filter(function(n) { return n[1] === obj && sc[n] && sc[n].score > 0; }).sort(function(a, b) { return sc[b].score - sc[a].score; }).slice(0, 4).map(function(n) { return { n: n, s: sc[n].score }; });
+        }
+        function _ngpT47HistTxt() {
+            var H = _ngpT47Hist(); if (!H) return '';
+            var p = function(x) { return x.c ? (100 * x.h / x.c).toFixed(1) + '%' : '—'; };
+            return 'Histórico desde 2023: tras terminación 4, el siguiente sorteo de esa lotería terminó en 7 el ' + p(H['4']) + ' (' + H['4'].h + ' de ' + H['4'].c + ') · tras 7 → 4 el ' + p(H['7']) + ' (' + H['7'].h + ' de ' + H['7'].c + ') · el azar es 10%.';
+        }
+        function _ngpT47GlobalHTML() {
+            try {
+                var T = _ngpT47Hoy(); if (!T) return '';
+                var Ls = Object.keys(T.porL);
+                if (!T.c['4'].length && !T.c['7'].length) return '';
+                var chip = function(x) { return '<span style="display:inline-block;background:rgba(255,255,255,0.12);border:1px solid #a5f3fc;border-radius:5px;padding:0 6px;margin:1px 3px 1px 0;color:#fff;"><b style="font-family:monospace;">' + x.n + '</b> <span style="font-size:9px;color:#cffafe;">' + x.lot + ' ' + x.hora + '</span></span>'; };
+                var h = '<div style="background:linear-gradient(135deg,#0e7490,#0891b2);border:2px solid #67e8f9;border-radius:10px;padding:8px 12px;margin-bottom:10px;color:#ecfeff;">';
+                h += '<div style="font-size:13px;font-weight:bold;color:#fff;">🔁 TERMINACIONES 4 ↔ 7 — HOY</div>';
+                h += '<div style="font-size:10px;margin-top:3px;line-height:1.7;">Terminación <b style="font-size:13px;">4</b> (' + T.c['4'].length + '): ' + (T.c['4'].map(chip).join('') || '<span style="color:#a5f3fc;">ninguna</span>') + '<br>Terminación <b style="font-size:13px;">7</b> (' + T.c['7'].length + '): ' + (T.c['7'].map(chip).join('') || '<span style="color:#a5f3fc;">ninguna</span>') + '</div>';
+                if (Ls.length) {
+                    h += '<div style="font-size:11px;font-weight:bold;color:#fff;margin-top:5px;">🎯 Dónde jugar (lotería cuyo último sorteo de hoy terminó en 4 o 7 → la otra terminación suma +1 en su próximo sorteo):</div>';
+                    Ls.forEach(function(L) {
+                        var p = T.porL[L], mj = _ngpT47MejoresDe(L, p.obj);
+                        h += '<div style="background:rgba(0,0,0,0.22);border-radius:6px;padding:3px 8px;margin-top:3px;font-size:10px;"><b style="color:#fff;">' + L + '</b>: último <b style="font-family:monospace;">' + p.origen + '</b> (' + p.hora + ', term. ' + p.term + ') → próximo ' + p.prox + ' con <b style="color:#fef08a;">terminación ' + p.obj + '</b>' + (p.reforzado ? ' <b style="color:#fde047;">🔥 reforzado: hoy ya salieron ' + p.otras.length + ' con terminación ' + p.obj + ' en otras loterías</b>' : '') + (mj.length ? ' · mejores por señales: ' + mj.map(function(x) { return '<b style="font-family:monospace;font-size:13px;color:#fff;">' + x.n + '</b> <span style="color:#cffafe;">(' + x.s + ' señ.)</span>'; }).join(', ') : '') + '</div>';
+                    });
+                } else h += '<div style="font-size:10px;color:#cffafe;margin-top:4px;">Ahora mismo ninguna lotería con sorteo pendiente tiene su último sorteo terminado en 4 o 7.</div>';
+                h += '<div style="font-size:9px;color:#a5f3fc;margin-top:4px;">' + _ngpT47HistTxt() + ' Señal 🔁 TERMINACIÓN 4↔7 = +1, sólo el día de estudio.</div>';
+                h += '</div>';
+                return h;
+            } catch (e) { return ''; }
+        }
+        function _ngpT47AlertaHTML(L) {
+            try {
+                var T = _ngpT47Hoy(); if (!T || !T.porL[L]) return '';
+                var p = T.porL[L], mj = _ngpT47MejoresDe(L, p.obj);
+                return '<div style="background:rgba(8,145,178,0.35);border:2px solid #67e8f9;border-radius:8px;padding:5px 10px;margin-bottom:7px;font-size:10px;color:#ecfeff;line-height:1.5;"><b style="font-size:11px;color:#fff;">🔁 TERMINACIÓN 4↔7:</b> el último sorteo acá fue <b style="font-family:monospace;font-size:13px;">' + p.origen + '</b> (' + p.hora + ', term. ' + p.term + ') → para el próximo (' + p.prox + ') los números con <b style="color:#fef08a;">terminación ' + p.obj + '</b> suman +1' + (p.reforzado ? ' · <b style="color:#fde047;">🔥 reforzado</b> (hoy ' + p.otras.length + ' con terminación ' + p.obj + ' en otras loterías)' : '') + (mj.length ? ' · mejores: ' + mj.map(function(x) { return '<b style="font-family:monospace;font-size:13px;color:#fff;">' + x.n + '</b> (' + x.s + ')'; }).join(', ') : '') + '</div>';
             } catch (e) { return ''; }
         }
         function _ngpGrpExcToggle() {
@@ -35137,6 +35230,7 @@ function senalesDe(nn) {
                 }
             } catch (eVib) {}
             try { html += _ngpMDGlobalHTML(); } catch (eMDg) {} // V46.9.287: 🔂 patrón mismo día (banner)
+            try { html += _ngpT47GlobalHTML(); } catch (eT47g) {} // V46.9.289: 🔁 terminaciones 4↔7 (celeste)
             try { html += _ngpRegresosHTML(); } catch (eReg) {} // V46.9.280 (pedido de Leo): 🔄 regresos tras sequía global
             // V46.9.216 (pedido de Leo): 🧲 alerta PAREJA 28·82 (ventana de 4 sorteos)
             try {
@@ -35232,6 +35326,7 @@ function senalesDe(nn) {
                 html += '</div>';
                 html += '<div style="flex:5;min-width:380px;">';
                 try { html += _ngpMDAlertaHTML(rk.lot); } catch (eMD) {} // V46.9.285: 🔂 mismo día
+                try { html += _ngpT47AlertaHTML(rk.lot); } catch (eT47) {} // V46.9.289: 🔁 terminación 4↔7
                 try { html += _ngpRegAlertaHTML(rk.lot); } catch (eRg) {} // V46.9.280: regreso pendiente en esta lotería
                 try { html += _ngpRepAlertaHTML(rk.lot); } catch (eRp) {} // V46.9.277 (pedido de Leo): alerta 🔁 repite/vuelta (sin puntos)
                 try { html += _ngpVencidosHTML(rk.lot); } catch (eVc) {} // V46.9.269 (pedido de Leo): top 18 más vencidos antes del análisis
@@ -76721,7 +76816,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r221 · v46.9.288</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r222 · v46.9.289</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
