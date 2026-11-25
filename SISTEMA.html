@@ -1639,7 +1639,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.290</span></h1>
+        <h1>📊 Análisis Predictivo <span style="font-size:13px;font-weight:normal;color:#c4b5fd;vertical-align:middle;">v46.9.292</span></h1>
         
         <button id="tabMgrBtn" onclick="tabMgrOpen()">
             &#9881;&#65039; Administrar Pesta&#241;as
@@ -6367,7 +6367,7 @@
 
         <!-- ═══ V46.9.31: PESTAÑA DON JORGE — Decenas y Terminaciones ═══ -->
         <div id="don_jorge" class="content">
-            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.290</span></h2>
+            <h2 style="background:linear-gradient(90deg,#2dd4bf,#0d9488);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:22px;">🎩 Don Jorge — Análisis de Decenas y Terminaciones <span style="font-size:11px;color:#8b5cf6;-webkit-text-fill-color:#8b5cf6;">v46.9.292</span></h2>
             <div style="background:linear-gradient(135deg,#042f2e,#065f46);border:1px solid rgba(45,212,191,0.4);border-radius:12px;padding:14px;margin-bottom:16px;color:#ccfbf1;font-size:12px;line-height:1.6;">
                 Analiza qué <strong>decena</strong> (primer dígito) y qué <strong>terminación</strong> (segundo dígito) están más rezagadas o más "pegadas". Para la <strong>🎰 Tómbola Tica</strong>, combina Tica + Megareventados + Monazos como una sola fuente (salen de las mismas tómbolas): cada momento de sorteo (mediodía, tarde, noche) es un evento, y una decena/terminación cuenta como salida si apareció en cualquiera de las tres. Para los Monazos de 3 dígitos se toman los <strong>dos primeros</strong> (325 → decena 3, terminación 2). <strong>Importante:</strong> los martes, viernes y domingo, la Tica de las 7:30 PM sale de otras tómbolas, así que ese número de Tica se excluye (pero Mega y Monazos de esa noche sí cuentan). Para <strong>Nicaragua</strong>, el sorteo de los <strong>martes 6:00 PM</strong> se excluye <strong>solo a partir del 15-06-2026</strong>, porque desde esa fecha lo realizan con otra tómbola (los martes 6:00 PM anteriores al 15-06-2026 sí cuentan, igual que los demás sorteos del martes). El <strong>rango</strong> define desde cuándo se considera pendiente; las <strong>estadísticas</strong> usan todo el historial.
             </div>
@@ -14364,7 +14364,7 @@ ${groups.map((g,i)=>`
         // nuevo de SISTEMA.html; si lo hay, lee el archivo por la API (sin caché),
         // compara la versión y, si es más nueva, recarga solo con un ?v= que salta
         // todas las cachés. Con archivo local (file://) no hace nada.
-        var _NGP_VERSION = 'v46.9.290';
+        var _NGP_VERSION = 'v46.9.292';
         function _ngpVerNum(v) { var m = /v(\d+)\.(\d+)\.(\d+)/.exec(v || ''); return m ? (parseInt(m[1], 10) * 1000000 + parseInt(m[2], 10) * 10000 + parseInt(m[3], 10)) : 0; }
         function _ngpAutoActualizar() {
             try {
@@ -14640,8 +14640,15 @@ ${groups.map((g,i)=>`
                 }
             }
             // Payload: solo los datos necesarios para los consultores (números y secuencias)
+            // V46.9.292 (reporte de Leo): payload más liviano — sin 'source' (etiqueta interna de
+            // importación) ni 'reventado:false' (es el valor por defecto). ~1,8 MB menos por subida.
+            var _crLiv = (fus.merged || []).map(function(r) {
+                if (!r || (r.source === undefined && r.reventado !== false)) return r;
+                var o = {}; for (var k in r) { if (k === 'source') continue; if (k === 'reventado' && r[k] === false) continue; o[k] = r[k]; }
+                return o;
+            });
             var payload = {
-                capturedResults: fus.merged,
+                capturedResults: _crLiv,
                 sequenceHistory: fus.seq,
                 borrados: _ghBorradosLeer(), // V46.9.157: los borrados viajan en la nube
                 p23Data: (typeof p23Data !== 'undefined' ? p23Data : {}), // V46.9.238: 2º/3º premio NY/FL
@@ -14655,7 +14662,20 @@ ${groups.map((g,i)=>`
 
             // V46.9.67: subida robusta. Trae el SHA fresco justo antes de cada intento
             // y reintenta si GitHub responde 409/422 (conflicto de versión por capturas rápidas).
+            // V46.9.292 (reporte de Leo): reintentos con espera ante cortes de red ("Failed to fetch")
+            // o errores 5xx de GitHub (500/502/503), que con un archivo de ~15 MB pasan a veces.
+            var _redRest = 3;
+            var _esperar = function(ms) { return new Promise(function(res) { setTimeout(res, ms); }); };
             function intentarSubir(intentosRestantes) {
+                return _intentarSubir0(intentosRestantes).then(function(r) {
+                    if (r && r._status >= 500 && _redRest > 0) { var w = (4 - _redRest) * 6000; _redRest--; try { _ghActualizarEstado('subiendo', 'GitHub respondió ' + r._status + ' — reintento en ' + (w / 1000) + ' s…'); } catch (e0) {} return _esperar(w).then(function() { return intentarSubir(intentosRestantes); }); }
+                    return r;
+                }, function(err) {
+                    if (_redRest > 0) { var w = (4 - _redRest) * 6000; _redRest--; try { _ghActualizarEstado('subiendo', 'Se cortó la conexión (' + ((err && err.message) || 'red') + ') — reintento en ' + (w / 1000) + ' s…'); } catch (e1) {} return _esperar(w).then(function() { return intentarSubir(intentosRestantes); }); }
+                    throw err;
+                });
+            }
+            function _intentarSubir0(intentosRestantes) {
                 // 1) Obtener el SHA MÁS RECIENTE del archivo (si existe)
                 return fetch(apiUrl + '?t=' + Date.now(), {
                     headers: { 'Authorization': 'Bearer ' + cfg.token, 'Accept': 'application/vnd.github+json' },
@@ -29452,8 +29472,8 @@ function senalesDe(nn) {
                 // V46.9.222 (pedido de Leo): panel BACKTEST GRUPOS EXCEDIDOS
                 // V46.9.290 (pedido de Leo): panel ESTIMACIÓN LOTERÍA NAVIDEÑA
                 h += '<div id="ngpNavPanel" style="display:none;background:linear-gradient(135deg,rgba(127,29,29,0.35),rgba(20,83,45,0.35));border:2px solid #fde68a;border-radius:10px;padding:10px;margin-top:9px;">';
-                h += '<div style="font-size:13px;font-weight:bold;color:#fef08a;margin-bottom:6px;">🎄 ESTIMACIÓN — LOTERÍA NAVIDEÑA (Gordo Navideño JPS)</div>';
-                h += '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:10px;color:#fef9c3;margin-bottom:8px;">Fecha del sorteo: <input type="date" id="ngpNavFecha" onchange="_ngpNavSet()" style="width:auto;display:inline-block;font-size:11px;padding:2px 4px;border-radius:4px;margin:0;"> Lotería de referencia: <select id="ngpNavLot" onchange="_ngpNavSet()" style="width:auto;display:inline-block;font-size:10px;padding:2px 4px;border-radius:4px;margin:0;"></select> Horario: <select id="ngpNavHora" onchange="_ngpNavSet()" style="width:auto;display:inline-block;font-size:10px;padding:2px 4px;border-radius:4px;margin:0;"></select></div>';
+                h += '<div style="font-size:13px;font-weight:bold;color:#fef08a;margin-bottom:6px;">🎄 ESTIMACIÓN — LOTERÍA NAVIDEÑA DE COSTA RICA (Gordo Navideño JPS) · elegí la fecha del sorteo</div>';
+                h += '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:10px;color:#fef9c3;margin-bottom:8px;">Fecha del sorteo: <input type="date" id="ngpNavFecha" onchange="_ngpNavSet()" style="width:auto;display:inline-block;font-size:11px;padding:2px 4px;border-radius:4px;margin:0;"> Lotería de referencia: <select id="ngpNavLot" onchange="_ngpNavSet()" style="width:auto;display:inline-block;font-size:10px;padding:2px 4px;border-radius:4px;margin:0;"></select> Horario: <select id="ngpNavHora" onchange="_ngpNavSet()" style="width:auto;display:inline-block;font-size:10px;padding:2px 4px;border-radius:4px;margin:0;"></select> Vibraciones: días antes <select id="ngpNavAntes" onchange="_ngpNavSet()" style="width:auto;display:inline-block;font-size:10px;padding:2px 4px;border-radius:4px;margin:0;"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select> días después <select id="ngpNavDesp" onchange="_ngpNavSet()" style="width:auto;display:inline-block;font-size:10px;padding:2px 4px;border-radius:4px;margin:0;"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select> <span style="color:#fde68a;">(sirve para cualquier fecha: elegí la fecha y se recalcula todo)</span></div>';
                 h += '<div id="ngpNavResultado"><div style="font-size:11px;color:#94a3b8;padding:6px;">Calculando…</div></div>';
                 h += '</div>';
                 // V46.9.280 (pedido de Leo): panel REGRESOS tras sequía global
@@ -35291,14 +35311,14 @@ function senalesDe(nn) {
             2009: '90', 2010: '41', 2011: '25', 2012: '70', 2013: '67', 2014: '29', 2015: '63', 2016: '93', 2017: '06', 2018: '19', 2019: '15',
             2020: '66', 2021: '19', 2022: '00', 2023: '94', 2024: '43', 2025: '78' };
         function _ngpNavCfg() {
-            var c = { fecha: '2026-12-20', lot: 'Tica', hora: '' };
+            var c = { fecha: '2026-12-20', lot: 'Tica', hora: '', antes: '1', despues: '2' };
             try { var s = JSON.parse(localStorage.getItem('ngpNavCfg') || '{}'); Object.keys(s).forEach(function(k) { if (s[k] !== undefined) c[k] = s[k]; }); } catch (e) {}
             return c;
         }
         function _ngpNavSet() {
             try {
                 var g = function(id) { var e = [...document.querySelectorAll('[id="' + id + '"]')].filter(function(x) { return x.offsetParent; })[0] || document.getElementById(id); return e ? e.value : ''; };
-                localStorage.setItem('ngpNavCfg', JSON.stringify({ fecha: g('ngpNavFecha') || '2026-12-20', lot: g('ngpNavLot'), hora: g('ngpNavHora') }));
+                localStorage.setItem('ngpNavCfg', JSON.stringify({ fecha: g('ngpNavFecha') || '2026-12-20', lot: g('ngpNavLot'), hora: g('ngpNavHora'), antes: g('ngpNavAntes') || '1', despues: g('ngpNavDesp') || '2' }));
             } catch (e) {}
             _ngpNavRender();
         }
@@ -35342,8 +35362,12 @@ function senalesDe(nn) {
                 var famFecha = {}; [dd, dd[1] + dd[0]].forEach(function(x) { famFecha[x] = 1; });
                 // vuelta "más directa" que usa Leo: 20 → 21 · 12 (el número + 1 y su vuelta)
                 var mas1 = String((parseInt(dd, 10) + 1) % 100).padStart(2, '0'); famFecha[mas1] = 1; famFecha[mas1[1] + mas1[0]] = 1;
-                var vibs = [-1, 0, 1, 2].map(function(k) { var d = mas(k), v = getVibrationNumbers(d), set = {}; (v.allNumbers || []).forEach(function(x) { set[String(x).padStart(2, '0').slice(0, 2)] = 1; }); return { k: k, d: d, vib: v.vibration, set: set }; });
-                var vDia = vibs[1].vib, vLun = vibs[2].vib;
+                var _nA = Math.max(0, Math.min(5, parseInt(cfg.antes, 10) || 0)), _nD = Math.max(0, Math.min(5, parseInt(cfg.despues, 10) || 0)), _ks = [];
+                for (var _k = -_nA; _k <= _nD; _k++) _ks.push(_k);
+                document.querySelectorAll('[id="ngpNavAntes"]').forEach(function(x) { x.value = String(_nA); });
+                document.querySelectorAll('[id="ngpNavDesp"]').forEach(function(x) { x.value = String(_nD); });
+                var vibs = _ks.map(function(k) { var d = mas(k), v = getVibrationNumbers(d), set = {}; (v.allNumbers || []).forEach(function(x) { set[String(x).padStart(2, '0').slice(0, 2)] = 1; }); return { k: k, d: d, vib: v.vibration, set: set }; });
+                var vDia = getVibrationNumbers(dF).vibration, vLun = getVibrationNumbers(mas(1)).vibration;
                 var digs = [dd[0], String(vDia), String(vLun)];
                 var cruce = {}; digs.forEach(function(a) { digs.forEach(function(b) { cruce[a + b] = 1; }); });
                 // ── historial en la lotería de referencia ──
@@ -35390,7 +35414,7 @@ function senalesDe(nn) {
                 var chip = function(t, c) { return '<span style="display:inline-block;font-size:8px;border:1px solid ' + c + ';color:' + c + ';border-radius:4px;padding:0 4px;margin:1px 2px 1px 0;white-space:nowrap;">' + t + '</span>'; };
                 var numC = function(n, extra) { return '<span style="display:inline-block;font-family:monospace;font-size:15px;font-weight:bold;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.35);border-radius:5px;padding:0 6px;margin:1px 3px 1px 0;">' + n + (extra || '') + '</span>'; };
                 var refTxt = (cfg.lot === '__TODAS__' ? 'todas las loterías' : cfg.lot) + (cfg.hora ? ' · ' + (function() { try { return convertTo12Hour(cfg.hora); } catch (e) { return cfg.hora; } })() : '');
-                var h = '<div style="font-size:12px;font-weight:bold;color:#fef08a;margin-bottom:6px;">🎄 Sorteo: ' + fTxt(dF) + ' ' + dF.getFullYear() + ' · referencia histórica: ' + refTxt + '</div>';
+                var h = '<div style="font-size:12px;font-weight:bold;color:#fef08a;margin-bottom:6px;">🎯 Estimación para el sorteo del ' + fTxt(dF) + ' ' + dF.getFullYear() + ' · vibraciones de ' + _nA + ' día(s) antes y ' + _nD + ' después · referencia histórica: ' + refTxt + '</div>';
                 // bloque 1: lo que dice la fecha
                 h += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
                 h += '<div style="flex:1;min-width:260px;background:rgba(0,0,0,0.3);border:1px solid #38bdf8;border-radius:8px;padding:6px 9px;font-size:10px;color:#e0f2fe;"><b style="color:#7dd3fc;">📅 La fecha ' + dd + '</b><br>Grupo de la fecha: <b style="color:#fff;">' + (gFecha || '—') + '</b> → ' + (gFecha ? NUMBER_GROUPS[gFecha].map(function(x) { return numC(x); }).join('') : '') + '<br>Decena ' + dd[0] + 'x → ' + [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(function(x) { return numC(dd[0] + x); }).join('') + '<br>Familia del ' + dd + ' (vuelta y la directa ' + mas1 + '): ' + Object.keys(famFecha).sort().map(function(x) { return numC(x); }).join('') + '</div>';
@@ -35399,7 +35423,7 @@ function senalesDe(nn) {
                 vibs.forEach(function(v) { Object.keys(v.set).forEach(function(x) { cntV[x] = (cntV[x] || 0) + 1; }); h += '<br><b style="color:#fff;">' + fTxt(v.d) + '</b> (vib ' + v.vib + (v.k === 0 ? ', DÍA DEL SORTEO' : v.k === 1 ? ', se adelanta' : '') + '): ' + Object.keys(v.set).sort().map(function(x) { return numC(x); }).join(''); });
                 var rep = Object.keys(cntV).filter(function(x) { return cntV[x] >= 2; }).sort(function(a, b) { return cntV[b] - cntV[a] || (a < b ? -1 : 1); });
                 h += '<br><b style="color:#facc15;">🔁 Se repiten en varias:</b> ' + (rep.length ? rep.map(function(x) { return numC(x, '<sup style="font-size:9px;color:#facc15;">×' + cntV[x] + '</sup>'); }).join('') : '—');
-                h += '<br><b style="color:#c084fc;">✨ Cruce de dígitos ' + digs.join(' · ') + '</b> (el ' + dd[0] + ' del ' + dd + ', la vibración ' + vDia + ' del domingo y la ' + vLun + ' del lunes): ' + Object.keys(cruce).sort().map(function(x) { return numC(x); }).join('') + '</div>';
+                h += '<br><b style="color:#c084fc;">✨ Cruce de dígitos ' + digs.join(' · ') + '</b> (el ' + dd[0] + ' del ' + dd + ', la vibración ' + vDia + ' del ' + DIAS[dow] + ' y la ' + vLun + ' del ' + DIAS[(dow + 1) % 7] + '): ' + Object.keys(cruce).sort().map(function(x) { return numC(x); }).join('') + '</div>';
                 h += '</div>';
                 // bloque 2: historial de las combinaciones (domingo / fecha 20)
                 var cand = filas.filter(function(x) { return x.p > 0; });
