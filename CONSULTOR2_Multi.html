@@ -28349,6 +28349,7 @@ function senalesDe(nn) {
                 h += '<button onclick="_ngpFriosToggle()" style="background:linear-gradient(135deg,#334155,#64748b);border:1px solid #cbd5e1;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">📉 Fríos por Lotería</button>'; // V46.9.210 (pedido de Leo)
                 h += '<button onclick="_ngpAusToggle()" style="background:linear-gradient(135deg,#155e75,#06b6d4);border:1px solid #a5f3fc;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🔎 Ausencias</button>'; // V46.9.210 (pedido de Leo)
                 h += '<button onclick="_ngpF2882Toggle()" style="background:linear-gradient(135deg,#0e7490,#22d3ee);border:1px solid #a5f3fc;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🧲 Backtest 28·82</button>'; // V46.9.217 (pedido de Leo)
+                h += '<button onclick="_ngpNavToggle()" title="Estimación para la Lotería Navideña (Gordo Navideño JPS): fecha, grupo, vibraciones, cruces e historial" style="background:linear-gradient(135deg,#b91c1c,#15803d);border:2px solid #fde68a;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🎄 Lotería Navideña</button>'; // V46.9.290
                 h += '<button onclick="_ngpRegToggle()" title="Números y grupos que estuvieron pegados en TODAS las loterías y volvieron a salir en los últimos 3 días — con backtest" style="background:linear-gradient(135deg,#065f46,#10b981);border:1px solid #a7f3d0;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🔄 Regresos</button>'; // V46.9.280
                 h += '<button onclick="_ngpRepToggle()" title="Probar si un número, tras salir en cualquier lotería, tiende a repetir o darse vuelta en los sorteos siguientes del mismo día; vigilados 28·82·77·98 con alerta en las tarjetas" style="background:linear-gradient(135deg,#831843,#ec4899);border:1px solid #fbcfe8;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">🔁 Repite / Vuelta</button>'; // V46.9.277
                 h += '<button onclick="_ngpGrpExcToggle()" style="background:linear-gradient(135deg,#7f1d1d,#f87171);border:1px solid #fecaca;color:#fff;padding:7px 13px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;margin-left:6px;">📊 Backtest Grupos Excedidos</button>'; // V46.9.222 (pedido de Leo)
@@ -28527,6 +28528,12 @@ function senalesDe(nn) {
                 h += '</div>';
                 // V46.9.220 (pedido de Leo, maqueta aprobada): botón flotante + ventana
                 // V46.9.222 (pedido de Leo): panel BACKTEST GRUPOS EXCEDIDOS
+                // V46.9.290 (pedido de Leo): panel ESTIMACIÓN LOTERÍA NAVIDEÑA
+                h += '<div id="ngpNavPanel" style="display:none;background:linear-gradient(135deg,rgba(127,29,29,0.35),rgba(20,83,45,0.35));border:2px solid #fde68a;border-radius:10px;padding:10px;margin-top:9px;">';
+                h += '<div style="font-size:13px;font-weight:bold;color:#fef08a;margin-bottom:6px;">🎄 ESTIMACIÓN — LOTERÍA NAVIDEÑA (Gordo Navideño JPS)</div>';
+                h += '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:10px;color:#fef9c3;margin-bottom:8px;">Fecha del sorteo: <input type="date" id="ngpNavFecha" onchange="_ngpNavSet()" style="width:auto;display:inline-block;font-size:11px;padding:2px 4px;border-radius:4px;margin:0;"> Lotería de referencia: <select id="ngpNavLot" onchange="_ngpNavSet()" style="width:auto;display:inline-block;font-size:10px;padding:2px 4px;border-radius:4px;margin:0;"></select> Horario: <select id="ngpNavHora" onchange="_ngpNavSet()" style="width:auto;display:inline-block;font-size:10px;padding:2px 4px;border-radius:4px;margin:0;"></select></div>';
+                h += '<div id="ngpNavResultado"><div style="font-size:11px;color:#94a3b8;padding:6px;">Calculando…</div></div>';
+                h += '</div>';
                 // V46.9.280 (pedido de Leo): panel REGRESOS tras sequía global
                 h += '<div id="ngpRegPanel" style="display:none;background:rgba(6,78,59,0.3);border:1px solid #34d399;border-radius:9px;padding:10px;margin-top:9px;">';
                 h += '<div style="font-size:11px;font-weight:bold;color:#a7f3d0;margin-bottom:6px;">🔄 REGRESOS — números y grupos que estuvieron sin salir en TODAS las loterías más tiempo de la cuenta y volvieron a salir (anteayer, ayer u hoy). ¿Es común? ¿Se cumple?</div>';
@@ -31202,7 +31209,7 @@ function senalesDe(nn) {
             cont.innerHTML = html;
         }
         // V46.9.155: cierre mutuo de los 5 paneles del módulo
-        var _NGP_PANELES = ['ngpRegPanel', 'ngpRepPanel', 'ngpFiltroPanel', 'ngpExtractoPanel', 'ngpResumenPanel', 'ngpDespuesPanel', 'ngpBuscarPanel', 'ngpAntesPanel', 'ngpDgPanel', 'ngpDgtPanel', 'ngpFechaPanel', 'ngpGrpPromPanel', 'ngpTermRepPanel', 'ngpSum9Panel', 'ngpTopMesPanel', 'ngpFriosPanel', 'ngpAusPanel', 'ngpF2882Panel', 'ngpGrpExcPanel', 'ngpDdeBackPanel', 'ngpActGrpPanel']; // V46.9.229
+        var _NGP_PANELES = ['ngpNavPanel', 'ngpRegPanel', 'ngpRepPanel', 'ngpFiltroPanel', 'ngpExtractoPanel', 'ngpResumenPanel', 'ngpDespuesPanel', 'ngpBuscarPanel', 'ngpAntesPanel', 'ngpDgPanel', 'ngpDgtPanel', 'ngpFechaPanel', 'ngpGrpPromPanel', 'ngpTermRepPanel', 'ngpSum9Panel', 'ngpTopMesPanel', 'ngpFriosPanel', 'ngpAusPanel', 'ngpF2882Panel', 'ngpGrpExcPanel', 'ngpDdeBackPanel', 'ngpActGrpPanel']; // V46.9.229
         function _ngpCerrarOtros(salvo) {
             _NGP_PANELES.forEach(function(id) {
                 if (id === salvo) return;
@@ -34245,6 +34252,140 @@ function senalesDe(nn) {
                 var p = T.porL[L], mj = _ngpT47MejoresDe(L, p.obj);
                 return '<div style="background:rgba(8,145,178,0.35);border:2px solid #67e8f9;border-radius:8px;padding:5px 10px;margin-bottom:7px;font-size:10px;color:#ecfeff;line-height:1.5;"><b style="font-size:11px;color:#fff;">🔁 TERMINACIÓN 4↔7:</b> el último sorteo acá fue <b style="font-family:monospace;font-size:13px;">' + p.origen + '</b> (' + p.hora + ', term. ' + p.term + ') → para el próximo (' + p.prox + ') los números con <b style="color:#fef08a;">terminación ' + p.obj + '</b> suman +1' + (p.reforzado ? ' · <b style="color:#fde047;">🔥 reforzado</b> (hoy ' + p.otras.length + ' con terminación ' + p.obj + ' en otras loterías)' : '') + (mj.length ? ' · mejores: ' + mj.map(function(x) { return '<b style="font-family:monospace;font-size:13px;color:#fff;">' + x.n + '</b> (' + x.s + ')'; }).join(', ') : '') + '</div>';
             } catch (e) { return ''; }
+        }
+        // ═══ V46.9.290 (pedido de Leo): 🎄 ESTIMACIÓN LOTERÍA NAVIDEÑA ═══════════════
+        // Ganadores del premio mayor del Gordo Navideño (fuentes: Telediario, El Observador, NTG, Sinart).
+        var _NAV_GANADORES = { 1960: '30', 1964: '15', 1968: '30', 1970: '94', 1975: '19', 1983: '15', 1985: '30', 1987: '94', 1999: '06',
+            2009: '90', 2010: '41', 2011: '25', 2012: '70', 2013: '67', 2014: '29', 2015: '63', 2016: '93', 2017: '06', 2018: '19', 2019: '15',
+            2020: '66', 2021: '19', 2022: '00', 2023: '94', 2024: '43', 2025: '78' };
+        function _ngpNavCfg() {
+            var c = { fecha: '2026-12-20', lot: 'Tica', hora: '' };
+            try { var s = JSON.parse(localStorage.getItem('ngpNavCfg') || '{}'); Object.keys(s).forEach(function(k) { if (s[k] !== undefined) c[k] = s[k]; }); } catch (e) {}
+            return c;
+        }
+        function _ngpNavSet() {
+            try {
+                var g = function(id) { var e = [...document.querySelectorAll('[id="' + id + '"]')].filter(function(x) { return x.offsetParent; })[0] || document.getElementById(id); return e ? e.value : ''; };
+                localStorage.setItem('ngpNavCfg', JSON.stringify({ fecha: g('ngpNavFecha') || '2026-12-20', lot: g('ngpNavLot'), hora: g('ngpNavHora') }));
+            } catch (e) {}
+            _ngpNavRender();
+        }
+        function _ngpNavPTSet(el) { try { var s = JSON.parse(localStorage.getItem('ngpNavPT') || '{}'); s[el.getAttribute('data-k')] = parseFloat(el.value) || 0; localStorage.setItem('ngpNavPT', JSON.stringify(s)); } catch (e) {} _ngpNavRender(); }
+        function _ngpNavToggle() {
+            var ps = document.querySelectorAll('[id="ngpNavPanel"]');
+            if (!ps.length) return;
+            var abrir = (ps[0].style.display === 'none');
+            _ngpCerrarOtros('ngpNavPanel');
+            ps.forEach(function(p) { p.style.display = abrir ? 'block' : 'none'; });
+            if (abrir) _ngpNavRender();
+        }
+        function _ngpNavRender() {
+            try {
+                var conts = document.querySelectorAll('[id="ngpNavResultado"]');
+                if (!conts.length) return;
+                var cfg = _ngpNavCfg();
+                var DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+                var MES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+                var dF = new Date(cfg.fecha + 'T12:00:00');
+                var mas = function(k) { var d = new Date(dF.getTime()); d.setDate(d.getDate() + k); return d; };
+                var fTxt = function(d) { return DIAS[d.getDay()] + ' ' + d.getDate() + ' de ' + MES[d.getMonth()]; };
+                var dd = String(dF.getDate()).padStart(2, '0'), dow = dF.getDay();
+                // selectores (lotería de referencia y horario)
+                var lots2 = [];
+                try { LOTTERIES.forEach(function(l) { if (l.digits === 3 || /monazo|tripleta/i.test(l.name)) return; lots2.push(l.name); }); } catch (e) {}
+                document.querySelectorAll('[id="ngpNavFecha"]').forEach(function(x) { if (document.activeElement !== x) x.value = cfg.fecha; });
+                document.querySelectorAll('[id="ngpNavLot"]').forEach(function(x) {
+                    x.innerHTML = '<option value="__TODAS__">Todas las loterías</option>' + lots2.map(function(l) { return '<option value="' + l + '">' + l + (l === 'Tica' ? ' (JPS)' : '') + '</option>'; }).join('');
+                    x.value = cfg.lot || 'Tica';
+                });
+                var horas = {};
+                (capturedResults || []).forEach(function(r) { if (r && (cfg.lot === '__TODAS__' || r.lottery === cfg.lot) && r.time) horas[('' + r.time).substring(0, 5)] = 1; });
+                document.querySelectorAll('[id="ngpNavHora"]').forEach(function(x) {
+                    x.innerHTML = '<option value="">Todos los horarios</option>' + Object.keys(horas).sort().map(function(h) { var t = h; try { t = convertTo12Hour(h); } catch (e) {} return '<option value="' + h + '">' + t + '</option>'; }).join('');
+                    x.value = cfg.hora && horas[cfg.hora] ? cfg.hora : '';
+                });
+                // ── factores ──
+                var gOf = {}; Object.keys(NUMBER_GROUPS).forEach(function(g) { NUMBER_GROUPS[g].forEach(function(n) { gOf[n] = g; }); });
+                var gFecha = gOf[dd] || null;
+                var famFecha = {}; [dd, dd[1] + dd[0]].forEach(function(x) { famFecha[x] = 1; });
+                // vuelta "más directa" que usa Leo: 20 → 21 · 12 (el número + 1 y su vuelta)
+                var mas1 = String((parseInt(dd, 10) + 1) % 100).padStart(2, '0'); famFecha[mas1] = 1; famFecha[mas1[1] + mas1[0]] = 1;
+                var vibs = [-1, 0, 1, 2].map(function(k) { var d = mas(k), v = getVibrationNumbers(d), set = {}; (v.allNumbers || []).forEach(function(x) { set[String(x).padStart(2, '0').slice(0, 2)] = 1; }); return { k: k, d: d, vib: v.vibration, set: set }; });
+                var vDia = vibs[1].vib, vLun = vibs[2].vib;
+                var digs = [dd[0], String(vDia), String(vLun)];
+                var cruce = {}; digs.forEach(function(a) { digs.forEach(function(b) { cruce[a + b] = 1; }); });
+                // ── historial en la lotería de referencia ──
+                var sem = {}, d20 = {}, ambos = {}, tSem = 0, tD20 = 0, tAmb = 0;
+                (capturedResults || []).forEach(function(r) {
+                    if (!r || !r.date || !r.number) return;
+                    var n = '' + r.number; if (n.length !== 2) return;
+                    if (cfg.lot === '__TODAS__') { try { var e3 = false; LOTTERIES.forEach(function(l) { if (l.name === r.lottery && l.digits === 3) e3 = true; }); if (e3) return; } catch (e) {} }
+                    else if (r.lottery !== cfg.lot) return;
+                    if (cfg.hora && ('' + r.time).substring(0, 5) !== cfg.hora) return;
+                    var d = new Date(r.date + 'T12:00:00'), esDow = d.getDay() === dow, esD = r.date.substring(8, 10) === dd;
+                    if (esDow) { sem[n] = (sem[n] || 0) + 1; tSem++; }
+                    if (esD) { d20[n] = (d20[n] || 0) + 1; tD20++; }
+                    if (esDow && esD) { ambos[n] = (ambos[n] || 0) + 1; tAmb++; }
+                });
+                var topK = function(m, k) { return Object.keys(m).sort(function(a, b) { return m[b] - m[a]; }).slice(0, k); };
+                var top10Sem = {}, top10D = {}; topK(sem, 10).forEach(function(n) { top10Sem[n] = 1; }); topK(d20, 10).forEach(function(n) { top10D[n] = 1; });
+                var ganoNav = {}; Object.keys(_NAV_GANADORES).forEach(function(y) { var n = _NAV_GANADORES[y]; (ganoNav[n] = ganoNav[n] || []).push(y); });
+                // ── puntaje ──
+                var PT = { grupo: 2, decena: 1, familia: 2, vibDia: 3, vibAdel: 2, vibOtra: 1, repVib: 1, cruce: 3, sem: 1, d20: 1, nav: 1 };
+                try { var _ptS = JSON.parse(localStorage.getItem('ngpNavPT') || '{}'); Object.keys(_ptS).forEach(function(k) { if (PT[k] !== undefined && !isNaN(parseFloat(_ptS[k]))) PT[k] = parseFloat(_ptS[k]); }); } catch (ePT) {}
+                var filas = [];
+                for (var i = 0; i < 100; i++) {
+                    var n = String(i).padStart(2, '0'), p = 0, f = [];
+                    if (gFecha && gOf[n] === gFecha) { p += PT.grupo; f.push(['📅 ' + gFecha.replace('Grupo ', 'G') + ' de la fecha', '#38bdf8']); }
+                    if (n[0] === dd[0]) { p += PT.decena; f.push(['🔟 decena ' + dd[0] + 'x', '#38bdf8']); }
+                    if (famFecha[n]) { p += PT.familia; f.push(['👪 familia del ' + dd, '#f472b6']); }
+                    var nv = 0;
+                    vibs.forEach(function(v) {
+                        if (!v.set[n]) return; nv++;
+                        var etq = '🔮 vib ' + v.d.getDate() + '/' + (v.d.getMonth() + 1) + ' (' + v.vib + ')';
+                        if (v.k === 0) { p += PT.vibDia; f.push([etq + ' · día del sorteo', '#fb923c']); }
+                        else if (v.k === 1) { p += PT.vibAdel; f.push([etq + ' · se adelanta', '#fb923c']); }
+                        else { p += PT.vibOtra; f.push([etq, '#fdba74']); }
+                    });
+                    if (nv >= 2) { p += PT.repVib * (nv - 1); f.push(['🔁 en ' + nv + ' vibraciones', '#facc15']); }
+                    if (cruce[n]) { p += PT.cruce; f.push(['✨ cruce ' + digs.join('·'), '#c084fc']); }
+                    if (top10Sem[n]) { p += PT.sem; f.push(['📆 top ' + DIAS[dow] + ' (' + sem[n] + ')', '#4ade80']); }
+                    if (top10D[n]) { p += PT.d20; f.push(['📆 top fecha ' + dd + ' (' + d20[n] + ')', '#4ade80']); }
+                    if (ganoNav[n]) { p += PT.nav; f.push(['🎄 ganó el Navideño ' + ganoNav[n].join(', '), '#ef4444']); }
+                    filas.push({ n: n, p: p, f: f, sem: sem[n] || 0, d20: d20[n] || 0, amb: ambos[n] || 0 });
+                }
+                filas.sort(function(a, b) { return b.p - a.p || (b.amb - a.amb) || (b.sem + b.d20 - a.sem - a.d20); });
+                var chip = function(t, c) { return '<span style="display:inline-block;font-size:8px;border:1px solid ' + c + ';color:' + c + ';border-radius:4px;padding:0 4px;margin:1px 2px 1px 0;white-space:nowrap;">' + t + '</span>'; };
+                var numC = function(n, extra) { return '<span style="display:inline-block;font-family:monospace;font-size:15px;font-weight:bold;color:#fff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.35);border-radius:5px;padding:0 6px;margin:1px 3px 1px 0;">' + n + (extra || '') + '</span>'; };
+                var refTxt = (cfg.lot === '__TODAS__' ? 'todas las loterías' : cfg.lot) + (cfg.hora ? ' · ' + (function() { try { return convertTo12Hour(cfg.hora); } catch (e) { return cfg.hora; } })() : '');
+                var h = '<div style="font-size:12px;font-weight:bold;color:#fef08a;margin-bottom:6px;">🎄 Sorteo: ' + fTxt(dF) + ' ' + dF.getFullYear() + ' · referencia histórica: ' + refTxt + '</div>';
+                // bloque 1: lo que dice la fecha
+                h += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+                h += '<div style="flex:1;min-width:260px;background:rgba(0,0,0,0.3);border:1px solid #38bdf8;border-radius:8px;padding:6px 9px;font-size:10px;color:#e0f2fe;"><b style="color:#7dd3fc;">📅 La fecha ' + dd + '</b><br>Grupo de la fecha: <b style="color:#fff;">' + (gFecha || '—') + '</b> → ' + (gFecha ? NUMBER_GROUPS[gFecha].map(function(x) { return numC(x); }).join('') : '') + '<br>Decena ' + dd[0] + 'x → ' + [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(function(x) { return numC(dd[0] + x); }).join('') + '<br>Familia del ' + dd + ' (vuelta y la directa ' + mas1 + '): ' + Object.keys(famFecha).sort().map(function(x) { return numC(x); }).join('') + '</div>';
+                h += '<div style="flex:1;min-width:260px;background:rgba(0,0,0,0.3);border:1px solid #fb923c;border-radius:8px;padding:6px 9px;font-size:10px;color:#ffedd5;"><b style="color:#fdba74;">🔮 Vibraciones</b>';
+                var cntV = {};
+                vibs.forEach(function(v) { Object.keys(v.set).forEach(function(x) { cntV[x] = (cntV[x] || 0) + 1; }); h += '<br><b style="color:#fff;">' + fTxt(v.d) + '</b> (vib ' + v.vib + (v.k === 0 ? ', DÍA DEL SORTEO' : v.k === 1 ? ', se adelanta' : '') + '): ' + Object.keys(v.set).sort().map(function(x) { return numC(x); }).join(''); });
+                var rep = Object.keys(cntV).filter(function(x) { return cntV[x] >= 2; }).sort(function(a, b) { return cntV[b] - cntV[a] || (a < b ? -1 : 1); });
+                h += '<br><b style="color:#facc15;">🔁 Se repiten en varias:</b> ' + (rep.length ? rep.map(function(x) { return numC(x, '<sup style="font-size:9px;color:#facc15;">×' + cntV[x] + '</sup>'); }).join('') : '—');
+                h += '<br><b style="color:#c084fc;">✨ Cruce de dígitos ' + digs.join(' · ') + '</b> (el ' + dd[0] + ' del ' + dd + ', la vibración ' + vDia + ' del domingo y la ' + vLun + ' del lunes): ' + Object.keys(cruce).sort().map(function(x) { return numC(x); }).join('') + '</div>';
+                h += '</div>';
+                // bloque 2: historial de las combinaciones (domingo / fecha 20)
+                var cand = filas.filter(function(x) { return x.p > 0; });
+                var histOrd = cand.slice().sort(function(a, b) { return (b.amb - a.amb) || (b.sem + b.d20 - a.sem - a.d20); }).slice(0, 15);
+                h += '<div style="background:rgba(0,0,0,0.3);border:1px solid #4ade80;border-radius:8px;padding:6px 9px;font-size:10px;color:#dcfce7;margin-top:8px;"><b style="color:#86efac;">📆 De estas combinaciones, las que más se repiten en ' + DIAS[dow] + ' y en fecha ' + dd + ' (' + refTxt + ')</b> <span style="color:#94a3b8;">— ' + tSem + ' sorteos en ' + DIAS[dow] + ' · ' + tD20 + ' en fecha ' + dd + ' · ' + tAmb + ' en ' + DIAS[dow] + ' ' + dd + '</span><br>';
+                h += histOrd.map(function(x) { return numC(x.n, ' <span style="font-size:9px;font-weight:normal;color:#bbf7d0;">' + DIAS[dow].substring(0, 3) + ' ' + x.sem + ' · f' + dd + ' ' + x.d20 + (x.amb ? ' · ambos ' + x.amb : '') + '</span>'); }).join('') + '</div>';
+                // bloque 3: Gordos anteriores
+                h += '<div style="background:rgba(0,0,0,0.3);border:1px solid #ef4444;border-radius:8px;padding:6px 9px;font-size:10px;color:#fee2e2;margin-top:8px;"><b style="color:#fca5a5;">🎄 Ganadores del Gordo Navideño</b> (premio mayor): ' + Object.keys(_NAV_GANADORES).sort().reverse().map(function(y) { return '<span style="white-space:nowrap;">' + y + ': <b style="color:#fff;font-family:monospace;">' + _NAV_GANADORES[y] + '</b></span>'; }).join(' · ') + '<br><span style="color:#fca5a5;">Más veces: 15, 19, 30 y 94 (3 veces cada uno) · 06 (2 veces).</span></div>';
+                // bloque 4: ranking
+                h += '<div style="background:rgba(0,0,0,0.35);border:2px solid #facc15;border-radius:9px;padding:7px 10px;margin-top:8px;"><b style="font-size:12px;color:#fef08a;">🏆 RANKING PARA EL NAVIDEÑO</b> <div style="font-size:9px;color:#fde68a;margin:3px 0 4px;line-height:2;">⚙️ Puntos (editables, se guardan): ' + [['vibDia', 'vibración del día'], ['grupo', 'grupo de la fecha'], ['familia', 'familia del ' + dd], ['vibAdel', 'vibración que se adelanta'], ['cruce', 'cruce de dígitos'], ['decena', 'decena'], ['vibOtra', 'otra vibración'], ['repVib', 'cada vibración extra'], ['sem', 'top ' + DIAS[dow]], ['d20', 'top fecha ' + dd], ['nav', 'ya ganó el Navideño']].map(function(q) { return '<span style="white-space:nowrap;margin-right:8px;">' + q[1] + ' <input type="number" step="1" min="0" max="9" value="' + PT[q[0]] + '" data-k="' + q[0] + '" onchange="_ngpNavPTSet(this)" style="width:38px;display:inline-block;font-size:10px;padding:0 2px;margin:0;border-radius:3px;"></span>'; }).join('') + ' <button onclick="try{localStorage.removeItem(\'ngpNavPT\')}catch(e){};_ngpNavRender()" style="font-size:9px;padding:1px 6px;border-radius:4px;cursor:pointer;">Volver al default</button></div>';
+                filas.slice(0, 20).forEach(function(x, i9) {
+                    h += '<div style="display:flex;align-items:center;gap:8px;border-top:1px solid rgba(250,204,21,0.2);padding:3px 0;">';
+                    h += '<span style="font-size:10px;color:#fde68a;min-width:18px;">' + (i9 + 1) + '</span><span style="font-family:monospace;font-size:' + (i9 < 5 ? 22 : 17) + 'px;font-weight:bold;color:#fff;min-width:34px;">' + x.n + '</span><b style="color:#facc15;min-width:42px;">' + x.p + ' pts</b>';
+                    h += '<span style="flex:1;">' + x.f.map(function(c) { return chip(c[0], c[1]); }).join('') + '</span></div>';
+                });
+                h += '<div style="font-size:8px;color:#94a3b8;margin-top:4px;">Estimación basada en tus criterios (fecha, vibraciones y frecuencias); ningún método garantiza el resultado de un sorteo. El Navideño es la Lotería Nacional de la JPS: por eso la referencia por defecto es Tica (Nuevos Tiempos JPS).</div></div>';
+                conts.forEach(function(x) { x.innerHTML = h; });
+            } catch (e) { console.error('[NAV]', e); }
         }
         function _ngpGrpExcToggle() {
             var ps = document.querySelectorAll('[id="ngpGrpExcPanel"]');
@@ -76816,7 +76957,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r222 · v46.9.289</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r223 · v46.9.290</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
