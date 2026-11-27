@@ -1007,6 +1007,9 @@
         /* V46.9.287: pulso de la alerta MISMO DÍA (brillo, sin perder lectura) */
         @keyframes ngpMDPulso { 0%,100% { box-shadow: 0 0 6px rgba(103,232,249,0.5); } 50% { box-shadow: 0 0 26px rgba(103,232,249,1), 0 0 4px #fff inset; } }
         .ngp-md-pulso { animation: ngpMDPulso 1.3s ease-in-out infinite; }
+        /* V46.9.293: ventana grupos rezagados — buscador */
+        .ngp-cons[data-full="1"] .ngp-cons-out > div:last-child { display: none; }
+        @media (max-width: 640px) { .ngp-flot-hint { display: none; } .ngp-flot-head #ngpFlotFecha { display: block; font-size: 9px !important; } }
         .ngp-par-vuelta { outline: 3px solid #22d3ee; outline-offset: 2px; box-shadow: 0 0 12px rgba(34,211,238,0.85) !important; }
 
         .alert {
@@ -28604,10 +28607,21 @@ function senalesDe(nn) {
                 h += '</div>';
                 h += '<div id="ngpFlotOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.72);z-index:9998;overflow:auto;padding:18px;">';
                 h += '<div style="background:linear-gradient(160deg,#2a1245,#1a0b2e);border:2px solid #f87171;border-radius:14px;max-width:1050px;margin:0 auto;padding:13px 15px;box-shadow:0 8px 40px rgba(0,0,0,0.8);">';
-                h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px dashed rgba(248,113,113,0.5);padding-bottom:8px;margin-bottom:9px;">';
+                // V46.9.293 (pedido de Leo): encabezado FIJO con ✕ Cerrar + 🔍 buscador siempre visibles
+                h += '<div class="ngp-flot-head" style="position:sticky;top:-18px;z-index:6;background:linear-gradient(160deg,#2a1245,#1f0d36);margin:-13px -15px 9px;padding:11px 15px 8px;border-radius:12px 12px 0 0;border-bottom:1px dashed rgba(248,113,113,0.6);box-shadow:0 6px 14px rgba(0,0,0,0.55);">';
+                h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:7px;">';
                 h += '<span style="font-size:15px;font-weight:bold;color:#fca5a5;">🎯 LOS 2 GRUPOS MÁS REZAGADOS <span id="ngpFlotFecha" style="font-size:10px;color:#fda4af;font-weight:normal;"></span></span>';
-                h += '<button onclick="_ngpFlotToggle()" style="background:rgba(248,113,113,0.15);border:1px solid #f87171;color:#fca5a5;border-radius:7px;padding:5px 13px;font-weight:bold;cursor:pointer;font-size:12px;">✕ Cerrar</button>';
+                h += '<button onclick="_ngpFlotToggle()" style="background:linear-gradient(135deg,#7f1d1d,#dc2626);border:1.5px solid #fca5a5;color:#fff;border-radius:7px;padding:6px 15px;font-weight:bold;cursor:pointer;font-size:12px;box-shadow:0 2px 8px rgba(220,38,38,0.5);">✕ Cerrar</button>';
                 h += '</div>';
+                h += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">';
+                h += '<span style="font-size:11px;font-weight:bold;color:#7dd3fc;">🔍 Buscar números:</span>';
+                h += '<input type="text" class="ngp-flot-busq-inp" placeholder="ej: 27 72 05" onkeyup="if(event.key===\'Enter\')_ngpFlotBuscar(this)" style="width:170px;display:inline-block;font-size:13px;font-weight:bold;padding:4px 8px;border-radius:6px;margin:0;">';
+                h += '<button onclick="_ngpFlotBuscar(this)" style="background:linear-gradient(135deg,#0c4a6e,#0ea5e9);border:1px solid #7dd3fc;color:#fff;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:bold;">Buscar</button>';
+                h += '<button onclick="_ngpFlotBusqLimpiar()" style="background:rgba(148,163,184,0.15);border:1px solid #94a3b8;color:#cbd5e1;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px;">Limpiar</button>';
+                h += '<span class="ngp-flot-hint" style="font-size:9px;color:#94a3b8;">uno o varios, separados por espacio o coma · busca en las loterías que se están mostrando</span>';
+                h += '</div>';
+                h += '</div>';
+                h += '<div id="ngpFlotBusqOut"></div>';
                 h += '<div id="ngpFlotChips" style="margin-bottom:9px;font-size:11px;color:#cbd5e1;"></div>';
                 h += '<div id="ngpFlotBody"><div style="font-size:11px;color:#94a3b8;">Calculando…</div></div>';
                 h += '</div></div>';
@@ -33988,7 +34002,7 @@ function senalesDe(nn) {
                     if (vib) extras.push('🔮 vibración de hoy'); if (vibM) extras.push('🔮ᵐ vibración de mañana'); if (gFecha) extras.push('📅 grupo de la fecha (' + (gd.grupo || '') + ')');
                     if (reg) extras.push('🔄 regreso: estuvo ' + reg.gap + ' sorteos sin salir en ninguna lotería y volvió ' + reg.apps.map(function(a) { return a.lot + ' ' + fmtD(a.date).substring(0, 5); }).join(', '));
                     if (extras.length) html += '✨ ' + extras.join(' · ') + '<br>';
-                    html += '🎯 Señales en ' + L + ': ' + (s9 && s9.score > 0 ? razones.join('') + '<span style="color:#bae6fd;"> — ' + s9.tipos.slice(0, 6).map(function(t) { return t.split(':')[0]; }).join(' · ') + (s9.tipos.length > 6 ? ' …' : '') + '</span>' : 'no está entre los candidatos de esta lotería') + '<br>';
+                    html += '🎯 Señales en ' + L + ': ' + (s9 && s9.score > 0 ? razones.join('') + '<span style="color:#bae6fd;"> — ' + (box.getAttribute('data-full') === '1' ? s9.tipos : s9.tipos.slice(0, 6)).map(function(t) { return t.split(':')[0]; }).join(' · ') + (box.getAttribute('data-full') !== '1' && s9.tipos.length > 6 ? ' …' : '') + '</span>' : 'no está entre los candidatos de esta lotería') + '<br>';
                     html += '<span style="color:#94a3b8;">Próximo sorteo de ' + L + ': ' + (prox ? prox.fmt : 'no queda hoy') + '</span>';
                     html += '</div>';
                 });
@@ -34629,6 +34643,99 @@ function senalesDe(nn) {
             if (!window._ngpFlotSel.length) window._ngpFlotSel = null;
             _ngpFlotRender();
         }
+        // ═══ V46.9.293 (pedido de Leo): 🔍 buscador de la ventana "2 grupos más rezagados" ═══
+        function _ngpFlotBuscar(el) {
+            try {
+                var ov = el && el.closest ? el.closest('[id="ngpFlotOverlay"]') : null;
+                var inp = ov ? ov.querySelector('.ngp-flot-busq-inp') : document.querySelector('.ngp-flot-busq-inp');
+                var txt = inp ? ('' + (inp.value || '')) : '';
+                var nums = txt.split(/[^0-9]+/).filter(function(x) { return x; }).map(function(x) { return x.slice(-2).padStart(2, '0'); });
+                nums = nums.filter(function(x, i) { return nums.indexOf(x) === i; }).slice(0, 12);
+                document.querySelectorAll('.ngp-flot-busq-inp').forEach(function(x) { if (x !== inp) x.value = txt; });
+                window._ngpFlotBusq = nums.length ? nums : null;
+                window._ngpFlotBusqSet = null;
+                if (nums.length) { window._ngpFlotBusqSet = {}; nums.forEach(function(n) { window._ngpFlotBusqSet[n] = true; }); }
+                if (!nums.length) document.querySelectorAll('[id="ngpFlotBusqOut"]').forEach(function(x) { x.innerHTML = '<div style="font-size:11px;color:#fbbf24;margin-bottom:8px;">Escribí al menos un número.</div>'; });
+                _ngpFlotRender();
+                document.querySelectorAll('[id="ngpFlotOverlay"]').forEach(function(o) { try { o.scrollTop = 0; } catch (e2) {} });
+            } catch (e) { console.error('[FLOT-BUSQ]', e); }
+        }
+        function _ngpFlotBusqLimpiar() {
+            window._ngpFlotBusq = null; window._ngpFlotBusqSet = null;
+            document.querySelectorAll('.ngp-flot-busq-inp').forEach(function(x) { x.value = ''; });
+            document.querySelectorAll('[id="ngpFlotBusqOut"]').forEach(function(x) { x.innerHTML = ''; });
+            _ngpFlotRender();
+        }
+        function _ngpFlotBusqRender(r) {
+            var outs = document.querySelectorAll('[id="ngpFlotBusqOut"]');
+            if (!outs.length) return;
+            var nums = window._ngpFlotBusq;
+            if (!nums || !nums.length) return;
+            try {
+                var F = window._ngpFiltro;
+                var fmtF = function(d0) { if (!d0) return '—'; var p0 = d0.split('-'); return p0[2] + '/' + p0[1]; };
+                var grupoDe = function(nn) { var g0 = null; try { Object.keys(F.NUMBER_GROUPS || {}).forEach(function(g) { if (!g0 && (F.NUMBER_GROUPS[g] || []).indexOf(nn) >= 0) g0 = g; }); } catch (e0) {} return g0; };
+                var scs = {}; (r.lots || []).forEach(function(lc) { scs[lc.lot] = _ngpFlotScores(lc.lot); });
+                var lotsTxt = (r.lots || []).map(function(lc) { return lc.lot; }).join(', ');
+                var res = nums.map(function(nn) {
+                    var hits = [];
+                    (r.lots || []).forEach(function(lc) {
+                        lc.grupos.forEach(function(gc, gi) {
+                            var x = null, pend = false;
+                            gc.pend.forEach(function(p) { if (p.n === nn) { x = p; pend = true; } });
+                            if (!x) gc.rec.forEach(function(p) { if (p.n === nn) x = p; });
+                            if (x) { var s9 = (scs[lc.lot] || {})[nn] || null; hits.push({ L: lc.lot, gc: gc, gi: gi, x: x, pend: pend, score: s9 ? s9.score : 0 }); }
+                        });
+                    });
+                    hits.sort(function(a, b) { return (b.pend - a.pend) || (b.score - a.score); });
+                    return { nn: nn, hits: hits };
+                });
+                // resumen para apostar: pendientes dentro de un grupo rezagado, ordenados por señales
+                var apuesta = [];
+                res.forEach(function(o) { o.hits.forEach(function(hh) { if (hh.pend) apuesta.push({ nn: o.nn, h: hh }); }); });
+                apuesta.sort(function(a, b) { return (b.h.score - a.h.score) || ((b.h.x.exc || 0) - (a.h.x.exc || 0)); });
+                var html = '<div style="background:rgba(8,47,73,0.55);border:2px solid #22d3ee;border-radius:11px;padding:9px 12px;margin-bottom:11px;">';
+                html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;"><span style="font-size:13px;font-weight:bold;color:#67e8f9;">🔍 RESULTADO DE LA BÚSQUEDA: ' + nums.join(' · ') + '</span><span style="font-size:9px;color:#94a3b8;">en: ' + (lotsTxt || '—') + '</span></div>';
+                if (apuesta.length) {
+                    html += '<div style="font-size:10px;font-weight:bold;color:#a5f3fc;margin-bottom:4px;">🎯 A CONSIDERAR PARA APUESTA — pendientes dentro de un grupo rezagado (más señales primero):</div>';
+                    html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:7px;">';
+                    apuesta.forEach(function(a) {
+                        var sc = a.h.score, cB = sc >= 4 ? '#4ade80' : sc >= 2 ? '#fde68a' : '#cbd5e1';
+                        html += '<span style="background:rgba(0,0,0,0.35);border:1.5px solid ' + cB + ';border-radius:8px;padding:4px 10px;font-size:10px;color:#e0f2fe;"><b style="font-family:monospace;font-size:17px;color:#fff;">' + a.nn + '</b> ' + a.h.L + ' · ' + a.h.gc.g + ' <span style="color:' + cB + ';font-weight:bold;">' + sc + ' señal' + (sc === 1 ? '' : 'es') + '</span>' + (a.h.x.exc ? ' · ' + a.h.x.exc.toFixed(1) + '× su promedio' : '') + '</span>';
+                    });
+                    html += '</div>';
+                } else {
+                    html += '<div style="font-size:10px;color:#fde68a;margin-bottom:6px;">Ninguno de los números buscados está PENDIENTE dentro de los 2 grupos más rezagados de estas loterías.</div>';
+                }
+                res.forEach(function(o) {
+                    html += '<div style="background:rgba(0,0,0,0.3);border:1.5px solid ' + (o.hits.some(function(hh) { return hh.pend; }) ? '#22d3ee' : '#475569') + ';border-radius:9px;padding:7px 10px;margin-bottom:7px;">';
+                    if (!o.hits.length) {
+                        var g9 = grupoDe(o.nn);
+                        var otros = [];
+                        (r.lots || []).forEach(function(lc) { var s9 = (scs[lc.lot] || {})[o.nn]; if (s9 && s9.score > 0) otros.push(lc.lot + ' ' + s9.score); });
+                        html += '<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;"><span style="font-family:monospace;font-size:22px;font-weight:bold;color:#94a3b8;">' + o.nn + '</span><span style="font-size:11px;color:#cbd5e1;">❌ <b>No está</b> en los 2 grupos más rezagados de ninguna de las loterías mostradas' + (g9 ? ' (es del <b>' + g9 + '</b>)' : '') + '.</span></div>';
+                        html += '<div style="font-size:10px;color:#94a3b8;margin-top:3px;">🎯 Señales DDG en estas loterías: ' + (otros.length ? '<b style="color:#e2e8f0;">' + otros.join(' · ') + '</b>' : 'ninguna') + '</div>';
+                    } else {
+                        html += '<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:4px;"><span style="font-family:monospace;font-size:24px;font-weight:bold;color:#fff;text-shadow:0 0 9px rgba(34,211,238,0.8);">' + o.nn + '</span><span style="font-size:11px;color:#a5f3fc;font-weight:bold;">✅ Está en ' + o.hits.length + ' grupo(s) rezagado(s)</span></div>';
+                        o.hits.forEach(function(hh) {
+                            var x = hh.x, gc = hh.gc;
+                            var est = hh.pend ? '<b style="color:#fde68a;">⏳ PENDIENTE</b> · últ ' + (x.ult ? fmtF(x.ult) + ' (' + x.dias + 'd)' : 'nunca salió acá') + (x.cad ? ' · cada ~' + Math.round(x.cad) + ' · <b style="color:' + (x.exc >= 1.5 ? '#f87171' : x.exc >= 1 ? '#fdba74' : '#86efac') + ';">' + x.exc.toFixed(1) + '×</b>' : '')
+                                               : '<b style="color:#86efac;">✔ SALIÓ HACE POCO</b> (' + (x.salioHoy ? 'HOY' : fmtF(x.ult)) + ')';
+                            html += '<div style="margin:5px 0 2px;font-size:10px;color:#e2e8f0;line-height:1.6;background:rgba(127,29,29,0.22);border-left:3px solid ' + (hh.gi === 0 ? '#f87171' : '#fb923c') + ';border-radius:5px;padding:3px 8px;">🎰 <b style="color:#fff;">' + hh.L + '</b> · <b style="color:#fff;">' + gc.g + '</b> (' + (hh.gi === 0 ? '1º' : '2º') + ' más rezagado' + (gc.exc !== null && gc.exc !== undefined ? ', grupo ' + gc.exc.toFixed(1) + '× su promedio' : '') + (gc.sin !== null ? ', ' + gc.sin + ' sorteos sin salir' : '') + ') · ' + est + (x.top ? ' · <span style="color:#fbbf24;">⭐ top del grupo</span>' : '') + (x.vib ? ' · <span style="color:#fb923c;">🔮 vibración</span>' : '') + '</div>';
+                            // ficha DDG completa del número en esa lotería (misma del 🔍 Consultar números)
+                            html += '<div class="ngp-cons" data-full="1" data-lot="' + hh.L.replace(/"/g, '') + '"><input type="hidden" value="' + o.nn + '"><div class="ngp-cons-out"></div></div>';
+                        });
+                    }
+                    html += '</div>';
+                });
+                html += '<div style="font-size:8px;color:#64748b;">El orden "a considerar" usa las mismas señales del DDG; ninguna señal garantiza la salida — es una guía para priorizar.</div>';
+                html += '</div>';
+                outs.forEach(function(out) {
+                    out.innerHTML = html;
+                    out.querySelectorAll('.ngp-cons').forEach(function(bx) { try { _ngpConsRun(bx.querySelector('input'), bx.getAttribute('data-lot')); } catch (e5) {} });
+                });
+            } catch (e) { console.error('[FLOT-BUSQ-R]', e); }
+        }
         function _ngpFlotRender() {
             var F = window._ngpFiltro;
             if (!F || !F.flotRez) return;
@@ -34669,6 +34776,7 @@ function senalesDe(nn) {
                 var extra = (x0.top ? ' <span style="color:#fbbf24;">⭐ top</span>' : '') + (x0.vib ? ' <span style="color:#fb923c;">🔮 VIB</span>' : '');
                 var tt9 = x0.n + ': ' + (x0.ult ? 'última salida ' + x0.ult + ' (' + x0.dias + ' días)' : 'nunca ha salido en esta lotería') + (x0.cad ? ' · pega en promedio cada ~' + Math.round(x0.cad) + ' sorteos · ' + x0.exc.toFixed(1) + ' veces su cadencia' : '') + (x0.top ? ' · es de los 5 que MÁS salen de este grupo acá' : '') + (x0.vib ? ' · coincide con la VIBRACIÓN de la fecha en estudio' : '');
                 var st9 = pend9 ? 'background:rgba(251,191,36,0.10);border:1.5px solid #fbbf24;' : 'background:rgba(74,222,128,0.07);border:1px dashed rgba(74,222,128,0.55);opacity:0.78;';
+                if (window._ngpFlotBusqSet && window._ngpFlotBusqSet[x0.n]) st9 += 'outline:3px solid #22d3ee;outline-offset:2px;box-shadow:0 0 14px rgba(34,211,238,0.9);'; // V46.9.293: buscado
                 var nc9 = pend9 ? 'color:#fde68a;text-shadow:0 0 8px rgba(251,191,36,0.5);' : 'color:#86efac;';
                 // V46.9.272 (pedido de Leo): cantidad de señales del número (conteo del Resumen)
                 try {
@@ -34756,6 +34864,7 @@ function senalesDe(nn) {
             });
             html += '<div style="font-size:9px;color:#64748b;line-height:1.6;margin-top:4px;">📝 Orden de las loterías: la más pegada primero (según cuántas veces su grupo más rezagado excede su promedio de salida). Cada lotería muestra SUS 2 grupos con más sorteos sin salir del todo. La cadencia del grupo y de cada número es histórica de ESA lotería; el semáforo: 🚨 muy excedido (1.5×+), excedido (1×+), o todavía le falta. ⭐ = de los 5 que más salen del grupo acá · 🔮 = coincide con la vibración de la fecha en estudio. Todo respeta la fecha de estudio elegida en el módulo.</div>';
             document.querySelectorAll('[id="ngpFlotBody"]').forEach(function(x) { x.innerHTML = html; });
+            try { if (window._ngpFlotBusq && window._ngpFlotBusq.length) _ngpFlotBusqRender(r); } catch (eBQ) {} // V46.9.293
         }
         // ═══ V46.9.229 (pedido de Leo): BACKTEST "DESPUÉS DE" — ¿el top 10 de ═══
         // "números que salen después" ACIERTA el sorteo siguiente? Trigger = cada
@@ -76961,7 +77070,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
         var cont = document.querySelector('.container') || document.body;
         var banner = document.createElement('div');
         banner.style.cssText = 'background:linear-gradient(135deg,#4c1d95,#6366f1);color:#fff;padding:12px 18px;border-radius:12px;margin:10px 0 16px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;';
-        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r225 · v46.9.292</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
+        banner.innerHTML = '<div><strong style="font-size:15px;">\ud83d\udcca An\u00e1lisis Predictivo \u2014 Consulta <span style="font-size:10px;opacity:0.75;">r226 · v46.9.293</span></strong><div id="consultorEstado" style="font-size:12px;margin-top:3px;color:#c4b5fd;">Iniciando\u2026</div></div>' +
             '<button id="btnRefrescarConsultor" style="background:rgba(255,255,255,0.2);border:1px solid #fff;color:#fff;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:bold;">\ud83d\udd04 Actualizar datos</button>';
         cont.insertBefore(banner, cont.firstChild);
         document.getElementById('btnRefrescarConsultor').addEventListener('click', function() {
